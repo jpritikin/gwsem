@@ -1,0 +1,13 @@
+Package: gwsem
+Type: Package
+Title: Genome Wide Structural Equation Modeling
+Version: 0.1.0
+Author@R: c(person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com",
+    role=c("aut", 'cre')),person("Bradley", "Verhulst", role="cph", email="brad.verhulst@gmail.com"))
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+Language: en-US
+Imports: OpenMx
