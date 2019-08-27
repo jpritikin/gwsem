@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -ve
+
+sudo apt-get install -yq --allow-unauthenticated --no-install-suggests --no-install-recommends \
+     r-cran-rstan r-cran-testthat r-cran-mvtnorm r-cran-reshape2 r-cran-roxygen2 \
+     r-cran-devtools r-cran-covr
+#     r-cran-knitr r-cran-rmarkdown  # for vignettes
