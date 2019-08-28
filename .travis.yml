@@ -34,6 +34,7 @@ before_script:
 script: 
   - |
     R CMD build --no-build-vignettes .
+    rm -rf OpenMx
     travis_wait 59 R CMD check --ignore-vignettes gwsem*tar.gz
 
 after_success:
