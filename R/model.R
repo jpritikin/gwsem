@@ -3,10 +3,34 @@ makeFitFunction <- function(fitfun, maxThr)
   if(maxThr==0 && fitfun == "WLS")     mxFitFunctionWLS(allContinuousMethod= "marginals")
   else if(maxThr>0 && fitfun == "WLS") mxFitFunctionWLS()
   else if(fitfun == "FIML")            mxFitFunctionML()
-  else stop(paste("Unknown fitfun", omxQuotes(fitfun))
+  else stop(paste("Unknown fitfun", omxQuotes(fitfun)))
 }
 
 calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
+
+makeComputePlan <- function(snpFileType, modelName, snpData, nSNP, out)
+{
+  onesnp <- list(
+    ST=mxComputeSetOriginalStarts(),
+    LD=mxComputeLoadData(modelName, column='snp',
+                         path=paste(snpData, snpFileType, sep = "."),
+                         method=snpFileType))
+
+  if (snpFileType == "pgen") {
+    onesnp <- c(
+      onesnp,
+      LC=mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."), column=1:3, sep='\t'))
+  }
+
+  onesnp <- c(
+    onesnp,
+    TC=mxComputeTryCatch(mxComputeSequence(list(
+      GD=mxComputeGradientDescent(),
+      SE=mxComputeStandardError()))),
+    CK=mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE))
+
+  mxComputeLoop(onesnp, i=1:nSNP)
+}
 
 #' Conduct a single factor genome-wide association study
 #' 
@@ -57,26 +81,9 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
 
   if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFac", thresh  )
 
-  if(snpFileType == "bgen"){
-    Compute <- mxComputeLoop(list(
-      mxComputeSetOriginalStarts(),
-      mxComputeLoadData("OneFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
-      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
-      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-    ), i=1:nSNP)
-  }
-  if(snpFileType == "pgen"){
-    Compute <- mxComputeLoop(list(
-      mxComputeSetOriginalStarts(),
-      mxComputeLoadData("OneFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
-      mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."),column=1:3, sep='\t'),
-      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
-      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-    ), i=1:nSNP)
-  }
-  
+  plan <- makeComputePlan(snpFileType, modelName, snpData, nSNP, out)
 
-  oneFac <- mxModel(oneFacPre, name = "OneFac", Compute  )
+  oneFac <- mxModel(oneFacPre, name = "OneFac", plan  )
 
   oneFacFit <- mxRun(oneFac)
   summary(oneFacFit)
@@ -129,24 +136,9 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 
   if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFacRes", thresh  )
 
-  if(snpFileType == "bgen"){
-    Compute <- mxComputeLoop(list(
-      mxComputeSetOriginalStarts(),
-      mxComputeLoadData("OneFacRes", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
-      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
-      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-    ), i=1:nSNP)}
+  plan <- makeComputePlan(snpFileType, modelName, snpData, nSNP, out)
 
-  if(snpFileType == "pgen"){
-    Compute <- mxComputeLoop(list(
-      mxComputeSetOriginalStarts(),
-      mxComputeLoadData("OneFacRes", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
-      mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."),column=1:3, sep='\t'),
-      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
-      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-    ), i=1:nSNP)  }
-
-  oneFac <- mxModel(oneFacPre, name = "OneFacRes", Compute  )
+  oneFac <- mxModel(oneFacPre, name = "OneFacRes", plan)
   oneFacFit <- mxRun(oneFac)
   summary(oneFacFit)
 }
@@ -204,25 +196,9 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
 
   if(maxThr>0) twoFacPre <- mxModel(twoFacPre, name = "TwoFac", thresh  )
 
-  if(snpFileType == "bgen"){
-    Compute <- mxComputeLoop(list(
-      mxComputeSetOriginalStarts(),
-      mxComputeLoadData("TwoFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
-      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
-      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-    ), i=1:nSNP)}
+  plan <- makeComputePlan(snpFileType, modelName, snpData, nSNP, out)
 
-  if(snpFileType == "pgen"){
-    Compute <- mxComputeLoop(list(
-      mxComputeSetOriginalStarts(),
-      mxComputeLoadData("TwoFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
-      mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."),column=1:3, sep='\t'),
-      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
-      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-    ), i=1:nSNP)  }
-  
-
-  twoFac <- mxModel(twoFacPre, name = "TwoFac", Compute  )
+  twoFac <- mxModel(twoFacPre, name = "TwoFac", plan)
 
   twoFacFit <- mxRun(twoFac)
   summary(twoFacFit)

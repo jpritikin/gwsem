@@ -17,7 +17,6 @@ cran=
 
 pkg=gwsem
 
-# inconsolata is not available from tlmgr; set R_RD4PDF to avoid it
-R_RD4PDF="times,hyper" R CMD check $cran ${pkg}_*.tar.gz || true
+R CMD check $cran ${pkg}_*.tar.gz || true
 cat ${pkg}.Rcheck/00install.out
 echo Manual is here, staging/${pkg}.Rcheck/${pkg}-manual.pdf
