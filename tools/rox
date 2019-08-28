@@ -10,6 +10,7 @@ if [ ! -x tools/rox ]; then
 fi
 
 rm -f man/*.Rd
+touch NAMESPACE
 R --no-restore --no-save --no-readline <<EOF
 library(roxygen2)
 pkgload::load_all()

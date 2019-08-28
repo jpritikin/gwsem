@@ -16,6 +16,7 @@ addons:
 
 env:
   global:
+    - INSTALLMAKEFLAGS="-j 2"
     - MAKEFLAGS="-j 2"
 
 before_install:
