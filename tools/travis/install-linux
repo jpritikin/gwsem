@@ -6,3 +6,9 @@ sudo apt-get install -yq --allow-unauthenticated --no-install-suggests --no-inst
      r-cran-rstan r-cran-testthat r-cran-mvtnorm r-cran-reshape2 r-cran-roxygen2 \
      r-cran-devtools r-cran-covr
 #     r-cran-knitr r-cran-rmarkdown  # for vignettes
+
+# Need to grab from GIT until there is a release with the plug-in API
+git clone --depth 10 https://github.com/OpenMx/OpenMx.git
+pushd OpenMx
+make cran-install
+popd
