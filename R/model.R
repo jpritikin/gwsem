@@ -152,12 +152,13 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
 
-  fac <- matrix(1, length(c(F1itemNames,F2itemNames)))
-  thr <- matrix(1, length(c(F1itemNames,F2itemNames)))
+  itemNames <- c(F1itemNames,F2itemNames)
+  fac <- matrix(1, length(itemNames))
+  thr <- matrix(1, length(itemNames))
   
-  for(i in 1:length(c(F1itemNames,F2itemNames))){
-    fac[i] <-  is.factor(phenoData[,c(F1itemNames,F2itemNames)][,i])
-    thr[i] <-  nlevels(phenoData[,c(F1itemNames,F2itemNames)][,i])-1
+  for(i in 1:length(itemNames)){
+    fac[i] <-  is.factor(phenoData[,itemNames][,i])
+    thr[i] <-  nlevels(phenoData[,itemNames][,i])-1
   }
   thr[thr< 0] <- 0
   maxThr <- max(thr)
@@ -172,13 +173,13 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
   snpBeta   <- mxPath(from = "snp", to = latents, labels = paste0("snp", 2, latents), values = 0, free = T)
   snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
 
-  resid     <- mxPath(from = c(F1itemNames,F2itemNames), arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
+  resid     <- mxPath(from = itemNames, arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
   covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
-  cov2item  <- mxPath(from = covariates, to = c(c(F1itemNames,F2itemNames)), connect = "all.pairs", labels = paste(rep(covariates, each = length(c(F1itemNames,F2itemNames))), c(F1itemNames,F2itemNames), sep = "_2_"))
-  itemMean  <- mxPath(from = 'one', to = c(F1itemNames,F2itemNames), free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
+  cov2item  <- mxPath(from = covariates, to = c(itemNames), connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
+  itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
-  if(maxThr>0) thresh    <- mxThreshold(c(F1itemNames, F2itemNames)[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(c(F1itemNames,F2itemNames)[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
+  if(maxThr>0) thresh    <- mxThreshold(c(F1itemNames, F2itemNames)[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
   
   
   dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
