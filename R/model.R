@@ -1,245 +1,212 @@
-require(OpenMx)
-require(MASS)
-require(psych)
-require(data.table)
+#' @importFrom stats rbinom
+#' @export
+oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = NA, fitfun = "WLS", minMAF = .01, snpFileType = 'bgen', out = "out"){
+  minVar <- 2*minMAF*(1-minMAF)
 
-
-##############################################################################################################################################################
-##############################################################################################################################################################
-##############################################################################################################################################################
-##############################################################################################################################################################
- 
- oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = NA, fitfun = "WLS", minMAF = .01, snpFileType = 'bgen', out = "out"){
- 	minVar <- 2*minMAF*(1-minMAF)
-
-    fac <- matrix(1, length(itemNames))
-    thr <- matrix(1, length(itemNames))
- 
-    for(i in 1:length(itemNames)){
-   fac[i] <-  is.factor(phenoData[,itemNames][,i])
-   thr[i] <-  nlevels(phenoData[,itemNames][,i])-1
-    }
-    thr[thr< 0] <- 0
-    maxThr <- max(thr)
-
-phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
-latents   <- c("F")
-lambda    <- mxPath(from=latents, to=itemNames,values=1, free = T, labels = paste("lambda", itemNames, sep = "_")  )
-snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
-snpBeta   <- mxPath(from = "snp", to = "F", labels = "snpReg", values = 0, free = T)
-snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
-resid     <- mxPath(from = c(itemNames), arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
-facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
-covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
-cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
-itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
-
-if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
- 
- 
-dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
-
-if(maxThr==0 & fitfun == "WLS") fun      <- mxFitFunctionWLS(allContinuousMethod= "marginals")
-if(maxThr>0 & fitfun == "WLS") fun       <- mxFitFunctionWLS()
-if(fitfun == "FIML") fun                 <- mxFitFunctionML()
-
-
- oneFacPre <- mxModel("OneFac", type="RAM",
-       manifestVars = c("snp", itemNames),
-       latentVars = c(latents, covariates),
- 	  lambda, snpMu, snpBeta, snpres, resid, facRes, covMean, cov2item,
- 	  itemMean, dat, fun  )
-
-
-if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFac", thresh  )
-
- if(snpFileType == "bgen"){
- Compute <- mxComputeLoop(list(
- 	 mxComputeSetOriginalStarts(),
-      mxComputeLoadData("OneFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
- 	 mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
-      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-                                ), i=1:nSNP)}
-
- if(snpFileType == "pgen"){
- Compute <- mxComputeLoop(list(
-      mxComputeSetOriginalStarts(),
-      mxComputeLoadData("OneFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
-      mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."),column=1:3, sep='\t'),
-      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
-      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-                                ), i=1:nSNP)
+  fac <- matrix(1, length(itemNames))
+  thr <- matrix(1, length(itemNames))
+  
+  for(i in 1:length(itemNames)){
+    fac[i] <-  is.factor(phenoData[,itemNames][,i])
+    thr[i] <-  nlevels(phenoData[,itemNames][,i])-1
   }
- 
+  thr[thr< 0] <- 0
+  maxThr <- max(thr)
 
- oneFac <- mxModel(oneFacPre, name = "OneFac", Compute  )
+  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  latents   <- c("F")
+  lambda    <- mxPath(from=latents, to=itemNames,values=1, free = T, labels = paste("lambda", itemNames, sep = "_")  )
+  snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
+  snpBeta   <- mxPath(from = "snp", to = "F", labels = "snpReg", values = 0, free = T)
+  snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
+  resid     <- mxPath(from = c(itemNames), arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
+  facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
+  covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
+  cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
+  itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
- oneFacFit <- mxRun(oneFac)
- summary(oneFacFit)
- 
- }
+  if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
+  
+  
+  dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
 
-##############################################################################################################################################################
-##############################################################################################################################################################
-##############################################################################################################################################################
-##############################################################################################################################################################
-
- 
- 
-
-
- oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, nSNP = NA, fitfun = "WLS", minMAF = .01, snpFileType = 'bgen', out = "res"){
- 	minVar <- 2*minMAF*(1-minMAF)
-
-    fac <- matrix(1, length(itemNames))
-    thr <- matrix(1, length(itemNames))
-
-    for(i in 1:length(itemNames)){
-   fac[i] <-  is.factor(phenoData[,itemNames][,i])
-   thr[i] <-  nlevels(phenoData[,itemNames][,i])-1
-    }
-    thr[thr< 0] <- 0
-    maxThr <- max(thr)
+  if(maxThr==0 & fitfun == "WLS") fun      <- mxFitFunctionWLS(allContinuousMethod= "marginals")
+  if(maxThr>0 & fitfun == "WLS") fun       <- mxFitFunctionWLS()
+  if(fitfun == "FIML") fun                 <- mxFitFunctionML()
 
 
-phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
-latents   <- c("F")
-lambda    <- mxPath(from=latents, to=itemNames,values=1, free = T, labels = paste("lambda", itemNames, sep = "_")  )
-snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
-snpFac  <- mxPath(from = "snp", to = "F", labels = "snp2fac", values = 0, free = factor)
-snpItemRes   <- mxPath(from = "snp", to = res, labels = paste("snp", res, sep = "2"), values = 0, free = T)
-snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
-resid     <- mxPath(from = c(itemNames), arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
-facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
-covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
-cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
-itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
-
- 
-if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
-dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
-
-if(maxThr==0 & fitfun == "WLS") fun      <- mxFitFunctionWLS(allContinuousMethod= "marginals")
-if(maxThr>0 & fitfun == "WLS") fun       <- mxFitFunctionWLS()
-if(fitfun == "FIML") fun                 <- mxFitFunctionML()
+  oneFacPre <- mxModel("OneFac", type="RAM",
+                       manifestVars = c("snp", itemNames),
+                       latentVars = c(latents, covariates),
+                       lambda, snpMu, snpBeta, snpres, resid, facRes, covMean, cov2item,
+                       itemMean, dat, fun  )
 
 
- oneFacPre <- mxModel("OneFacRes", type="RAM",
-   manifestVars = c("snp", itemNames),
-   latentVars = c(latents, covariates),
-   lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes, covMean, cov2item,
-   itemMean, dat, fun  )
+  if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFac", thresh  )
 
-if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFacRes", thresh  )
-
-	 if(snpFileType == "bgen"){
-	 Compute <- mxComputeLoop(list(
-	 	 mxComputeSetOriginalStarts(),
-	      mxComputeLoadData("OneFacRes", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
-	 	 mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
-	      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-	                                ), i=1:nSNP)}
-
-	 if(snpFileType == "pgen"){
-	 Compute <- mxComputeLoop(list(
-	      mxComputeSetOriginalStarts(),
-	      mxComputeLoadData("OneFacRes", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
-	      mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."),column=1:3, sep='\t'),
-	      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
-	      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-	                                ), i=1:nSNP)  }
-
- oneFac <- mxModel(oneFacPre, name = "OneFacRes", Compute  )
- oneFacFit <- mxRun(oneFac)
- summary(oneFacFit)
- 
-	 }
-
-
-
-
-##############################################################################################################################################################
-##############################################################################################################################################################
-##############################################################################################################################################################
-##############################################################################################################################################################
- 
- 
-twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, nSNP = NA, fitfun = "WLS", minMAF = .01, snpFileType = 'bgen', out = "out"){
- 	minVar <- 2*minMAF*(1-minMAF)
-
-    fac <- matrix(1, length(c(F1itemNames,F2itemNames)))
-    thr <- matrix(1, length(c(F1itemNames,F2itemNames)))
- 
-    for(i in 1:length(c(F1itemNames,F2itemNames))){
-   fac[i] <-  is.factor(phenoData[,c(F1itemNames,F2itemNames)][,i])
-   thr[i] <-  nlevels(phenoData[,c(F1itemNames,F2itemNames)][,i])-1
-    }
-    thr[thr< 0] <- 0
-    maxThr <- max(thr)
-
-phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
-latents   <- c("F1", "F2")
-lambda1    <- mxPath(from="F1", to=F1itemNames,values=1, labels = paste("lambda", F1itemNames, sep = "_")  )
-lambda2    <- mxPath(from="F2", to=F2itemNames,values=1, labels = paste("lambda", F2itemNames, sep = "_")  )
-facCor    <- mxPath(from="F1", to= "F2", arrows=2,free=T, values=.3, labels = c("corrs"))
-
-snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
-snpBeta   <- mxPath(from = "snp", to = latents, labels = paste0("snp", 2, latents), values = 0, free = T)
-snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
-
-resid     <- mxPath(from = c(F1itemNames,F2itemNames), arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
-facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
-covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
-cov2item  <- mxPath(from = covariates, to = c(c(F1itemNames,F2itemNames)), connect = "all.pairs", labels = paste(rep(covariates, each = length(c(F1itemNames,F2itemNames))), c(F1itemNames,F2itemNames), sep = "_2_"))
-itemMean  <- mxPath(from = 'one', to = c(F1itemNames,F2itemNames), free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
-
-if(maxThr>0) thresh    <- mxThreshold(c(F1itemNames, F2itemNames)[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(c(F1itemNames,F2itemNames)[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
- 
- 
-dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
-
-if(maxThr==0 & fitfun == "WLS") fun      <- mxFitFunctionWLS(allContinuousMethod= "marginals")
-if(maxThr>0 & fitfun == "WLS") fun       <- mxFitFunctionWLS()
-if(fitfun == "FIML") fun                 <- mxFitFunctionML()
-
-
-twoFacPre <- mxModel("TwoFac", type="RAM",
-      manifestVars = c("snp", F1itemNames, F2itemNames),
-      latentVars = c(latents, covariates),
- 	  lambda1, lambda2, facCor, snpMu, snpBeta, snpres, 
-	  resid, facRes, covMean, cov2item,
- 	  itemMean, dat, fun  )
-
-
-if(maxThr>0) twoFacPre <- mxModel(twoFacPre, name = "TwoFac", thresh  )
-
- if(snpFileType == "bgen"){
- Compute <- mxComputeLoop(list(
- 	 mxComputeSetOriginalStarts(),
-      mxComputeLoadData("TwoFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
- 	 mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
+  if(snpFileType == "bgen"){
+    Compute <- mxComputeLoop(list(
+      mxComputeSetOriginalStarts(),
+      mxComputeLoadData("OneFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
+      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
       mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-                                ), i=1:nSNP)}
+    ), i=1:nSNP)}
 
- if(snpFileType == "pgen"){
- Compute <- mxComputeLoop(list(
+  if(snpFileType == "pgen"){
+    Compute <- mxComputeLoop(list(
+      mxComputeSetOriginalStarts(),
+      mxComputeLoadData("OneFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
+      mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."),column=1:3, sep='\t'),
+      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
+      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
+    ), i=1:nSNP)
+  }
+  
+
+  oneFac <- mxModel(oneFacPre, name = "OneFac", Compute  )
+
+  oneFacFit <- mxRun(oneFac)
+  summary(oneFacFit)
+}
+
+#' @export
+oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, nSNP = NA, fitfun = "WLS", minMAF = .01, snpFileType = 'bgen', out = "res"){
+  minVar <- 2*minMAF*(1-minMAF)
+
+  fac <- matrix(1, length(itemNames))
+  thr <- matrix(1, length(itemNames))
+
+  for(i in 1:length(itemNames)){
+    fac[i] <-  is.factor(phenoData[,itemNames][,i])
+    thr[i] <-  nlevels(phenoData[,itemNames][,i])-1
+  }
+  thr[thr< 0] <- 0
+  maxThr <- max(thr)
+
+
+  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  latents   <- c("F")
+  lambda    <- mxPath(from=latents, to=itemNames,values=1, free = T, labels = paste("lambda", itemNames, sep = "_")  )
+  snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
+  snpFac  <- mxPath(from = "snp", to = "F", labels = "snp2fac", values = 0, free = factor)
+  snpItemRes   <- mxPath(from = "snp", to = res, labels = paste("snp", res, sep = "2"), values = 0, free = T)
+  snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
+  resid     <- mxPath(from = c(itemNames), arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
+  facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
+  covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
+  cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
+  itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
+
+  
+  if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
+  dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
+
+  if(maxThr==0 & fitfun == "WLS") fun      <- mxFitFunctionWLS(allContinuousMethod= "marginals")
+  if(maxThr>0 & fitfun == "WLS") fun       <- mxFitFunctionWLS()
+  if(fitfun == "FIML") fun                 <- mxFitFunctionML()
+
+
+  oneFacPre <- mxModel("OneFacRes", type="RAM",
+                       manifestVars = c("snp", itemNames),
+                       latentVars = c(latents, covariates),
+                       lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes, covMean, cov2item,
+                       itemMean, dat, fun  )
+
+  if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFacRes", thresh  )
+
+  if(snpFileType == "bgen"){
+    Compute <- mxComputeLoop(list(
+      mxComputeSetOriginalStarts(),
+      mxComputeLoadData("OneFacRes", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
+      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
+      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
+    ), i=1:nSNP)}
+
+  if(snpFileType == "pgen"){
+    Compute <- mxComputeLoop(list(
+      mxComputeSetOriginalStarts(),
+      mxComputeLoadData("OneFacRes", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
+      mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."),column=1:3, sep='\t'),
+      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
+      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
+    ), i=1:nSNP)  }
+
+  oneFac <- mxModel(oneFacPre, name = "OneFacRes", Compute  )
+  oneFacFit <- mxRun(oneFac)
+  summary(oneFacFit)
+}
+
+
+#' @export
+twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, nSNP = NA, fitfun = "WLS", minMAF = .01, snpFileType = 'bgen', out = "out"){
+  minVar <- 2*minMAF*(1-minMAF)
+
+  fac <- matrix(1, length(c(F1itemNames,F2itemNames)))
+  thr <- matrix(1, length(c(F1itemNames,F2itemNames)))
+  
+  for(i in 1:length(c(F1itemNames,F2itemNames))){
+    fac[i] <-  is.factor(phenoData[,c(F1itemNames,F2itemNames)][,i])
+    thr[i] <-  nlevels(phenoData[,c(F1itemNames,F2itemNames)][,i])-1
+  }
+  thr[thr< 0] <- 0
+  maxThr <- max(thr)
+
+  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  latents   <- c("F1", "F2")
+  lambda1    <- mxPath(from="F1", to=F1itemNames,values=1, labels = paste("lambda", F1itemNames, sep = "_")  )
+  lambda2    <- mxPath(from="F2", to=F2itemNames,values=1, labels = paste("lambda", F2itemNames, sep = "_")  )
+  facCor    <- mxPath(from="F1", to= "F2", arrows=2,free=T, values=.3, labels = c("corrs"))
+
+  snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
+  snpBeta   <- mxPath(from = "snp", to = latents, labels = paste0("snp", 2, latents), values = 0, free = T)
+  snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
+
+  resid     <- mxPath(from = c(F1itemNames,F2itemNames), arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
+  facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
+  covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
+  cov2item  <- mxPath(from = covariates, to = c(c(F1itemNames,F2itemNames)), connect = "all.pairs", labels = paste(rep(covariates, each = length(c(F1itemNames,F2itemNames))), c(F1itemNames,F2itemNames), sep = "_2_"))
+  itemMean  <- mxPath(from = 'one', to = c(F1itemNames,F2itemNames), free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
+
+  if(maxThr>0) thresh    <- mxThreshold(c(F1itemNames, F2itemNames)[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(c(F1itemNames,F2itemNames)[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
+  
+  
+  dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
+
+  if(maxThr==0 & fitfun == "WLS") fun      <- mxFitFunctionWLS(allContinuousMethod= "marginals")
+  if(maxThr>0 & fitfun == "WLS") fun       <- mxFitFunctionWLS()
+  if(fitfun == "FIML") fun                 <- mxFitFunctionML()
+
+
+  twoFacPre <- mxModel("TwoFac", type="RAM",
+                       manifestVars = c("snp", F1itemNames, F2itemNames),
+                       latentVars = c(latents, covariates),
+                       lambda1, lambda2, facCor, snpMu, snpBeta, snpres, 
+                       resid, facRes, covMean, cov2item,
+                       itemMean, dat, fun  )
+
+
+  if(maxThr>0) twoFacPre <- mxModel(twoFacPre, name = "TwoFac", thresh  )
+
+  if(snpFileType == "bgen"){
+    Compute <- mxComputeLoop(list(
+      mxComputeSetOriginalStarts(),
+      mxComputeLoadData("TwoFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
+      mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
+      mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
+    ), i=1:nSNP)}
+
+  if(snpFileType == "pgen"){
+    Compute <- mxComputeLoop(list(
       mxComputeSetOriginalStarts(),
       mxComputeLoadData("TwoFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
       mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."),column=1:3, sep='\t'),
       mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
       mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-                                ), i=1:nSNP)  }
- 
+    ), i=1:nSNP)  }
+  
 
- twoFac <- mxModel(twoFacPre, name = "TwoFac", Compute  )
+  twoFac <- mxModel(twoFacPre, name = "TwoFac", Compute  )
 
- twoFacFit <- mxRun(twoFac)
- summary(twoFacFit)
- 
- }
-
-##############################################################################################################################################################
-##############################################################################################################################################################
-##############################################################################################################################################################
-##############################################################################################################################################################
-
+  twoFacFit <- mxRun(twoFac)
+  summary(twoFacFit)
+}

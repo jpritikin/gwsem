@@ -17,7 +17,7 @@ Encoding: UTF-8
 LazyData: true
 Language: en-US
 LinkingTo: BH (>= 1.69.0-1)
-Depends: 
+Imports: 
     OpenMx (>= 2.13.2.187)
 Suggests: 
     testthat

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+if [ ! -x tools/rox ]; then
+  echo "$0 must be run from the top of the package directory"
+  exit 1
+fi
+
+rm -f man/*.Rd
+R --no-restore --no-save --no-readline <<EOF
+library(roxygen2)
+pkgload::load_all()
+roxygenize('.', roclets=c("rd","collate","namespace"))
+EOF

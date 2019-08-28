@@ -9,5 +9,6 @@
 #'
 #' @useDynLib gwsem, .registration = TRUE
 #' @import methods
+#' @import OpenMx
 #' 
 NULL
