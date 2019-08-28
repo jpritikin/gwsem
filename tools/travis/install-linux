@@ -12,3 +12,4 @@ git clone --depth 10 https://github.com/OpenMx/OpenMx.git
 pushd OpenMx
 make cran-install
 popd
+rm -rf OpenMx
