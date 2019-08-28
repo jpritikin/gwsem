@@ -8,7 +8,6 @@
 #' Need to write description.
 #'
 #' @useDynLib gwsem, .registration = TRUE
-#' @import methods
 #' @import OpenMx
 #' 
 NULL

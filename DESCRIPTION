@@ -2,8 +2,9 @@ Package: gwsem
 Type: Package
 Title: Genome Wide Structural Equation Modeling
 Version: 0.1.0
-Author@R: c(person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com",
-    role=c("aut", 'cre')),person("Bradley", "Verhulst", role="cph", email="brad.verhulst@gmail.com"),
+Authors@R:
+  c(person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com", role=c("aut", 'cre')),
+    person("Bradley", "Verhulst", role="cph", email="brad.verhulst@gmail.com"),
     person("Gavin", "Band", role="cph"),
     person("Yann", "Collet", role="cph"),
     person("Facebook, Inc.", role="cph"),
@@ -17,9 +18,13 @@ Encoding: UTF-8
 LazyData: true
 Language: en-US
 LinkingTo: BH (>= 1.69.0-1)
+Depends: R (>= 3.4)
 Imports: 
     OpenMx (>= 2.13.2.187)
 Suggests: 
-    testthat
+    testthat, covr
 RoxygenNote: 6.1.1
 SystemRequirements: GNU make
+URL: https://github.com/jpritikin/gwsem
+BugReports: https://github.com/jpritikin/gwsem/issues
+NeedsCompilation: yes

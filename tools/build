@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+if [ ! -e ./tools/build ]; then
+  echo "$0 must be run from the top of the project tree"
+  exit
+fi
+
+git log --oneline -1
+[ -d staging ] && rm -r ./staging
+mkdir staging
+git archive --format=tar HEAD | (cd staging; tar -xf -)
+cd staging
+
+./tools/rox
+R CMD build .

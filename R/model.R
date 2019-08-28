@@ -1,6 +1,18 @@
+makeFitFunction <- function(fitfun, maxThr)
+{
+  if(maxThr==0 & fitfun == "WLS") mxFitFunctionWLS(allContinuousMethod= "marginals")
+  if(maxThr>0 & fitfun == "WLS")  mxFitFunctionWLS()
+  if(fitfun == "FIML")            mxFitFunctionML()
+}
+
+#' Conduct a single factor genome-wide association study
+#' 
+#' @template args-fitfun
 #' @importFrom stats rbinom
 #' @export
-oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = NA, fitfun = "WLS", minMAF = .01, snpFileType = 'bgen', out = "out"){
+oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out")
+{
+  fitfun <- match.arg(fitfun)
   minVar <- 2*minMAF*(1-minMAF)
 
   fac <- matrix(1, length(itemNames))
@@ -30,10 +42,7 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
   
   dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
 
-  if(maxThr==0 & fitfun == "WLS") fun      <- mxFitFunctionWLS(allContinuousMethod= "marginals")
-  if(maxThr>0 & fitfun == "WLS") fun       <- mxFitFunctionWLS()
-  if(fitfun == "FIML") fun                 <- mxFitFunctionML()
-
+  fun <- makeFitFunction(fitfun, maxThr)
 
   oneFacPre <- mxModel("OneFac", type="RAM",
                        manifestVars = c("snp", itemNames),
@@ -69,8 +78,12 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
   summary(oneFacFit)
 }
 
+#' Conduct a single factor genome-wide association study with a focus on residuals
+#' 
+#' @template args-fitfun
 #' @export
-oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, nSNP = NA, fitfun = "WLS", minMAF = .01, snpFileType = 'bgen', out = "res"){
+oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "res"){
+  fitfun <- match.arg(fitfun)
   minVar <- 2*minMAF*(1-minMAF)
 
   fac <- matrix(1, length(itemNames))
@@ -101,10 +114,7 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
   if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
   dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
 
-  if(maxThr==0 & fitfun == "WLS") fun      <- mxFitFunctionWLS(allContinuousMethod= "marginals")
-  if(maxThr>0 & fitfun == "WLS") fun       <- mxFitFunctionWLS()
-  if(fitfun == "FIML") fun                 <- mxFitFunctionML()
-
+  fun <- makeFitFunction(fitfun, maxThr)
 
   oneFacPre <- mxModel("OneFacRes", type="RAM",
                        manifestVars = c("snp", itemNames),
@@ -137,8 +147,12 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 }
 
 
+#' Conduct a two factor genome-wide association study
+#' 
+#' @template args-fitfun
 #' @export
-twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, nSNP = NA, fitfun = "WLS", minMAF = .01, snpFileType = 'bgen', out = "out"){
+twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out"){
+  fitfun <- match.arg(fitfun)
   minVar <- 2*minMAF*(1-minMAF)
 
   fac <- matrix(1, length(c(F1itemNames,F2itemNames)))
@@ -172,10 +186,7 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
   
   dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
 
-  if(maxThr==0 & fitfun == "WLS") fun      <- mxFitFunctionWLS(allContinuousMethod= "marginals")
-  if(maxThr>0 & fitfun == "WLS") fun       <- mxFitFunctionWLS()
-  if(fitfun == "FIML") fun                 <- mxFitFunctionML()
-
+  fun <- makeFitFunction(fitfun, maxThr)
 
   twoFacPre <- mxModel("TwoFac", type="RAM",
                        manifestVars = c("snp", F1itemNames, F2itemNames),
