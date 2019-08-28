@@ -33,7 +33,9 @@ makeComputePlan <- function(snpFileType, modelName, snpData, nSNP, out)
 }
 
 #' Conduct a single factor genome-wide association study
-#' 
+#'
+#' @template args-phenoData
+#' @template args-snpData
 #' @template args-fitfun
 #' @importFrom stats rbinom
 #' @export
@@ -91,6 +93,8 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
 
 #' Conduct a single factor genome-wide association study with a focus on residuals
 #' 
+#' @template args-phenoData
+#' @template args-snpData
 #' @template args-fitfun
 #' @export
 oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "res"){
@@ -146,6 +150,8 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 
 #' Conduct a two factor genome-wide association study
 #' 
+#' @template args-phenoData
+#' @template args-snpData
 #' @template args-fitfun
 #' @export
 twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out"){
