@@ -13,8 +13,7 @@ makeComputePlan <- function(snpFileType, modelName, snpData, nSNP, out)
   onesnp <- list(
     ST=mxComputeSetOriginalStarts(),
     LD=mxComputeLoadData(modelName, column='snp',
-                         path=paste(snpData, snpFileType, sep = "."),
-                         method=snpFileType))
+                         path=snpData, method=snpFileType))
 
   if (snpFileType == "pgen") {
     onesnp <- c(
@@ -62,14 +61,12 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
   snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
   resid     <- mxPath(from = c(itemNames), arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
-  covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
-  cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
   if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
   
   
-  dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
+  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar)
 
   fun <- makeFitFunction(fitfun, maxThr)
 
@@ -77,9 +74,14 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
   oneFacPre <- mxModel(model=modelName, type="RAM",
                        manifestVars = c("snp", itemNames),
                        latentVars = c(latents, covariates),
-                       lambda, snpMu, snpBeta, snpres, resid, facRes, covMean, cov2item,
+                       lambda, snpMu, snpBeta, snpres, resid, facRes,
                        itemMean, dat, fun  )
 
+  if (length(covariates)) {
+    covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
+    cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
+    oneFacPre <- mxModel(oneFacPre, covMean, cov2item)
+  }
 
   if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFac", thresh  )
 
@@ -121,13 +123,11 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
   snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
   resid     <- mxPath(from = c(itemNames), arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
-  covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
-  cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
   
   if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
-  dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
+  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar)
 
   fun <- makeFitFunction(fitfun, maxThr)
 
@@ -135,8 +135,14 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
   oneFacPre <- mxModel(model=modelName, type="RAM",
                        manifestVars = c("snp", itemNames),
                        latentVars = c(latents, covariates),
-                       lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes, covMean, cov2item,
+                       lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes,
                        itemMean, dat, fun  )
+
+  if (length(covariates)) {
+    covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
+    cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
+    oneFacPre <- mxModel(oneFacPre, covMean, cov2item)
+  }
 
   if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFacRes", thresh  )
 
@@ -181,14 +187,16 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
 
   resid     <- mxPath(from = itemNames, arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
-  covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
-  cov2item  <- mxPath(from = covariates, to = c(itemNames), connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
+  if (length(covariates)) {
+    covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
+    cov2item  <- mxPath(from = covariates, to = c(itemNames), connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
+  }
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
   if(maxThr>0) thresh    <- mxThreshold(c(F1itemNames, F2itemNames)[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
   
   
-  dat       <- mxData(observed=phenoData, type="raw")                                              ## options for min variance/MAF
+  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar)
 
   fun <- makeFitFunction(fitfun, maxThr)
 

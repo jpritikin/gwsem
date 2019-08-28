@@ -306,12 +306,14 @@ static const R_CallMethodDef CallEntries[] = {
   {NULL, NULL, 0}
 };
 
-void attribute_visible R_init_gwsem(DllInfo *dll) {
-  // next line is necessary to avoid a NOTE from R CMD check
-  R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
-  R_useDynamicSymbols(dll, TRUE); // necessary for .onLoad() to work
-  AddLoadDataProviderType AddLoadDataProvider =
-    (AddLoadDataProviderType) R_GetCCallable("OpenMx", "AddLoadDataProvider");
-  AddLoadDataProvider(OPENMX_LOAD_DATA_API_VERSION, new LoadDataPGENProvider());
-  AddLoadDataProvider(OPENMX_LOAD_DATA_API_VERSION, new LoadDataBGENProvider());
+extern "C" {
+  void attribute_visible R_init_gwsem(DllInfo *dll) {
+    // next line is necessary to avoid a NOTE from R CMD check
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, TRUE); // necessary for .onLoad() to work
+    AddLoadDataProviderType AddLoadDataProvider =
+      (AddLoadDataProviderType) R_GetCCallable("OpenMx", "AddLoadDataProvider");
+    AddLoadDataProvider(OPENMX_LOAD_DATA_API_VERSION, new LoadDataPGENProvider());
+    AddLoadDataProvider(OPENMX_LOAD_DATA_API_VERSION, new LoadDataBGENProvider());
+  }
 }
