@@ -1,9 +1,12 @@
 makeFitFunction <- function(fitfun, maxThr)
 {
-  if(maxThr==0 & fitfun == "WLS") mxFitFunctionWLS(allContinuousMethod= "marginals")
-  if(maxThr>0 & fitfun == "WLS")  mxFitFunctionWLS()
-  if(fitfun == "FIML")            mxFitFunctionML()
+  if(maxThr==0 && fitfun == "WLS")     mxFitFunctionWLS(allContinuousMethod= "marginals")
+  else if(maxThr>0 && fitfun == "WLS") mxFitFunctionWLS()
+  else if(fitfun == "FIML")            mxFitFunctionML()
+  else stop(paste("Unknown fitfun", omxQuotes(fitfun))
 }
+
+calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 
 #' Conduct a single factor genome-wide association study
 #' 
@@ -13,7 +16,7 @@ makeFitFunction <- function(fitfun, maxThr)
 oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out")
 {
   fitfun <- match.arg(fitfun)
-  minVar <- 2*minMAF*(1-minMAF)
+  minVar <- calcMinVar(minMAF)
 
   fac <- matrix(1, length(itemNames))
   thr <- matrix(1, length(itemNames))
@@ -44,7 +47,8 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
 
   fun <- makeFitFunction(fitfun, maxThr)
 
-  oneFacPre <- mxModel("OneFac", type="RAM",
+  modelName <- "OneFac"
+  oneFacPre <- mxModel(model=modelName, type="RAM",
                        manifestVars = c("snp", itemNames),
                        latentVars = c(latents, covariates),
                        lambda, snpMu, snpBeta, snpres, resid, facRes, covMean, cov2item,
@@ -59,8 +63,8 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
       mxComputeLoadData("OneFac", column='snp', path=paste(snpData, snpFileType, sep = "."), method=snpFileType),
       mxComputeTryCatch(mxComputeSequence(list(mxComputeSetOriginalStarts(), mxComputeGradientDescent(),mxComputeStandardError() )  )  ),
       mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE)  #####
-    ), i=1:nSNP)}
-
+    ), i=1:nSNP)
+  }
   if(snpFileType == "pgen"){
     Compute <- mxComputeLoop(list(
       mxComputeSetOriginalStarts(),
@@ -84,7 +88,7 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
 #' @export
 oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "res"){
   fitfun <- match.arg(fitfun)
-  minVar <- 2*minMAF*(1-minMAF)
+  minVar <- calcMinVar(minMAF)
 
   fac <- matrix(1, length(itemNames))
   thr <- matrix(1, length(itemNames))
@@ -116,7 +120,8 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 
   fun <- makeFitFunction(fitfun, maxThr)
 
-  oneFacPre <- mxModel("OneFacRes", type="RAM",
+  modelName <- "OneFacRes"
+  oneFacPre <- mxModel(model=modelName, type="RAM",
                        manifestVars = c("snp", itemNames),
                        latentVars = c(latents, covariates),
                        lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes, covMean, cov2item,
@@ -153,7 +158,7 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 #' @export
 twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out"){
   fitfun <- match.arg(fitfun)
-  minVar <- 2*minMAF*(1-minMAF)
+  minVar <- calcMinVar(minMAF)
 
   fac <- matrix(1, length(c(F1itemNames,F2itemNames)))
   thr <- matrix(1, length(c(F1itemNames,F2itemNames)))
@@ -188,7 +193,8 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
 
   fun <- makeFitFunction(fitfun, maxThr)
 
-  twoFacPre <- mxModel("TwoFac", type="RAM",
+  modelName <- "TwoFac"
+  twoFacPre <- mxModel(model=modelName, type="RAM",
                        manifestVars = c("snp", F1itemNames, F2itemNames),
                        latentVars = c(latents, covariates),
                        lambda1, lambda2, facCor, snpMu, snpBeta, snpres, 

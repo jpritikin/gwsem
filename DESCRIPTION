@@ -18,9 +18,9 @@ Encoding: UTF-8
 LazyData: true
 Language: en-US
 LinkingTo: BH (>= 1.69.0-1)
-Depends: R (>= 3.4)
+Depends: R (>= 3.5)
 Imports: 
-    OpenMx (>= 2.13.2.187)
+    OpenMx (>= 2.13.2)
 Suggests: 
     testthat, covr
 RoxygenNote: 6.1.1
