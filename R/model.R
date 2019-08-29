@@ -8,14 +8,15 @@ makeFitFunction <- function(fitfun, maxThr)
 
 calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 
-makeComputePlan <- function(snpFileType, modelName, snpData, nSNP, out)
+makeComputePlan <- function(snpFileType, modelName, snpData, SNP, out)
 {
   onesnp <- list(
     ST=mxComputeSetOriginalStarts(),
     LD=mxComputeLoadData(modelName, column='snp',
-                         path=snpData, method=snpFileType))
+                         path=paste(snpData, "pgen", sep="."), method=snpFileType))
 
   if (snpFileType == "pgen") {
+    # TODO doc column=1:3, sep='\t'
     onesnp <- c(
       onesnp,
       LC=mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."), column=1:3, sep='\t'))
@@ -28,17 +29,19 @@ makeComputePlan <- function(snpFileType, modelName, snpData, nSNP, out)
       SE=mxComputeStandardError()))),
     CK=mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE))
 
-  mxComputeLoop(onesnp, i=1:nSNP)
+  mxComputeLoop(onesnp, i=SNP)
 }
 
 #' Conduct a single factor genome-wide association study
 #'
 #' @template args-phenoData
 #' @template args-snpData
+#' @template args-snp
 #' @template args-fitfun
 #' @importFrom stats rbinom
+#' @family GWAS
 #' @export
-oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out")
+oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out")
 {
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
@@ -85,7 +88,7 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
 
   if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFac", thresh  )
 
-  plan <- makeComputePlan(snpFileType, modelName, snpData, nSNP, out)
+  plan <- makeComputePlan(snpFileType, modelName, snpData, SNP, out)
 
   oneFac <- mxModel(oneFacPre, name = "OneFac", plan  )
 
@@ -97,9 +100,11 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, nSNP = 
 #' 
 #' @template args-phenoData
 #' @template args-snpData
+#' @template args-snp
 #' @template args-fitfun
+#' @family GWAS
 #' @export
-oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "res"){
+oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "res"){
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
 
@@ -146,21 +151,22 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 
   if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFacRes", thresh  )
 
-  plan <- makeComputePlan(snpFileType, modelName, snpData, nSNP, out)
+  plan <- makeComputePlan(snpFileType, modelName, snpData, SNP, out)
 
   oneFac <- mxModel(oneFacPre, name = "OneFacRes", plan)
   oneFacFit <- mxRun(oneFac)
   summary(oneFacFit)
 }
 
-
 #' Conduct a two factor genome-wide association study
 #' 
 #' @template args-phenoData
 #' @template args-snpData
+#' @template args-snp
 #' @template args-fitfun
+#' @family GWAS
 #' @export
-twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, nSNP = NA, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out"){
+twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out"){
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
 
@@ -211,7 +217,7 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
 
   if(maxThr>0) twoFacPre <- mxModel(twoFacPre, name = "TwoFac", thresh  )
 
-  plan <- makeComputePlan(snpFileType, modelName, snpData, nSNP, out)
+  plan <- makeComputePlan(snpFileType, modelName, snpData, SNP, out)
 
   twoFac <- mxModel(twoFacPre, name = "TwoFac", plan)
 

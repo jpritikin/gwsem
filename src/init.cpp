@@ -277,10 +277,9 @@ void LoadDataPGENProvider::loadRowImpl(int index)
 		pgen_genovec = (uintptr_t*)pgr_alloc_iter;
 	}
 
-        if (index >= int(pgen_info->raw_variant_ct)) {
-		omxRaiseErrorf("%s: variant_idx too large (%d; only %d in file)",
-			       name, 1+index, int(pgen_info->raw_variant_ct));
-		return;
+        if (1+index > int(pgen_info->raw_variant_ct)) {
+	  mxThrow("%s: out of data (record %d requested but only %d in file)",
+		  name, 1+index, int(pgen_info->raw_variant_ct));
 	}
 
         PglErr reterr = PgrGet1(pgen_subset_include_vec, pgen_subset_cumulative_popcounts,

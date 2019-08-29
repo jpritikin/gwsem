@@ -1,0 +1,7 @@
+Downloaded 2019 Aug 29 from https://bitbucket.org/gavinband/bgen/src/default/example/
+
+plink2 --bgen example.bgen --sample example.sample --make-pgen  --out example
+plink2 --bgen example.bgen --sample example.sample --make-bed  --out example
+plink2 --bgen example.bgen --sample example.sample --make-ped  --out example
+
+plink1.9 --bfile example --recode # for uncompressed
