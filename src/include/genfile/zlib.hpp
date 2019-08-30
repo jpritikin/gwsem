@@ -37,6 +37,25 @@ namespace genfile {
 	// this function).
 
 	template< typename T >
+	void zlib_uncompress(
+		byte_t const* begin,
+		byte_t const* const end,
+		std::vector< T >* dest
+	) {
+		uLongf const source_size = ( end - begin ) ;
+		uLongf dest_size = dest->size() * sizeof( T ) ;
+		int result = uncompress(
+			reinterpret_cast< Bytef* >( &dest->operator[]( 0 ) ),
+			&dest_size,
+			reinterpret_cast< Bytef const* >( begin ),
+			source_size
+		) ;
+		assert( result == Z_OK ) ;
+		assert( dest_size % sizeof( T ) == 0 ) ;
+		dest->resize( dest_size / sizeof( T )) ;
+	}
+
+	template< typename T >
 	void zstd_uncompress( byte_t const* begin, byte_t const* const end, std::vector< T >* dest ) {
 		std::size_t const source_size = ( end - begin ) ;
 		std::size_t const dest_size = dest->size() * sizeof( T ) ;

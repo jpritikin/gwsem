@@ -8,18 +8,36 @@ makeFitFunction <- function(fitfun, maxThr)
 
 calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 
-makeComputePlan <- function(snpFileType, modelName, snpData, SNP, out)
+# export TODO
+makeComputePlan <- function(modelName, snpData, SNP, out)
 {
+  pieces <- strsplit(snpData, ".", fixed=TRUE)[[1]]
+  if (length(pieces) < 2) {
+    stop(paste("Please rename snpData",omxQuotes(snpData),
+               "to the form file.ext where ext reflects the format of the data"))
+  }
+  snpFileExt <- pieces[length(pieces)]
+  stem <- paste(pieces[-length(pieces)], collapse=".")
+
+  if (snpFileExt == 'pgen' || snpFileExt == 'bed') method <- 'pgen'
+  else if (snpFileExt == 'bgen') method <- 'bgen'
+  else stop(paste("Unrecognized file extension", omxQuotes(snpFileExt),
+                  "inferred from snpData", omxQuotes(snpData)))
+
   onesnp <- list(
     ST=mxComputeSetOriginalStarts(),
     LD=mxComputeLoadData(modelName, column='snp',
-                         path=paste(snpData, "pgen", sep="."), method=snpFileType))
+                         path=snpData, method=method))
 
-  if (snpFileType == "pgen") {
+  if (snpFileExt == "pgen") {
     # TODO doc column=1:3, sep='\t'
     onesnp <- c(
       onesnp,
-      LC=mxComputeLoadContext(path=paste(snpData, "pvar", sep = "."), column=1:3, sep='\t'))
+      LC=mxComputeLoadContext(path=paste(stem, "pvar", sep = "."), column=1:3, sep='\t'))
+  } else if (snpFileExt == "bed") {
+    onesnp <- c(
+      onesnp,
+      LC=mxComputeLoadContext(path=paste(stem, "bim", sep = "."), column=1:3, sep='\t', header=FALSE))
   }
 
   onesnp <- c(
@@ -32,6 +50,8 @@ makeComputePlan <- function(snpFileType, modelName, snpData, SNP, out)
   mxComputeLoop(onesnp, i=SNP)
 }
 
+# TODO: Replace runModel another layer of functions to build the models
+
 #' Conduct a single factor genome-wide association study
 #'
 #' @template args-phenoData
@@ -41,7 +61,7 @@ makeComputePlan <- function(snpFileType, modelName, snpData, SNP, out)
 #' @importFrom stats rbinom
 #' @family GWAS
 #' @export
-oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out")
+oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, out = "out", runModel=TRUE)
 {
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
@@ -88,12 +108,14 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = N
 
   if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFac", thresh  )
 
-  plan <- makeComputePlan(snpFileType, modelName, snpData, SNP, out)
+  plan <- makeComputePlan(modelName, snpData, SNP, out)
 
   oneFac <- mxModel(oneFacPre, name = "OneFac", plan  )
 
-  oneFacFit <- mxRun(oneFac)
-  summary(oneFacFit)
+  if (runModel) {
+    oneFacFit <- mxRun(oneFac)
+    summary(oneFacFit)
+  } else { oneFac }
 }
 
 #' Conduct a single factor genome-wide association study with a focus on residuals
@@ -104,7 +126,7 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = N
 #' @template args-fitfun
 #' @family GWAS
 #' @export
-oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "res"){
+oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, out = "out", runModel=TRUE) {
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
 
@@ -151,11 +173,13 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 
   if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFacRes", thresh  )
 
-  plan <- makeComputePlan(snpFileType, modelName, snpData, SNP, out)
+  plan <- makeComputePlan(modelName, snpData, SNP, out)
 
   oneFac <- mxModel(oneFacPre, name = "OneFacRes", plan)
-  oneFacFit <- mxRun(oneFac)
-  summary(oneFacFit)
+  if (runModel) {
+    oneFacFit <- mxRun(oneFac)
+    summary(oneFacFit)
+  } else { oneFac }
 }
 
 #' Conduct a two factor genome-wide association study
@@ -166,7 +190,7 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 #' @template args-fitfun
 #' @family GWAS
 #' @export
-twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, snpFileType = 'bgen', out = "out"){
+twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, out = "out", runModel=TRUE) {
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
 
@@ -217,10 +241,12 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
 
   if(maxThr>0) twoFacPre <- mxModel(twoFacPre, name = "TwoFac", thresh  )
 
-  plan <- makeComputePlan(snpFileType, modelName, snpData, SNP, out)
+  plan <- makeComputePlan(modelName, snpData, SNP, out)
 
   twoFac <- mxModel(twoFacPre, name = "TwoFac", plan)
 
-  twoFacFit <- mxRun(twoFac)
-  summary(twoFacFit)
+  if (runModel) {
+    twoFacFit <- mxRun(twoFac)
+    summary(twoFacFit)
+  } else { twoFac }
 }
