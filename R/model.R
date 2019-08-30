@@ -69,7 +69,7 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = N
   if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
   
   
-  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar)
+  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
 
   fun <- makeFitFunction(fitfun, maxThr)
 
@@ -132,7 +132,7 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 
   
   if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
-  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar)
+  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
 
   fun <- makeFitFunction(fitfun, maxThr)
 
@@ -202,7 +202,7 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
   if(maxThr>0) thresh    <- mxThreshold(c(F1itemNames, F2itemNames)[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
   
   
-  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar)
+  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
 
   fun <- makeFitFunction(fitfun, maxThr)
 

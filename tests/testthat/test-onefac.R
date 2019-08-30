@@ -18,10 +18,11 @@ indicators <- pheno$phenotype %*% t(loadings) +
 colnames(indicators) <- paste0("i", 1:numIndicators)
 pheno <- cbind(pheno, indicators)
 
-oneFacGWAS(pheno, file.path(dir,"example"),
-           paste0("i", 1:numIndicators), snpFileType="pgen")
+expect_error(oneFacGWAS(pheno, file.path(dir,"example"),
+           paste0("i", 1:numIndicators), snpFileType="pgen"),
+           "record 200 requested but only 199 in file")
 
 result <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
                      sep="\t", check.names=FALSE, quote="", comment.char="")
 result <- subset(result, statusCode=='OK')
-expect_equal(nrow(result), 185)
+expect_equal(nrow(result), 195)
