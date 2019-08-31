@@ -61,7 +61,7 @@ makeComputePlan <- function(modelName, snpData, SNP, out)
 #' @importFrom stats rbinom
 #' @family GWAS
 #' @export
-oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, out = "out", runModel=TRUE)
+oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, out = "out")
 {
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
@@ -111,11 +111,8 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = N
   plan <- makeComputePlan(modelName, snpData, SNP, out)
 
   oneFac <- mxModel(oneFacPre, name = "OneFac", plan  )
-
-  if (runModel) {
-    oneFacFit <- mxRun(oneFac)
-    summary(oneFacFit)
-  } else { oneFac }
+  oneFacFit <- mxRun(oneFac)
+  summary(oneFacFit)
 }
 
 #' Conduct a single factor genome-wide association study with a focus on residuals
@@ -126,7 +123,7 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = N
 #' @template args-fitfun
 #' @family GWAS
 #' @export
-oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, out = "out", runModel=TRUE) {
+oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, out = "out") {
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
 
@@ -176,10 +173,8 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
   plan <- makeComputePlan(modelName, snpData, SNP, out)
 
   oneFac <- mxModel(oneFacPre, name = "OneFacRes", plan)
-  if (runModel) {
-    oneFacFit <- mxRun(oneFac)
-    summary(oneFacFit)
-  } else { oneFac }
+  oneFacFit <- mxRun(oneFac)
+  summary(oneFacFit)
 }
 
 #' Conduct a two factor genome-wide association study
@@ -190,7 +185,7 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 #' @template args-fitfun
 #' @family GWAS
 #' @export
-twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, out = "out", runModel=TRUE) {
+twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","FIML"), minMAF = .01, out = "out") {
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
 
@@ -244,9 +239,6 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
   plan <- makeComputePlan(modelName, snpData, SNP, out)
 
   twoFac <- mxModel(twoFacPre, name = "TwoFac", plan)
-
-  if (runModel) {
-    twoFacFit <- mxRun(twoFac)
-    summary(twoFacFit)
-  } else { twoFac }
+  twoFacFit <- mxRun(twoFac)
+  summary(twoFacFit)
 }
