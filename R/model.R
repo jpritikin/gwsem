@@ -139,23 +139,15 @@ oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = N
   summary(oneFacFit)
 }
 
-#' Conduct a single factor genome-wide association study with a focus on residuals
+#' Build a model suitable for a single factor residual genome-wide association study
 #' 
-#' @template args-phenoData
-#' @template args-snpData
-#' @template args-snp
-#' @template args-fitfun
-#' @family GWAS
 #' @export
-oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out") {
+buildOneFacRes <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out")
+{
   fitfun <- match.arg(fitfun)
   if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
-  minVar <- calcMinVar(minMAF)
-
+  
   fac <- sapply(phenoData[,itemNames], is.factor)
-  thr <- sapply(phenoData[,itemNames], nlevels)-1
-  thr[thr< 0] <- 0
-  maxThr <- max(thr)
 
   phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
   latents   <- c("F")
@@ -168,35 +160,25 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
-  
-  if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
+  minVar <- calcMinVar(minMAF)
   dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
-
-  fun <- makeFitFunction(fitfun)
 
   modelName <- "OneFacRes"
   oneFacPre <- mxModel(model=modelName, type="RAM",
                        manifestVars = c("snp", itemNames),
                        latentVars = c(latents, covariates),
                        lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes,
-                       itemMean, dat, fun  )
+                       itemMean, dat, makeFitFunction(fitfun))
 
-  if (length(covariates)) {
-    covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
-    cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
-    oneFacPre <- mxModel(oneFacPre, covMean, cov2item)
-  }
-
-  if(maxThr>0) oneFacPre <- mxModel(oneFacPre, name = "OneFacRes", thresh  )
+  oneFacPre <- setupThresholds(oneFacPre, fac)
+  oneFacPre <- setupCovariates(oneFacPre, covariates)
 
   plan <- makeComputePlan(modelName, snpData, SNP, out)
 
-  oneFac <- mxModel(oneFacPre, name = "OneFacRes", plan)
-  oneFacFit <- mxRun(oneFac)
-  summary(oneFacFit)
+  mxModel(oneFacPre, name = "OneFacRes", plan)
 }
 
-#' Conduct a two factor genome-wide association study
+#' Conduct a single factor genome-wide association study with a focus on residuals
 #' 
 #' @template args-phenoData
 #' @template args-snpData
@@ -204,17 +186,27 @@ oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = item
 #' @template args-fitfun
 #' @family GWAS
 #' @export
-twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out") {
+oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out") {
   fitfun <- match.arg(fitfun)
   if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
+  oneFac <- buildOneFacRes(phenoData, snpData, itemNames, factor, res, covariates, SNP, fitfun, minMAF, out)
+  oneFacFit <- mxRun(oneFac)
+  summary(oneFacFit)
+}
+
+#' Build a model suitable for a two factor genome-wide association study
+#'
+#' @export
+buildTwoFac <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out")
+{
+  fitfun <- match.arg(fitfun)
+  if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
+
   minVar <- calcMinVar(minMAF)
 
-  itemNames <- c(F1itemNames,F2itemNames)
+  itemNames <- union(F1itemNames, F2itemNames)
 
   fac <- sapply(phenoData[,itemNames], is.factor)
-  thr <- sapply(phenoData[,itemNames], nlevels)-1
-  thr[thr< 0] <- 0
-  maxThr <- max(thr)
 
   phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
   latents   <- c("F1", "F2")
@@ -228,33 +220,39 @@ twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates 
 
   resid     <- mxPath(from = itemNames, arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
-  if (length(covariates)) {
-    covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
-    cov2item  <- mxPath(from = covariates, to = c(itemNames), connect = "all.pairs", labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
-  }
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
-  if(maxThr>0) thresh    <- mxThreshold(itemNames[c(fac==1)], nThresh=c(thr[fac==1]), free = T , labels = paste(rep(itemNames[c(fac==1)], each = maxThr), "_Thr_", 1:maxThr, sep = ""), values=mxNormalQuantiles(1))
-  
   
   dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
 
-  fun <- makeFitFunction(fitfun)
-
   modelName <- "TwoFac"
   twoFacPre <- mxModel(model=modelName, type="RAM",
-                       manifestVars = c("snp", F1itemNames, F2itemNames),
+                       manifestVars = c("snp", itemNames),
                        latentVars = c(latents, covariates),
                        lambda1, lambda2, facCor, snpMu, snpBeta, snpres, 
-                       resid, facRes, covMean, cov2item,
-                       itemMean, dat, fun  )
+                       resid, facRes,
+                       itemMean, dat, makeFitFunction(fitfun))
 
-
-  if(maxThr>0) twoFacPre <- mxModel(twoFacPre, name = "TwoFac", thresh  )
+  twoFacPre <- setupThresholds(twoFacPre, fac)
+  twoFacPre <- setupCovariates(twoFacPre, covariates)
 
   plan <- makeComputePlan(modelName, snpData, SNP, out)
 
-  twoFac <- mxModel(twoFacPre, name = "TwoFac", plan)
+  mxModel(twoFacPre, name = "TwoFac", plan)
+}
+
+#' Conduct a two factor genome-wide association study
+#' 
+#' @template args-phenoData
+#' @template args-snpData
+#' @template args-snp
+#' @template args-fitfun
+#' @family GWAS
+#' @export
+twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out") {
+  fitfun <- match.arg(fitfun)
+  if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
+  twoFac <- buildTwoFac(phenoData, snpData, F1itemNames, F2itemNames, covariates, SNP, fitfun, minMAF, out)
   twoFacFit <- mxRun(twoFac)
   summary(twoFacFit)
 }

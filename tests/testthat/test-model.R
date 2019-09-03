@@ -2,6 +2,7 @@ library(testthat)
 library(gwsem)
 library(MASS)
 
+suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
 dir <- system.file("extdata", package = "gwsem")
@@ -31,8 +32,37 @@ expect_equal(pgen$snpReg, c(.2,.06, .02), tolerance=.02)
 expect_equivalent(pgen$i1_Thr_1, rep(quantile(origPheno$i1, 1/3),3), tolerance=.05)
 expect_equivalent(pgen$i1_Thr_2, rep(quantile(origPheno$i1, 2/3),3), tolerance=.12)
 expect_equivalent(pgen$i2_Thr_1, rep(0,3), tolerance=0.05)
+l2 <- pgen[,paste0('lambda_i',1:7)]
+expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.25)
 
 if(0) {
   m1 <- buildOneFac(pheno, file.path(dir,"example.pgen"), paste0("i", 1:numIndicators), SNP=3)
   m1 <- mxRun(m1)
 }
+
+# -----------------
+
+oneFacResGWAS(pheno, file.path(dir,"example.pgen"), paste0("i", 1:numIndicators), SNP=c(3:4,6))
+
+pgen <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
+                   sep="\t", check.names=FALSE, quote="", comment.char="")
+expect_equivalent(pgen$i1_Thr_1, rep(quantile(origPheno$i1, 1/3),3), tolerance=.18)
+expect_equivalent(pgen$i1_Thr_2, rep(quantile(origPheno$i1, 2/3),3), tolerance=.15)
+expect_equivalent(pgen$i2_Thr_1, rep(0,3), tolerance=0.05)
+
+l2 <- pgen[,paste0('lambda_i',1:7)]
+expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.25)
+
+# -----------------
+
+twoFacGWAS(pheno, file.path(dir,"example.pgen"), F1itemNames = paste0("i",1:4),
+           F2itemNames = paste0("i",4:7), SNP=c(3,4,6))
+
+pgen <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
+                   sep="\t", check.names=FALSE, quote="", comment.char="")
+expect_equivalent(pgen$i1_Thr_1, rep(quantile(origPheno$i1, 1/3),3), tolerance=.08)
+expect_equivalent(pgen$i1_Thr_2, rep(quantile(origPheno$i1, 2/3),3), tolerance=.15)
+expect_equivalent(pgen$i2_Thr_1, rep(0,3), tolerance=0.05)
+l2 <- pgen[,paste0('lambda_i',1:7)]
+expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.25)
+expect_equal(pgen$corrs, rep(1.17,3), .05)
