@@ -79,7 +79,14 @@ class LoadDataBGENProvider : public LoadDataProvider<LoadDataBGENProvider> {
 		c1 = fileName + ":pos";
 		cp.push_back(c1);
 	}
+	virtual int getNumVariants();
 };
+
+int LoadDataBGENProvider::getNumVariants()
+{
+	if (bgenView.get() == 0) return 0;
+	return bgenView->number_of_variants();
+}
 
 void LoadDataBGENProvider::loadRowImpl(int index)
 {
@@ -161,6 +168,7 @@ class LoadDataPGENProvider : public LoadDataProvider<LoadDataPGENProvider> {
 		requireFile(rObj);
 	}
 	virtual void loadRowImpl(int index);
+	virtual int getNumVariants();
 };
 
 static const double kGenoToDouble[4] = {0, 1, 2, NA_REAL};
@@ -206,6 +214,9 @@ static void GenoarrToFactor(const uintptr_t* genoarr, uint32_t sample_ct, int *g
     }
   }
 }
+
+int LoadDataPGENProvider::getNumVariants()
+{ return pgen_info->raw_variant_ct; }
 
 void LoadDataPGENProvider::loadRowImpl(int index)
 {

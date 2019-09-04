@@ -53,6 +53,7 @@ makeComputePlan <- function(modelName, snpData, SNP, out)
   mxComputeLoop(onesnp, i=SNP)
 }
 
+# TODO doc scale of thresholds
 setupThresholds <- function(model, fac)
 {
   phenoData <- model$data$observed
@@ -75,7 +76,7 @@ setupCovariates <- function(model, covariates)
   itemNames <- setdiff(model$manifestVars, 'snp')
   covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
   cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs",
-                      labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_2_"))
+                      labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_"))
   mxModel(model, covMean, cov2item)
 }
 
