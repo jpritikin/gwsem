@@ -4,3 +4,4 @@
 ^man-roxygen
 ^.gdbinit$
 ^.covrignore$
+^.dir-locals.el$
