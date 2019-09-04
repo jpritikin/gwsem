@@ -65,4 +65,4 @@ expect_equivalent(pgen$i1_Thr_2, rep(quantile(origPheno$i1, 2/3),3), tolerance=.
 expect_equivalent(pgen$i2_Thr_1, rep(0,3), tolerance=0.05)
 l2 <- pgen[,paste0('lambda_i',1:7)]
 expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.25)
-expect_equal(pgen$corrs, rep(1.17,3), .05)
+expect_equal(pgen[['TwoFac.S[9,10]']], rep(1.17,3), .05)
