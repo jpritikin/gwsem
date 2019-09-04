@@ -212,7 +212,7 @@ buildTwoFac <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates
   latents   <- c("F1", "F2")
   lambda1    <- mxPath(from="F1", to=F1itemNames,values=1, labels = paste("lambda", F1itemNames, sep = "_")  )
   lambda2    <- mxPath(from="F2", to=F2itemNames,values=1, labels = paste("lambda", F2itemNames, sep = "_")  )
-  facCor    <- mxPath(from="F1", to= "F2", arrows=2,free=T, values=.3, labels = c("corrs"))
+  facCor    <- mxPath(from="F1", to= "F2", arrows=2,free=T, values=.3)
 
   snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
   snpBeta   <- mxPath(from = "snp", to = latents, labels = paste0("snp", 2, latents), values = 0, free = T)
