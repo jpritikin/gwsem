@@ -6,6 +6,11 @@
 #include <string>
 #include <cstring>
 
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
+#undef ERROR  // defined in R_ext/RS.h but used by include/db/SQLite3Statement.hpp
+
 enum ColumnDataType {
 	COLUMNDATA_INVALID,
 	COLUMNDATA_ORDERED_FACTOR,

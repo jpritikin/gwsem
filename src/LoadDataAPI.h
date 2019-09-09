@@ -1,6 +1,8 @@
 #ifndef _LOAD_DATA_API_H_
 #define _LOAD_DATA_API_H_
 
+#include <memory>
+
 // Required types:
 //
 // enum ColumnDataType
