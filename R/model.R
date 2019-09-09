@@ -103,14 +103,17 @@ setupCovariates <- function(model, covariates)
 #' @template args-dots-barrier
 #' @template args-fitfun
 #' @template args-minmaf
+#' @template args-modeltype
 #' @family build
 #' @importFrom stats rbinom
 #' @export
-buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01)
+buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
+			modelType=c('RAM','LISREL'))
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
+  modelType <- match.arg(modelType)
 
   fac <- sapply(phenoData[,itemNames], is.factor)
 
@@ -127,7 +130,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
   dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
 
   modelName <- "OneFac"
-  oneFacPre <- mxModel(model=modelName, type="RAM",
+  oneFacPre <- mxModel(model=modelName, type=modelType,
                        manifestVars = c("snp", itemNames),
                        latentVars = c(latents, covariates),
                        lambda, snpMu, snpBeta, snpres, resid, facRes,
@@ -147,15 +150,17 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-dots-barrier
+#' @template args-modeltype
 #' 
 #' @family build
 #' @export
 buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, covariates = NULL,
-			   ..., fitfun = c("WLS","ML"), minMAF = .01)
+			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
   if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
+  modelType <- match.arg(modelType)
   
   fac <- sapply(phenoData[,itemNames], is.factor)
 
@@ -174,7 +179,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
 
   modelName <- "OneFacRes"
-  oneFacPre <- mxModel(model=modelName, type="RAM",
+  oneFacPre <- mxModel(model=modelName, type=modelType,
                        manifestVars = c("snp", itemNames),
                        latentVars = c(latents, covariates),
                        lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes,
@@ -194,14 +199,16 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-dots-barrier
+#' @template args-modeltype
 #' @export
 #' @family build
 buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, ...,
-			fitfun = c("WLS","ML"), minMAF = .01)
+			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
   if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
+  modelType <- match.arg(modelType)
 
   minVar <- calcMinVar(minMAF)
 
@@ -227,7 +234,7 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
   dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
 
   modelName <- "TwoFac"
-  twoFacPre <- mxModel(model=modelName, type="RAM",
+  twoFacPre <- mxModel(model=modelName, type=modelType,
                        manifestVars = c("snp", itemNames),
                        latentVars = c(latents, covariates),
                        lambda1, lambda2, facCor, snpMu, snpBeta, snpres, 
