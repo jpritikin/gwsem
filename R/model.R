@@ -7,9 +7,57 @@ makeFitFunction <- function(fitfun)
 
 calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 
-# export TODO
-makeComputePlan <- function(modelName, snpData, SNP, out)
+#' Return a suitable compute plan for a genome-wide association study
+#'
+#' Instead of using OpenMx's default model processing sequence (i.e.,
+#' \link[OpenMx]{omxDefaultComputePlan}), it is more efficient and
+#' convienient to assemble a compute plan tailored for a genome-wide
+#' association study.  This function returns a compute plan that loads
+#' SNP data into model \code{modelName}, fits the model, outputs the
+#' results to \code{out}, and repeats this procedure for all SNPs.
+#'
+#' @details
+#'
+#' You can request a specific list of SNPs using the \code{SNP}
+#' argument. The numbers provided in \code{SNP} refer to offsets in
+#' the \code{snpData} file. For example, \code{SNP=c(100,200)} will
+#' process the 100th and 200th SNP. The first SNP in the
+#' \code{snpData} file is at offset 1. When \code{SNP} is omitted then
+#' all available SNPs are processed.
+#' 
+#' The suffix of \code{snpData} filename is interpreted to signal the
+#' format of how the SNP data is stored on disk. Suffixes
+#' \sQuote{pgen}, \sQuote{bed}, and \sQuote{bgen} are supported.
+#' Per-SNP descriptions are found in different places depending on the
+#' suffix. For \sQuote{bgen}, both the SNP data and description are
+#' built into the same file. In the case of \sQuote{pgen}, an
+#' associated file with suffix \sQuote{pvar} is expected to exist (see
+#' the
+#' \href{https://www.cog-genomics.org/plink/2.0/formats#pvar}{spec}
+#' for details). In the case of \sQuote{bed}, an associated
+#' \sQuote{bim} file is expected to exist (see the
+#' \href{https://www.cog-genomics.org/plink2/formats#bim}{spec} for
+#' details). The chromosome, base-pair coordinate, and variant ID are
+#' added to each line of \code{out}.
+#'
+#' A compute plan does not do anything by itself. You'll need to combine
+#' the compute plan with a model (such as returned by \link{buildOneFac})
+#' to perform a GWAS.
+#' 
+#' @return
+#' A compute plan.
+#'
+#' @param modelName name of the model to load data into
+#' @template args-snpData
+#' @template args-snp
+#' @template args-out
+#' @template args-dots-barrier
+#' @export
+#' @examples
+#' makeComputePlan("test", "myData.pgen")
+makeComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out")
 {
+  if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   pieces <- strsplit(snpData, ".", fixed=TRUE)[[1]]
   if (length(pieces) < 2) {
     stop(paste("Please rename snpData",omxQuotes(snpData),
@@ -34,8 +82,6 @@ makeComputePlan <- function(modelName, snpData, SNP, out)
       onesnp,
       LC=mxComputeLoadContext(path=paste(stem, "pvar", sep = "."), column=1:3, sep='\t'))
   } else if (snpFileExt == "bed") {
-    # TODO confirm this is the correct order
-    # disagrees with https://www.cog-genomics.org/plink2/formats#bim
     onesnp <- c(
       onesnp,
       LC=mxComputeLoadContext(path=paste(stem, "bim", sep = "."),
@@ -55,14 +101,20 @@ makeComputePlan <- function(modelName, snpData, SNP, out)
 
 #' Run a genome-wide association study (GWAS) using the provided model
 #'
+#' Adds a compute plan returned by \link{makeComputePlan} to the
+#' provided \code{model} and runs it.
+#'
 #' @param model the MxModel object to be fit to each SNP
 #' @template args-snpData
 #' @template args-snp
-#' @param out the filename where write shall be written
+#' @template args-out
 #' @export
+#' @return
+#' The \link[OpenMx:MxModel-class]{MxModel} returned by \link[OpenMx]{mxRun}.
+#' Data and estimates for the last SNP processed will be available for inspection.
 GWAS <- function(model, snpData, SNP=NULL, out="out")
 {
-  model <- mxModel(model, makeComputePlan(model$name, snpData, SNP, out))
+  model <- mxModel(model, makeComputePlan(model$name, snpData, SNP=SNP, out=out))
   model <- mxRun(model)
   message(paste("Done. See", omxQuotes(out), "for results"))
   invisible(model)
@@ -96,6 +148,8 @@ setupCovariates <- function(model, covariates)
 }
 
 #' Build a model suitable for a single factor genome-wide association study
+#'
+#' You can plot the model using \link[OpenMx]{omxGraphviz}.
 #'
 #' @template args-phenoData
 #' @param itemNames a vector of phenotypic item names that load on the latent factor
