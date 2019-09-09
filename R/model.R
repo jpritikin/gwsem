@@ -53,6 +53,21 @@ makeComputePlan <- function(modelName, snpData, SNP, out)
   mxComputeLoop(onesnp, i=SNP)
 }
 
+#' Run a genome-wide association study (GWAS) using the provided model
+#'
+#' @param model the MxModel object to be fit to each SNP
+#' @template args-snpData
+#' @template args-snp
+#' @param out the filename where write shall be written
+#' @export
+GWAS <- function(model, snpData, SNP=NULL, out="out")
+{
+  model <- mxModel(model, makeComputePlan(model$name, snpData, SNP, out))
+  model <- mxRun(model)
+  message(paste("Done. See", omxQuotes(out), "for results"))
+  invisible(model)
+}
+
 # TODO doc scale of thresholds
 setupThresholds <- function(model, fac)
 {
@@ -66,7 +81,7 @@ setupThresholds <- function(model, fac)
 
   thresh <- mxThreshold(itemNames[fac], nThresh=thr[fac], free = T ,
                         labels = paste0(rep(itemNames[fac], each = max(thr)), "_Thr_", 1:max(thr)))
-  mxModel(model, name = "OneFac", thresh)
+  mxModel(model, thresh)
 }
 
 setupCovariates <- function(model, covariates)
@@ -83,14 +98,17 @@ setupCovariates <- function(model, covariates)
 #' Build a model suitable for a single factor genome-wide association study
 #'
 #' @template args-phenoData
-#' @template args-snpData
-#' @template args-snp
+#' @param itemNames a vector of phenotypic item names that load on the latent factor
+#' @template args-covariates
+#' @template args-dots-barrier
 #' @template args-fitfun
+#' @template args-minmaf
+#' @family build
 #' @importFrom stats rbinom
 #' @export
-buildOneFac <- function(phenoData, snpData, itemNames, covariates=NULL,
-                        SNP=NULL, fitfun = c("WLS","ML"), minMAF=0.01, out="out")
+buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01)
 {
+  if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
   minVar <- calcMinVar(minMAF)
 
@@ -116,35 +134,26 @@ buildOneFac <- function(phenoData, snpData, itemNames, covariates=NULL,
                        itemMean, dat, makeFitFunction(fitfun))
 
   oneFacPre <- setupThresholds(oneFacPre, fac)
-  oneFacPre <- setupCovariates(oneFacPre, covariates)
-
-  plan <- makeComputePlan(modelName, snpData, SNP, out)
-
-  mxModel(oneFacPre, name = "OneFac", plan)
-}
-
-#' Conduct a single factor genome-wide association study
-#'
-#' @template args-phenoData
-#' @template args-snpData
-#' @template args-snp
-#' @template args-fitfun
-#' @family GWAS
-#' @export
-oneFacGWAS <- function(phenoData, snpData, itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out")
-{
-  fitfun <- match.arg(fitfun)
-  if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
-  oneFac <- buildOneFac(phenoData, snpData, itemNames, covariates, SNP, fitfun, minMAF, out)
-  oneFacFit <- mxRun(oneFac)
-  summary(oneFacFit)
+  setupCovariates(oneFacPre, covariates)
 }
 
 #' Build a model suitable for a single factor residual genome-wide association study
 #' 
+#' @param itemNames a vector of phenotypic item names that load on the latent factor
+#' @param factor whether to estimate a regression from the SNP to the latent factor (default FALSE)
+#' @param res character vector. Which indicators to estimate a regression to
+#' @template args-phenoData
+#' @template args-covariates
+#' @template args-fitfun
+#' @template args-minmaf
+#' @template args-dots-barrier
+#' 
+#' @family build
 #' @export
-buildOneFacRes <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out")
+buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, covariates = NULL,
+			   ..., fitfun = c("WLS","ML"), minMAF = .01)
 {
+  if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
   if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
   
@@ -172,34 +181,25 @@ buildOneFacRes <- function(phenoData, snpData, itemNames , factor = F, res = ite
                        itemMean, dat, makeFitFunction(fitfun))
 
   oneFacPre <- setupThresholds(oneFacPre, fac)
-  oneFacPre <- setupCovariates(oneFacPre, covariates)
-
-  plan <- makeComputePlan(modelName, snpData, SNP, out)
-
-  mxModel(oneFacPre, name = "OneFacRes", plan)
-}
-
-#' Conduct a single factor genome-wide association study with a focus on residuals
-#' 
-#' @template args-phenoData
-#' @template args-snpData
-#' @template args-snp
-#' @template args-fitfun
-#' @family GWAS
-#' @export
-oneFacResGWAS <- function(phenoData, snpData, itemNames , factor = F, res = itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out") {
-  fitfun <- match.arg(fitfun)
-  if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
-  oneFac <- buildOneFacRes(phenoData, snpData, itemNames, factor, res, covariates, SNP, fitfun, minMAF, out)
-  oneFacFit <- mxRun(oneFac)
-  summary(oneFacFit)
+  setupCovariates(oneFacPre, covariates)
 }
 
 #' Build a model suitable for a two factor genome-wide association study
 #'
+#' @param F1itemNames a vector of item names that load on the first latent factor
+#' @param F2itemNames a vector of item names that load on the second latent factor
+#' 
+#' @template args-phenoData
+#' @template args-covariates
+#' @template args-fitfun
+#' @template args-minmaf
+#' @template args-dots-barrier
 #' @export
-buildTwoFac <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out")
+#' @family build
+buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, ...,
+			fitfun = c("WLS","ML"), minMAF = .01)
 {
+  if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
   if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
 
@@ -235,25 +235,5 @@ buildTwoFac <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates
                        itemMean, dat, makeFitFunction(fitfun))
 
   twoFacPre <- setupThresholds(twoFacPre, fac)
-  twoFacPre <- setupCovariates(twoFacPre, covariates)
-
-  plan <- makeComputePlan(modelName, snpData, SNP, out)
-
-  mxModel(twoFacPre, name = "TwoFac", plan)
-}
-
-#' Conduct a two factor genome-wide association study
-#' 
-#' @template args-phenoData
-#' @template args-snpData
-#' @template args-snp
-#' @template args-fitfun
-#' @family GWAS
-#' @export
-twoFacGWAS <- function(phenoData, snpData, F1itemNames, F2itemNames, covariates = NULL, SNP = NULL, fitfun = c("WLS","ML"), minMAF = .01, out = "out") {
-  fitfun <- match.arg(fitfun)
-  if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
-  twoFac <- buildTwoFac(phenoData, snpData, F1itemNames, F2itemNames, covariates, SNP, fitfun, minMAF, out)
-  twoFacFit <- mxRun(twoFac)
-  summary(twoFacFit)
+  setupCovariates(twoFacPre, covariates)
 }

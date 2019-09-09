@@ -22,7 +22,8 @@ origPheno <- pheno
 pheno$i1 <- cut(pheno$i1, c(-Inf, quantile(pheno$i1, 1:2/3), Inf), ordered_result = TRUE)
 pheno$i2 <- cut(pheno$i2, c(-Inf, quantile(pheno$i2, .5), Inf), ordered_result = TRUE)
 
-oneFacGWAS(pheno, file.path(dir,"example.pgen"), paste0("i", 1:numIndicators), SNP=c(3:4,6))
+GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
+     file.path(dir,"example.pgen"), SNP=c(3:4,6))
 
 pgen <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
@@ -42,7 +43,8 @@ if(0) {
 
 # -----------------
 
-oneFacResGWAS(pheno, file.path(dir,"example.pgen"), paste0("i", 1:numIndicators), SNP=c(3:4,6))
+GWAS(buildOneFacRes(pheno, paste0("i", 1:numIndicators)),
+     file.path(dir,"example.pgen"), SNP=c(3:4,6))
 
 pgen <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
@@ -55,8 +57,9 @@ expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.25)
 
 # -----------------
 
-twoFacGWAS(pheno, file.path(dir,"example.pgen"), F1itemNames = paste0("i",1:4),
-           F2itemNames = paste0("i",4:7), SNP=c(3,4,6))
+GWAS(buildTwoFac(pheno, F1itemNames = paste0("i",1:4),
+                 F2itemNames = paste0("i",4:7)),
+     file.path(dir,"example.pgen"), SNP=c(3,4,6))
 
 pgen <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")

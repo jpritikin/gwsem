@@ -286,6 +286,7 @@ void LoadDataPGENProvider::loadRowImpl(int index)
 		pgen_subset_cumulative_popcounts = (uint32_t*)pgr_alloc_iter;
 		pgr_alloc_iter = &(pgr_alloc_iter[cumulative_popcounts_byte_ct]);
 		pgen_genovec = (uintptr_t*)pgr_alloc_iter;
+		loadCounter += 1;
 	}
 
         if (1+index > int(pgen_info->raw_variant_ct)) {

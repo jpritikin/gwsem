@@ -27,9 +27,9 @@ for (cx in 1:numCovariate) {
   pheno[[paste0("covar", cx)]] <- rnorm(nrow(pheno))
 }
 
-expect_error(oneFacGWAS(pheno, file.path(dir,"example.pgen"), paste0("i", 1:numIndicators),
-                        covariates = paste0("covar",1:numCovariate)),
-             "record 200 requested but only 199 in file")
+GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators),
+                 covariates = paste0("covar",1:numCovariate)),
+     file.path(dir,"example.pgen"))
 
 pgen <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
