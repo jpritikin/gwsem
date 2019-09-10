@@ -43,19 +43,20 @@ calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 #' A compute plan does not do anything by itself. You'll need to combine
 #' the compute plan with a model (such as returned by \link{buildOneFac})
 #' to perform a GWAS.
-#' 
-#' @return
-#' A compute plan.
 #'
 #' @param modelName name of the model to load data into
 #' @template args-snpData
 #' @template args-snp
 #' @template args-out
 #' @template args-dots-barrier
+#' @return
+#' A compute plan.
+#'
 #' @export
+#' @seealso \link{GWAS}
 #' @examples
 #' makeComputePlan("test", "myData.pgen")
-makeComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out")
+makeComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out.log")
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   pieces <- strsplit(snpData, ".", fixed=TRUE)[[1]]
@@ -94,7 +95,7 @@ makeComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out")
     TC=mxComputeTryCatch(mxComputeSequence(list(
       GD=mxComputeGradientDescent(),
       SE=mxComputeStandardError()))),
-    CK=mxComputeCheckpoint(path=paste(out, "log", sep = "."), standardErrors = TRUE))
+    CK=mxComputeCheckpoint(path=out, standardErrors = TRUE))
 
   mxComputeLoop(onesnp, i=SNP)
 }
@@ -112,7 +113,7 @@ makeComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out")
 #' @return
 #' The \link[OpenMx:MxModel-class]{MxModel} returned by \link[OpenMx]{mxRun}.
 #' Data and estimates for the last SNP processed will be available for inspection.
-GWAS <- function(model, snpData, SNP=NULL, out="out")
+GWAS <- function(model, snpData, SNP=NULL, out="out.log")
 {
   model <- mxModel(model, makeComputePlan(model$name, snpData, SNP=SNP, out=out))
   model <- mxRun(model)
