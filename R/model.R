@@ -57,8 +57,8 @@ calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 #' @seealso \link{GWAS}
 #' @examples
 #' prepareComputePlan("test", "myData.pgen")
-prepareComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out.log",
-			       startFrom=1L)
+prepareComputePlan <- function(modelName, snpData, out="out.log", ...,
+			       SNP=NULL, startFrom=1L)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   pieces <- strsplit(snpData, ".", fixed=TRUE)[[1]]
@@ -112,15 +112,16 @@ prepareComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out.log",
 #' @template args-snp
 #' @template args-out
 #' @template args-dots-barrier
+#' @template args-startfrom
 #' @export
 #' @return
 #' The \link[OpenMx:MxModel-class]{MxModel} returned by \link[OpenMx]{mxRun}.
 #' Data and estimates for the last SNP processed will be available for inspection.
-GWAS <- function(model, snpData, SNP=NULL, out="out.log", ..., startFrom=1L)
+GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
-  model <- mxModel(model, prepareComputePlan(model$name, snpData, SNP=SNP,
-					     out=out, startFrom=startFrom))
+  model <- mxModel(model, prepareComputePlan(model$name, snpData, out=out,
+					     SNP=SNP, startFrom=startFrom))
   model <- mxRun(model)
   message(paste("Done. See", omxQuotes(out), "for results"))
   invisible(model)
