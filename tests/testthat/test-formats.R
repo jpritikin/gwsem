@@ -40,6 +40,15 @@ bgen <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
 expect_equal(nrow(bgen), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
 
+m2 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
+           file.path(dir,"example.bgen"), startFrom=190)
+last <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
+                   sep="\t", check.names=FALSE, quote="", comment.char="")
+expect_equal(nrow(last), 10)
+expect_equal(m2$compute$steps$LD$debug$loadCounter, 1)
+expect_equal(last[['example.bgen:SNP']],
+             bgen[['example.bgen:SNP']][190:199])
+
 # ------------------
 
 expect_equal(match(pgen$ID, bed$SNP), 1:199)  # same order

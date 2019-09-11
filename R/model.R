@@ -49,14 +49,16 @@ calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 #' @template args-snp
 #' @template args-out
 #' @template args-dots-barrier
+#' @template args-startfrom
 #' @return
 #' A compute plan.
 #'
 #' @export
 #' @seealso \link{GWAS}
 #' @examples
-#' makeComputePlan("test", "myData.pgen")
-makeComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out.log")
+#' prepareComputePlan("test", "myData.pgen")
+prepareComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out.log",
+			       startFrom=1L)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   pieces <- strsplit(snpData, ".", fixed=TRUE)[[1]]
@@ -97,25 +99,28 @@ makeComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out.log")
       SE=mxComputeStandardError()))),
     CK=mxComputeCheckpoint(path=out, standardErrors = TRUE))
 
-  mxComputeLoop(onesnp, i=SNP)
+  mxComputeLoop(onesnp, i=SNP, startFrom=startFrom)
 }
 
 #' Run a genome-wide association study (GWAS) using the provided model
 #'
-#' Adds a compute plan returned by \link{makeComputePlan} to the
+#' Adds a compute plan returned by \link{prepareComputePlan} to the
 #' provided \code{model} and runs it.
 #'
 #' @param model the MxModel object to be fit to each SNP
 #' @template args-snpData
 #' @template args-snp
 #' @template args-out
+#' @template args-dots-barrier
 #' @export
 #' @return
 #' The \link[OpenMx:MxModel-class]{MxModel} returned by \link[OpenMx]{mxRun}.
 #' Data and estimates for the last SNP processed will be available for inspection.
-GWAS <- function(model, snpData, SNP=NULL, out="out.log")
+GWAS <- function(model, snpData, SNP=NULL, out="out.log", ..., startFrom=1L)
 {
-  model <- mxModel(model, makeComputePlan(model$name, snpData, SNP=SNP, out=out))
+  if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
+  model <- mxModel(model, prepareComputePlan(model$name, snpData, SNP=SNP,
+					     out=out, startFrom=startFrom))
   model <- mxRun(model)
   message(paste("Done. See", omxQuotes(out), "for results"))
   invisible(model)
@@ -159,7 +164,7 @@ setupCovariates <- function(model, covariates)
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-modeltype
-#' @family build
+#' @family model builder
 #' @importFrom stats rbinom
 #' @export
 buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
@@ -207,7 +212,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' @template args-dots-barrier
 #' @template args-modeltype
 #' 
-#' @family build
+#' @family model builder
 #' @export
 buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, covariates = NULL,
 			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
@@ -256,7 +261,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' @template args-dots-barrier
 #' @template args-modeltype
 #' @export
-#' @family build
+#' @family model builder
 buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, ...,
 			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
 {
