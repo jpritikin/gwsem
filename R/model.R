@@ -105,7 +105,8 @@ prepareComputePlan <- function(modelName, snpData, out="out.log", ...,
 #' Run a genome-wide association study (GWAS) using the provided model
 #'
 #' Adds a compute plan returned by \link{prepareComputePlan} to the
-#' provided \code{model} and runs it.
+#' provided \code{model} and runs it. Once analyses are complete,
+#' load your aggregated results with \link{loadResults}. 
 #'
 #' @param model the MxModel object to be fit to each SNP
 #' @template args-snpData
@@ -171,7 +172,8 @@ setupThresholds <- function(model)
 #' In GWAS, including a number of the first principle components as
 #' covariates helps reduce false positives caused by population
 #' stratification. This function adds paths from covariates to
-#' manifest indicators.
+#' manifest indicators. Covariates are always treated as continuous
+#' variables (not ordinal).
 #'
 #' @details
 #' This is not the only way to adjust a model for
