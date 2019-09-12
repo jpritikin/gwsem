@@ -127,22 +127,71 @@ GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
   invisible(model)
 }
 
-# TODO doc scale of thresholds
-setupThresholds <- function(model, fac)
+#' Set up thresholds for ordinal indicators
+#'
+#' Ordinal indicator thresholds are freely estimated with fixed means
+#' and variance. This function adds thresholds to the given
+#' \code{model}.  If no indicators are ordinal, the given \code{model}
+#' is returned without changes.
+#'
+#' @details
+#' 
+#' Thresholds are added using \link[OpenMx]{mxThreshold}. Starting
+#' values for thresholds use the defaults provided by this function
+#' which assumes a mean of zero and variance of the square root of
+#' two.  This variance is appropriate for \link{buildOneFac} where the
+#' implied model variance of ordinal indicators is one plus the square
+#' of the factor loading, and the loading's starting value is 1.0.
+#'
+#' @template args-model
+#' @template detail-adv
+#'
+#' @return
+#' The given \link[OpenMx:MxModel-class]{MxModel} with appropriate thresholds added.
+#' @export
+setupThresholds <- function(model)
 {
   phenoData <- model$data$observed
   itemNames <- setdiff(model$manifestVars, 'snp')
 
   thr <- sapply(phenoData[,itemNames], nlevels)-1
+  fac <- thr >= 1
   thr[thr< 0] <- 0
 
   if (max(thr) == 0) return(model)
 
   thresh <- mxThreshold(itemNames[fac], nThresh=thr[fac], free = T ,
-                        labels = paste0(rep(itemNames[fac], each = max(thr)), "_Thr_", 1:max(thr)))
+                        labels = paste0(rep(itemNames[fac], each = max(thr)), "_Thr_", 1:max(thr)),
+			values=mxNormalQuantiles(thr[fac], sd=sqrt(2.0)))
   mxModel(model, thresh)
 }
 
+#' Set up model covariates
+#'
+#' In GWAS, including a number of the first principle components as
+#' covariates helps reduce false positives caused by population
+#' stratification. This function adds paths from covariates to
+#' manifest indicators.
+#'
+#' @details
+#' This is not the only way to adjust a model for
+#' covariates. For example, in a single factor model (e.g., \link{buildOneFac}),
+#' it would be more
+#' appropriate to adjust the latent factor instead of the manifest
+#' indicators. However, covariate adjustments to latent variables are only
+#' possible with a maximum likelihood fit function
+#' (\link[OpenMx]{mxFitFunctionML}).  For
+#' \link[OpenMx]{mxFitFunctionWLS}, only manifest indicators can be
+#' adjusted for covariates.
+#' This function always adjusts manifest indicators regardless of the fit function.
+#' 
+#' @template args-model
+#' @param covariates a character vector naming covariates available in the model data
+#' @template detail-adv
+#' @return
+#' The given \link[OpenMx:MxModel-class]{MxModel} with paths
+#' added from covariates to manifest indicators.
+#' @export
 setupCovariates <- function(model, covariates)
 {
   if (length(covariates)==0) return(model)
@@ -156,7 +205,7 @@ setupCovariates <- function(model, covariates)
 
 #' Build a model suitable for a single factor genome-wide association study
 #'
-#' You can plot the model using \link[OpenMx]{omxGraphviz}.
+#' @template detail-build
 #'
 #' @template args-phenoData
 #' @param itemNames a vector of phenotypic item names that load on the latent factor
@@ -168,6 +217,8 @@ setupCovariates <- function(model, covariates)
 #' @family model builder
 #' @importFrom stats rbinom
 #' @export
+#' @return
+#' A \link[OpenMx:MxModel-class]{MxModel}
 buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
 			modelType=c('RAM','LISREL'))
 {
@@ -197,11 +248,13 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
                        lambda, snpMu, snpBeta, snpres, resid, facRes,
                        itemMean, dat, makeFitFunction(fitfun))
 
-  oneFacPre <- setupThresholds(oneFacPre, fac)
+  oneFacPre <- setupThresholds(oneFacPre)
   setupCovariates(oneFacPre, covariates)
 }
 
 #' Build a model suitable for a single factor residual genome-wide association study
+#' 
+#' @template detail-build
 #' 
 #' @param itemNames a vector of phenotypic item names that load on the latent factor
 #' @param factor whether to estimate a regression from the SNP to the latent factor (default FALSE)
@@ -215,6 +268,8 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' 
 #' @family model builder
 #' @export
+#' @return
+#' A \link[OpenMx:MxModel-class]{MxModel}
 buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, covariates = NULL,
 			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
 {
@@ -246,12 +301,14 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
                        lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes,
                        itemMean, dat, makeFitFunction(fitfun))
 
-  oneFacPre <- setupThresholds(oneFacPre, fac)
+  oneFacPre <- setupThresholds(oneFacPre)
   setupCovariates(oneFacPre, covariates)
 }
 
 #' Build a model suitable for a two factor genome-wide association study
 #'
+#' @template detail-build
+#' 
 #' @param F1itemNames a vector of item names that load on the first latent factor
 #' @param F2itemNames a vector of item names that load on the second latent factor
 #' 
@@ -263,6 +320,8 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' @template args-modeltype
 #' @export
 #' @family model builder
+#' @return
+#' A \link[OpenMx:MxModel-class]{MxModel}
 buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, ...,
 			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
 {
@@ -302,6 +361,6 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
                        resid, facRes,
                        itemMean, dat, makeFitFunction(fitfun))
 
-  twoFacPre <- setupThresholds(twoFacPre, fac)
+  twoFacPre <- setupThresholds(twoFacPre)
   setupCovariates(twoFacPre, covariates)
 }
