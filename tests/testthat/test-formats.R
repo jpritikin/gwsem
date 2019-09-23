@@ -5,6 +5,7 @@ library(MASS)
 set.seed(1)
 
 dir <- system.file("extdata", package = "gwsem")
+tdir <- tempdir()
 
 pheno <- read.table(file.path(dir, "example.psam"),
                     stringsAsFactors = FALSE,header=TRUE, comment.char="")
@@ -19,41 +20,54 @@ colnames(indicators) <- paste0("i", 1:numIndicators)
 pheno <- cbind(pheno, indicators)
 
 m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
-           file.path(dir,"example.pgen"))
+           file.path(dir,"example.pgen"),
+           file.path(tdir, "out.log"))
 
-pgen <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
+pgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                      sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(pgen), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
 
 m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
-     file.path(dir,"example.bed"))
-bed <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
+     file.path(dir,"example.bed"),
+     file.path(tdir, "out.log"))
+bed <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bed), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
+lr <- loadResults(file.path(tdir, "out.log"))
+expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "statusCode", "catch1",
+                             "snpReg", "Z", "P"))
 
 m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
-     file.path(dir,"example.bgen"))
-bgen <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
+     file.path(dir,"example.bgen"),
+     file.path(tdir, "out.log"))
+bgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                   sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bgen), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
+lr <- loadResults(file.path(tdir, "out.log"))
+expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "statusCode", "catch1",
+                             "snpReg", "Z", "P"))
 
 m2 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
-           file.path(dir,"example.bgen"), startFrom=190)
-last <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
+           file.path(dir,"example.bgen"),
+           file.path(tdir, "out.log"), startFrom=190)
+last <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(last), 10)
 expect_equal(m2$compute$steps$LD$debug$loadCounter, 1)
 expect_equal(last[['example.bgen:SNP']],
              bgen[['example.bgen:SNP']][190:199])
+lr <- loadResults(file.path(tdir, "out.log"))
+expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "statusCode", "catch1",
+                             "snpReg", "Z", "P"))
 
 # ------------------
 
-expect_equal(match(pgen$ID, bed$SNP), 1:199)  # same order
+expect_equal(match(pgen$SNP, bed$SNP), 1:199)  # same order
 
-bgen <- bgen[match(pgen$ID, sub("^SNP","RS",bgen[['example.bgen:SNP']])),]
+bgen <- bgen[match(pgen$SNP, sub("^SNP","RS",bgen[['SNP']])),]
 
 mask <- (bgen$catch1=="" & pgen$catch1 == "" & bed$catch1=="" &
            bgen$statusCode=="OK" & pgen$statusCode=="OK" & bed$statusCode=="OK" &

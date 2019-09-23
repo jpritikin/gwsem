@@ -62,13 +62,13 @@ class LoadDataBGENProvider : public LoadDataProvider<LoadDataBGENProvider> {
 	virtual void addCheckpointColumns(std::vector< std::string > &cp)
 	{
 		cpIndex = cp.size();
-		std::string c1 = fileName + ":SNP";
+		std::string c1 = "SNP";
 		cp.push_back(c1);
-		c1 = fileName + ":RSID";
+		c1 = "RSID";
 		cp.push_back(c1);
-		c1 = fileName + ":ch";
+		c1 = "CHR";
 		cp.push_back(c1);
-		c1 = fileName + ":pos";
+		c1 = "BP";
 		cp.push_back(c1);
 	}
 	virtual int getNumVariants();

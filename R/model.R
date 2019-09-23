@@ -83,13 +83,14 @@ prepareComputePlan <- function(modelName, snpData, out="out.log", ...,
     # TODO doc column=1:3, sep='\t'
     onesnp <- c(
       onesnp,
-      LC=mxComputeLoadContext(path=paste(stem, "pvar", sep = "."), column=1:3, sep='\t'))
+      LC=mxComputeLoadContext(path=paste(stem, "pvar", sep = "."), column=1:3, sep='\t',
+			      col.names=c("CHR", "BP", "SNP")))
   } else if (snpFileExt == "bed") {
     onesnp <- c(
       onesnp,
       LC=mxComputeLoadContext(path=paste(stem, "bim", sep = "."),
                               column=c(1,2,4), sep='\t', header=FALSE,
-                              col.names=c("CHROM", "SNP", "POS")))
+                              col.names=c("CHR", "SNP", "BP")))
   }
 
   onesnp <- c(
