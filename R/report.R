@@ -8,8 +8,10 @@
 #' @param path vector of paths to result files created by \link{GWAS}
 #' @param focus parameter name on which to calculate a Z score and p-value
 #' @param extraColumns character vector of additional columns to load
+#' @template args-dots-barrier
 #' @export
 #' @importFrom data.table fread
+#' @importFrom stats pnorm
 loadResults <- function(path, focus="snpReg", ..., extraColumns=c()) {
   sel <- c('MxComputeLoop1', 'CHR','BP','SNP','statusCode','catch1',
 	   focus,paste0(focus,'SE'), extraColumns)
