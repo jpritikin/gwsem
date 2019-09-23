@@ -25,7 +25,20 @@ pheno$i2 <- cut(pheno$i2, c(-Inf, quantile(pheno$i2, .5), Inf), ordered_result =
 
 # -----------------
 
-GWAS(buildOneItem(pheno, paste0("i", 1)),
+expect_error(buildOneItem(pheno, paste0("i", 1:5)),
+             "buildOneItem provided with 5 dependent")
+
+oi <- buildOneItem(pheno, paste0("i", 1))
+expect_error(GWAS(oi, "example"),
+             "rename snpData")
+
+expect_error(GWAS(oi, file.path(dir,"example.xyz")),
+             "Unrecognized file extension")
+
+expect_error(GWAS(oi, something_else=1),
+             "Rejected are any values")
+
+GWAS(oi,
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
 
@@ -33,6 +46,25 @@ pgen <- loadResults(file.path(tdir, "out.log"))
 rx <- which(min(pgen$P) == pgen$P)
 expect_equal(rx, 2)
 expect_equal(pgen$P[rx], 0.128, tolerance=1e-2)
+
+expect_error(GWAS(oi,
+     file.path(dir,"example.pgen"),
+     file.path(tdir, "out.log"), SNP=c(250)),
+     "out of data")
+
+oi <- expect_warning(buildOneItem(pheno, paste0("i", 1),fitfun = "ML",
+                   minMAF=.1),
+                   "minMAF is ignored when fitfun")
+
+GWAS(oi,
+     file.path(dir,"example.pgen"),
+     file.path(tdir, "out.log"), SNP=c(3:4,6))
+
+ml <- loadResults(file.path(tdir, "out.log"))
+expect_equal(cor(ml$P, pgen$P), 1, tolerance=1e-3)
+
+expect_error(buildOneItem(pheno, paste0("i", 1), fitfun = "bob"),
+             "should be one of")
 
 # -----------------
 
@@ -95,3 +127,11 @@ expect_equivalent(pgen$i2_Thr_1, rep(0,3), tolerance=0.05)
 l2 <- pgen[,paste0('lambda_i',1:7)]
 expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.25)
 expect_equal(pgen[['TwoFac.S[9,10]']], rep(1.17,3), .05)
+
+# ------------
+
+for (f in c("buildOneFac", "buildOneFacRes", "buildOneItem",
+               "buildTwoFac")) {
+  expect_error(do.call(f, args=list(pheno, another.arg="xyz")),
+               "Rejected are any values")
+}
