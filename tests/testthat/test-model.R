@@ -78,6 +78,8 @@ expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.25)
 
 pgen <- loadResults(file.path(tdir, "out.log"), "snp2i2")
 rx <- which(min(pgen$P) == pgen$P)
+expect_equal(rx, 1)
+expect_equal(pgen$snp2i2[rx], .286, tolerance=1e-2)
 expect_equal(pgen$P[rx], .035, tolerance=1e-2)
 
 # -----------------
