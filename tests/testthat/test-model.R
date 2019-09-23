@@ -23,6 +23,17 @@ origPheno <- pheno
 pheno$i1 <- cut(pheno$i1, c(-Inf, quantile(pheno$i1, 1:2/3), Inf), ordered_result = TRUE)
 pheno$i2 <- cut(pheno$i2, c(-Inf, quantile(pheno$i2, .5), Inf), ordered_result = TRUE)
 
+# -----------------
+
+GWAS(buildOneItem(pheno, paste0("i", 1)),
+     file.path(dir,"example.pgen"),
+     file.path(tdir, "out.log"), SNP=c(3:4,6))
+
+pgen <- loadResults(file.path(tdir, "out.log"))
+expect_equal(pgen$P, c(0.655, 0.128, 0.43), tolerance=1e-2)
+
+# -----------------
+
 GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))

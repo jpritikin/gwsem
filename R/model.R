@@ -156,7 +156,7 @@ setupThresholds <- function(model)
   phenoData <- model$data$observed
   itemNames <- setdiff(model$manifestVars, 'snp')
 
-  thr <- sapply(phenoData[,itemNames], nlevels)-1
+  thr <- sapply(phenoData[,itemNames,drop=FALSE], nlevels)-1
   fac <- thr >= 1
   thr[thr< 0] <- 0
 
@@ -206,6 +206,56 @@ setupCovariates <- function(model, covariates)
   mxModel(model, covMean, cov2item)
 }
 
+#' Build a model suitable for a single item genome-wide association study
+#'
+#' @template detail-build
+#'
+#' @template args-phenoData
+#' @param depVar the name of the single item to predict
+#' @template args-covariates
+#' @template args-dots-barrier
+#' @template args-fitfun
+#' @template args-minmaf
+#' @template args-modeltype
+#' @family model builder
+#' @importFrom stats rbinom
+#' @export
+#' @return
+#' A \link[OpenMx:MxModel-class]{MxModel}
+buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
+			 modelType=c('RAM','LISREL'))
+{
+  if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
+  fitfun <- match.arg(fitfun)
+  minVar <- calcMinVar(minMAF)
+  modelType <- match.arg(modelType)
+
+  if (length(depVar) != 1) {
+    stop(paste("buildOneItem provided with", length(depVar), "dependent variables",
+	       "instead of 1. Did you intend to use buildOneFac instead?"))
+  }
+  fac <- is.factor(phenoData[[depVar]])
+
+  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
+  snpBeta   <- mxPath(from = "snp", to = depVar, labels = "snpReg", values = 0, free = T)
+  snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
+  resid     <- mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_"))
+  itemMean  <- mxPath(from = 'one', to = depVar, free= !fac, values = 0, labels = paste0(depVar, "Mean"))
+
+  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
+
+  modelName <- "OneItem"
+  oneFacPre <- mxModel(model=modelName, type=modelType,
+                       manifestVars = c("snp", depVar),
+                       latentVars = c(covariates),
+                       snpMu, snpBeta, snpres, resid,
+                       itemMean, dat, makeFitFunction(fitfun))
+
+  oneFacPre <- setupThresholds(oneFacPre)
+  setupCovariates(oneFacPre, covariates)
+}
+
 #' Build a model suitable for a single factor genome-wide association study
 #'
 #' @template detail-build
@@ -230,7 +280,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
   minVar <- calcMinVar(minMAF)
   modelType <- match.arg(modelType)
 
-  fac <- sapply(phenoData[,itemNames], is.factor)
+  fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
 
   phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
   latents   <- c("F")
@@ -281,7 +331,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
   modelType <- match.arg(modelType)
   
-  fac <- sapply(phenoData[,itemNames], is.factor)
+  fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
 
   phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
   latents   <- c("F")
@@ -337,7 +387,7 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
 
   itemNames <- union(F1itemNames, F2itemNames)
 
-  fac <- sapply(phenoData[,itemNames], is.factor)
+  fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
 
   phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
   latents   <- c("F1", "F2")
