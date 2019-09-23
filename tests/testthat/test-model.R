@@ -30,7 +30,9 @@ GWAS(buildOneItem(pheno, paste0("i", 1)),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
 
 pgen <- loadResults(file.path(tdir, "out.log"))
-expect_equal(pgen$P, c(0.655, 0.128, 0.43), tolerance=1e-2)
+rx <- which(min(pgen$P) == pgen$P)
+expect_equal(rx, 2)
+expect_equal(pgen$P[rx], 0.128, tolerance=1e-2)
 
 # -----------------
 
@@ -74,8 +76,9 @@ expect_equivalent(pgen$i2_Thr_1, rep(0,3), tolerance=0.05)
 l2 <- pgen[,paste0('lambda_i',1:7)]
 expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.25)
 
-pgen <- loadResults(file.path(tdir, "out.log"), "snp2i3")
-expect_equal(pgen$P, c(0.328, 0.976, 0.661), tolerance=1e-2)
+pgen <- loadResults(file.path(tdir, "out.log"), "snp2i2")
+rx <- which(min(pgen$P) == pgen$P)
+expect_equal(pgen$P[rx], .035, tolerance=1e-2)
 
 # -----------------
 
