@@ -121,6 +121,7 @@ prepareComputePlan <- function(modelName, snpData, out="out.log", ...,
 #' Data and estimates for the last SNP processed will be available for inspection.
 GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
 {
+	# verify model has a continuous 'snp' data column TODO
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   model <- mxModel(model, prepareComputePlan(model$name, snpData, out=out,
 					     SNP=SNP, startFrom=startFrom))

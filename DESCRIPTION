@@ -1,6 +1,6 @@
 Package: gwsem
 Type: Package
-Title: Genome Wide Structural Equation Modeling
+Title: Genome-Wide Structural Equation Modeling
 Version: 0.1.0
 Authors@R:
   c(person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com", role=c("aut", 'cre')),
@@ -11,17 +11,21 @@ Authors@R:
     person("Yuta", "Mori", role="cph"),
     person("Shaun", "Purcell", role="cph"),
     person("Christopher", "Chang", role="cph"))
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: Melds genome-wide association tests with structural
+    equation modeling (SEM) using OpenMx. This package contains low-level
+    C/C++ code to rapidly read genetic data encoded in U.K. Biobank or plink
+    formats. Prebuilt modeling options include one and two factor
+    models. Alternately, analyses may utilize arbitrary, user-provided SEMs.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Language: en-US
 LinkingTo: BH (>= 1.69.0-1)
-Depends: R (>= 3.5), OpenMx (>= 2.0)
+Depends: R (>= 3.5), OpenMx (>= 2.14.11)
 Imports: data.table
 Suggests: 
     testthat (>= 2.1.0),
+    MASS,
     covr
 RoxygenNote: 6.1.1
 SystemRequirements: GNU make
