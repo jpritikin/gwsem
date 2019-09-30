@@ -44,23 +44,23 @@ calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 #' the compute plan with a model (such as returned by \link{buildOneFac})
 #' to perform a GWAS.
 #'
-#' @param modelName name of the model to load data into
+#' @template args-model
 #' @template args-snpData
 #' @template args-snp
 #' @template args-out
 #' @template args-dots-barrier
 #' @template args-startfrom
 #' @return
-#' A compute plan.
+#' The given model with an appropriate compute plan.
 #'
 #' @export
+#' @importFrom methods is
 #' @seealso \link{GWAS}
-#' @examples
-#' prepareComputePlan("test", "myData.pgen")
-prepareComputePlan <- function(modelName, snpData, out="out.log", ...,
+prepareComputePlan <- function(model, snpData, out="out.log", ...,
 			       SNP=NULL, startFrom=1L)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
+  modelName <- model$name
   pieces <- strsplit(snpData, ".", fixed=TRUE)[[1]]
   if (length(pieces) < 2) {
     stop(paste("Please rename snpData",omxQuotes(snpData),
@@ -93,14 +93,22 @@ prepareComputePlan <- function(modelName, snpData, out="out.log", ...,
                               col.names=c("CHR", "SNP", "BP")))
   }
 
+  opt <- list(GD=mxComputeGradientDescent())
+  if (is(model$fitfunction, "MxFitFunctionWLS")) {
+	  opt <- c(opt, SE=mxComputeStandardError())
+  } else {
+	  opt <- c(opt,
+		   ND=mxComputeNumericDeriv(),
+		   SE=mxComputeStandardError(),
+		   HQ=mxComputeHessianQuality())
+  }
+
   onesnp <- c(
     onesnp,
-    TC=mxComputeTryCatch(mxComputeSequence(list(
-      GD=mxComputeGradientDescent(),
-      SE=mxComputeStandardError()))),
+    TC=mxComputeTryCatch(mxComputeSequence(opt)),
     CK=mxComputeCheckpoint(path=out, standardErrors = TRUE))
 
-  mxComputeLoop(onesnp, i=SNP, startFrom=startFrom)
+  mxModel(model, mxComputeLoop(onesnp, i=SNP, startFrom=startFrom))
 }
 
 #' Run a genome-wide association study (GWAS) using the provided model
@@ -109,7 +117,7 @@ prepareComputePlan <- function(modelName, snpData, out="out.log", ...,
 #' provided \code{model} and runs it. Once analyses are complete,
 #' load your aggregated results with \link{loadResults}. 
 #'
-#' @param model the MxModel object to be fit to each SNP
+#' @template args-model
 #' @template args-snpData
 #' @template args-snp
 #' @template args-out
@@ -123,8 +131,8 @@ GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
 {
 	# verify model has a continuous 'snp' data column TODO
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
-  model <- mxModel(model, prepareComputePlan(model$name, snpData, out=out,
-					     SNP=SNP, startFrom=startFrom))
+  model <- prepareComputePlan(model, snpData, out=out,
+			      SNP=SNP, startFrom=startFrom)
   model <- mxRun(model)
   message(paste("Done. See", omxQuotes(out), "for results"))
   invisible(model)

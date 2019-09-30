@@ -4,6 +4,7 @@ library(MASS)
 
 suppressWarnings(RNGversion("3.5"))
 set.seed(1)
+#mxOption(key="default optimizer", value="SLSQP")
 
 dir <- system.file("extdata", package = "gwsem")
 tdir <- tempdir()

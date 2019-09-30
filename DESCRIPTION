@@ -22,7 +22,7 @@ LazyData: true
 Language: en-US
 LinkingTo: BH (>= 1.69.0-1)
 Depends: R (>= 3.5), OpenMx (>= 2.14.11)
-Imports: data.table
+Imports: data.table, methods
 Suggests: 
     testthat (>= 2.1.0),
     MASS,
