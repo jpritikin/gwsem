@@ -48,10 +48,13 @@ rx <- which(min(pgen$P) == pgen$P)
 expect_equal(rx, 2)
 expect_equal(pgen$P[rx], 0.128, tolerance=1e-2)
 
-expect_error(GWAS(oi,
-     file.path(dir,"example.pgen"),
-     file.path(tdir, "out.log"), SNP=c(250)),
-     "out of data")
+if (.Platform$OS.type != "windows" || .Machine$sizeof.pointer != 4) {
+  # win32 doesn't implement C++ exceptions correctly
+  expect_error(GWAS(oi,
+                    file.path(dir,"example.pgen"),
+                    file.path(tdir, "out.log"), SNP=c(250)),
+               "out of data")
+}
 
 oi <- expect_warning(buildOneItem(pheno, paste0("i", 1),fitfun = "ML",
                    minMAF=.1),
@@ -68,6 +71,10 @@ expect_error(buildOneItem(pheno, paste0("i", 1), fitfun = "bob"),
              "should be one of")
 
 # -----------------
+
+if (.Platform$OS.type == "windows" && packageVersion("data.table") <= '1.12.2') {
+  skip("data.table has a bug on windows")
+}
 
 GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.pgen"),
