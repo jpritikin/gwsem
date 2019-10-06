@@ -56,6 +56,11 @@ calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 #' @export
 #' @importFrom methods is
 #' @seealso \link{GWAS}
+#' @examples
+#' m1 <- mxModel("test", mxFitFunctionWLS())
+#' dir <- system.file("extdata", package = "gwsem")
+#' m1 <- prepareComputePlan(m1, file.path(dir,"example.pgen"))
+#' m1$compute
 prepareComputePlan <- function(model, snpData, out="out.log", ...,
 			       SNP=NULL, startFrom=1L)
 {
@@ -127,6 +132,12 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 #' @return
 #' The \link[OpenMx:MxModel-class]{MxModel} returned by \link[OpenMx]{mxRun}.
 #' Data and estimates for the last SNP processed will be available for inspection.
+#' @examples
+#' dir <- system.file("extdata", package = "gwsem")
+#' pheno <- data.frame(anxiety=rnorm(500))
+#' m1 <- buildOneItem(pheno, 'anxiety')
+#' GWAS(m1, file.path(dir,"example.pgen"),
+#'      file.path(dir,"out.log"))
 GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
 {
 	# verify model has a continuous 'snp' data column TODO
@@ -160,6 +171,12 @@ GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
 #' @return
 #' The given \link[OpenMx:MxModel-class]{MxModel} with appropriate thresholds added.
 #' @export
+#' @examples
+#' pheno <- data.frame(anxiety=cut(rnorm(500), c(-Inf, -.5, .5, Inf),
+#'                     ordered_result = TRUE))
+#' m1 <- buildOneItem(pheno, 'anxiety')
+#' m1 <- setupThresholds(m1)
+#' m1$Thresholds
 setupThresholds <- function(model)
 {
   phenoData <- model$data$observed
@@ -204,6 +221,9 @@ setupThresholds <- function(model)
 #' The given \link[OpenMx:MxModel-class]{MxModel} with paths
 #' added from covariates to manifest indicators.
 #' @export
+#' m1 <- mxModel("test", type="RAM",
+#'              latentVars = "sex", manifestVars = "anxiety")
+#' m1 <- setupCovariates(m1, 'sex')
 setupCovariates <- function(model, covariates)
 {
   if (length(covariates)==0) return(model)
@@ -238,6 +258,10 @@ setupData <- function(phenoData, customMinMAF, minMAF, fitfun)
 #' @export
 #' @return
 #' A \link[OpenMx:MxModel-class]{MxModel}
+#' @examples
+#' pheno <- data.frame(anxiety=cut(rnorm(500), c(-Inf, -.5, .5, Inf),
+#'                     ordered_result = TRUE))
+#' m1 <- buildOneItem(pheno, 'anxiety')
 buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
 			 modelType=c('RAM','LISREL'))
 {
@@ -287,6 +311,11 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 #' @export
 #' @return
 #' A \link[OpenMx:MxModel-class]{MxModel}
+#' @examples
+#' pheno <- list()
+#' for (i in 1:5) pheno[[paste0('i',i)]] <- rnorm(500)
+#' pheno <- as.data.frame(pheno)
+#' buildOneFac(pheno, colnames(pheno))
 buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
 			modelType=c('RAM','LISREL'))
 {
@@ -337,6 +366,11 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' @export
 #' @return
 #' A \link[OpenMx:MxModel-class]{MxModel}
+#' @examples
+#' pheno <- list()
+#' for (i in 1:5) pheno[[paste0('i',i)]] <- rnorm(500)
+#' pheno <- as.data.frame(pheno)
+#' buildOneFacRes(pheno, colnames(pheno))
 buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, covariates = NULL,
 			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
 {
@@ -387,6 +421,11 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' @family model builder
 #' @return
 #' A \link[OpenMx:MxModel-class]{MxModel}
+#' @examples
+#' pheno <- list()
+#' for (i in 1:10) pheno[[paste0('i',i)]] <- rnorm(500)
+#' pheno <- as.data.frame(pheno)
+#' buildTwoFac(pheno, paste0('i',1:6), paste0('i',5:10))
 buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, ...,
 			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
 {

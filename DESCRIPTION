@@ -1,7 +1,7 @@
 Package: gwsem
 Type: Package
 Title: Genome-Wide Structural Equation Modeling
-Version: 0.1.0
+Version: 0.1.1
 Authors@R:
   c(person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com", role=c("aut", 'cre')),
     person("Bradley", "Verhulst", role="cph", email="brad.verhulst@gmail.com"),
@@ -16,6 +16,7 @@ Description: Melds genome-wide association tests with structural
     C/C++ code to rapidly read genetic data encoded in U.K. Biobank or plink
     formats. Prebuilt modeling options include one and two factor
     models. Alternately, analyses may utilize arbitrary, user-provided SEMs.
+    Verhulst, Maes, & Neale (2017) <doi:10.1007/s10519-017-9842-6>
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
