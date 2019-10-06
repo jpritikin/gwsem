@@ -16,13 +16,14 @@ Description: Melds genome-wide association tests with structural
     C/C++ code to rapidly read genetic data encoded in U.K. Biobank or plink
     formats. Prebuilt modeling options include one and two factor
     models. Alternately, analyses may utilize arbitrary, user-provided SEMs.
-    Verhulst, Maes, & Neale (2017) <doi:10.1007/s10519-017-9842-6>
+    See Verhulst, Maes, & Neale (2017) <doi:10.1007/s10519-017-9842-6> for
+    details. An updated manuscript is in preparation.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Language: en-US
 LinkingTo: BH (>= 1.69.0-1)
-Depends: R (>= 3.5), OpenMx (>= 2.14.11)
+Depends: R (>= 3.5), OpenMx (>= 2.14)
 Imports: data.table, methods
 Suggests: 
     testthat (>= 2.1.0),
