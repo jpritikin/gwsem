@@ -236,11 +236,23 @@ setupCovariates <- function(model, covariates)
   mxModel(model, covMean, cov2item)
 }
 
-setupData <- function(phenoData, customMinMAF, minMAF, fitfun)
+# export? TODO
+setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
 {
   if (customMinMAF && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
   minVar <- calcMinVar(minMAF)
-  mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
+  result <- list()
+  aname <- c()
+  if (length(gxe)) for (v1 in gxe) {
+	  alg <- mxAlgebraFromString(paste0("data.snp * data.",v1),
+				     name=paste0('snp_',v1,"Alg"),
+				     dimnames=list(NULL,paste0('snp_',v1)))
+	  result <- c(result, alg)
+	  phenoData[[ paste0('snp_',v1) ]] <- 0.0  # placeholder
+	  aname <- c(aname, paste0('snp_',v1))
+  }
+  c(mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE,
+	 algebra=aname), result)
 }
 
 #' Build a model suitable for a single item genome-wide association study
@@ -254,6 +266,7 @@ setupData <- function(phenoData, customMinMAF, minMAF, fitfun)
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-modeltype
+#' @template args-gxe
 #' @family model builder
 #' @importFrom stats rbinom
 #' @export
@@ -264,7 +277,7 @@ setupData <- function(phenoData, customMinMAF, minMAF, fitfun)
 #'                     ordered_result = TRUE))
 #' m1 <- buildOneItem(pheno, 'anxiety')
 buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
-			 modelType=c('RAM','LISREL'))
+			 modelType=c('RAM','LISREL'), gxe=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -283,7 +296,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
   resid     <- mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_"))
   itemMean  <- mxPath(from = 'one', to = depVar, free= !fac, values = 0, labels = paste0(depVar, "Mean"))
 
-  dat       <- setupData(phenoData, force(!missing(minMAF)), minMAF, fitfun)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneItem"
   oneFacPre <- mxModel(model=modelName, type=modelType,
@@ -307,6 +320,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-modeltype
+#' @template args-gxe
 #' @family model builder
 #' @importFrom stats rbinom
 #' @export
@@ -318,7 +332,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 #' pheno <- as.data.frame(pheno)
 #' buildOneFac(pheno, colnames(pheno))
 buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
-			modelType=c('RAM','LISREL'))
+			modelType=c('RAM','LISREL'), gxe=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -336,7 +350,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
   itemMean  <- mxPath(from = 'one', to = itemNames, free= !fac, values = 0, labels = paste0(itemNames, "Mean"))
 
-  dat       <- setupData(phenoData, force(!missing(minMAF)), minMAF, fitfun)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneFac"
   oneFacPre <- mxModel(model=modelName, type=modelType,
@@ -362,6 +376,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' @template args-minmaf
 #' @template args-dots-barrier
 #' @template args-modeltype
+#' @template args-gxe
 #' 
 #' @family model builder
 #' @export
@@ -373,7 +388,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' pheno <- as.data.frame(pheno)
 #' buildOneFacRes(pheno, colnames(pheno))
 buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, covariates = NULL,
-			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
+			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'), gxe=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -392,7 +407,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
-  dat       <- setupData(phenoData, force(!missing(minMAF)), minMAF, fitfun)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneFacRes"
   oneFacPre <- mxModel(model=modelName, type=modelType,
@@ -418,6 +433,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' @template args-minmaf
 #' @template args-dots-barrier
 #' @template args-modeltype
+#' @template args-gxe
 #' @export
 #' @family model builder
 #' @return
@@ -428,7 +444,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' pheno <- as.data.frame(pheno)
 #' buildTwoFac(pheno, paste0('i',1:6), paste0('i',5:10))
 buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, ...,
-			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
+			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'), gxe=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -453,7 +469,7 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
   
-  dat       <- setupData(phenoData, force(!missing(minMAF)), minMAF, fitfun)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "TwoFac"
   twoFacPre <- mxModel(model=modelName, type=modelType,
