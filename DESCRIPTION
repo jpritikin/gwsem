@@ -28,9 +28,12 @@ Imports: data.table, methods
 Suggests: 
     testthat (>= 2.1.0),
     MASS,
-    covr
+    covr,
+    knitr,
+    rmarkdown, qqman
 RoxygenNote: 6.1.1
 SystemRequirements: GNU make
 URL: https://github.com/jpritikin/gwsem
 BugReports: https://github.com/jpritikin/gwsem/issues
 NeedsCompilation: yes
+VignetteBuilder: knitr

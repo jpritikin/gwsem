@@ -137,7 +137,7 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 #' pheno <- data.frame(anxiety=rnorm(500))
 #' m1 <- buildOneItem(pheno, 'anxiety')
 #' GWAS(m1, file.path(dir,"example.pgen"),
-#'      file.path(dir,"out.log"))
+#'      file.path(tempdir(),"out.log"))
 GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
 {
 	# verify model has a continuous 'snp' data column TODO
@@ -221,6 +221,7 @@ setupThresholds <- function(model)
 #' The given \link[OpenMx:MxModel-class]{MxModel} with paths
 #' added from covariates to manifest indicators.
 #' @export
+#' @examples
 #' m1 <- mxModel("test", type="RAM",
 #'              latentVars = "sex", manifestVars = "anxiety")
 #' m1 <- setupCovariates(m1, 'sex')
