@@ -1,7 +1,7 @@
 Package: gwsem
 Type: Package
 Title: Genome-Wide Structural Equation Modeling
-Version: 0.1.1
+Version: 0.1.2
 Authors@R:
   c(person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com", role=c("aut", 'cre')),
     person("Bradley", "Verhulst", role="cph", email="brad.verhulst@gmail.com"),
@@ -10,10 +10,12 @@ Authors@R:
     person("Facebook, Inc.", role="cph"),
     person("Yuta", "Mori", role="cph"),
     person("Shaun", "Purcell", role="cph"),
-    person("Christopher", "Chang", role="cph"))
+    person("Christopher", "Chang", role="cph"),
+    person("Wojciech", "Mula", role="cph"),
+    person("Kim", "Walisch", role="cph"))
 Description: Melds genome-wide association tests with structural
-    equation modeling (SEM) using OpenMx. This package contains low-level
-    C/C++ code to rapidly read genetic data encoded in U.K. Biobank or plink
+    equation modeling (SEM) using 'OpenMx'. This package contains low-level
+    C/C++ code to rapidly read genetic data encoded in U.K. Biobank or 'plink'
     formats. Prebuilt modeling options include one and two factor
     models. Alternately, analyses may utilize arbitrary, user-provided SEMs.
     See Verhulst, Maes, & Neale (2017) <doi:10.1007/s10519-017-9842-6> for
