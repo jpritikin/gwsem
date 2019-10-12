@@ -13,12 +13,13 @@
 #' @importFrom data.table fread
 #' @importFrom stats pnorm
 #' @examples
+#' tdir <- tempdir()
 #' dir <- system.file("extdata", package = "gwsem")
 #' pheno <- data.frame(anxiety=rnorm(500))
 #' m1 <- buildOneItem(pheno, 'anxiety')
 #' GWAS(m1, file.path(dir,"example.pgen"),
-#'     file.path(dir,"out.log"))
-#' loadResults(file.path(dir,"out.log"))
+#'     file.path(tdir,"out.log"))
+#' loadResults(file.path(tdir,"out.log"))
 loadResults <- function(path, focus="snpReg", ..., extraColumns=c()) {
   sel <- c('MxComputeLoop1', 'CHR','BP','SNP','statusCode','catch1',
 	   focus,paste0(focus,'SE'), extraColumns)
