@@ -30,3 +30,9 @@
 #' @import OpenMx
 #' 
 NULL
+
+.onAttach <- function(libname, pkgname) {
+	if (.Platform$OS.type == "windows" && .Machine$sizeof.pointer == 4) {
+		packageStartupMessage("C++ exceptions do not work correctly on 32-bit Windows. You should use GNU/Linux for any serious work.")
+	}
+}

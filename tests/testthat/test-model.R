@@ -2,6 +2,9 @@ library(testthat)
 library(gwsem)
 library(MASS)
 
+# win32 doesn't implement C++ exceptions correctly
+skip_if(.Platform$OS.type == "windows" && .Machine$sizeof.pointer == 4)
+
 suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 #mxOption(key="default optimizer", value="SLSQP")
@@ -48,13 +51,10 @@ rx <- which(min(pgen$P) == pgen$P)
 expect_equal(rx, 2)
 expect_equal(pgen$P[rx], 0.128, tolerance=1e-2)
 
-if (.Platform$OS.type != "windows" || .Machine$sizeof.pointer != 4) {
-  # win32 doesn't implement C++ exceptions correctly
-  expect_error(GWAS(oi,
-                    file.path(dir,"example.pgen"),
-                    file.path(tdir, "out.log"), SNP=c(250)),
-               "out of data")
-}
+expect_error(GWAS(oi,
+                  file.path(dir,"example.pgen"),
+                  file.path(tdir, "out.log"), SNP=c(250)),
+             "out of data")
 
 oi <- expect_warning(buildOneItem(pheno, paste0("i", 1),fitfun = "ML",
                    minMAF=.1),
