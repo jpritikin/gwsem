@@ -2175,7 +2175,9 @@ HEADER_INLINE uint32_t SubU32Load(const void* bytearr, uint32_t ct) {
     return cur_uint;
   }
   if (ct == 2) {
-    return *S_CAST(const uint16_t*, bytearr);
+	  uint16_t tmp;
+	  memcpy(&tmp, bytearr, ct);
+	  return tmp;
   }
   return *S_CAST(const uint32_t*, bytearr);
 }

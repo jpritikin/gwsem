@@ -4226,7 +4226,7 @@ PglErr ParseOnebitUnsafe(const unsigned char* fread_end, const unsigned char** f
       }
       ww = ProperSubwordLoad(&(onebit_main_alias[genovec_widx_trail]), 1 + (((raw_sample_ct - 1) % kBitsPerWordD2) / CHAR_BIT));
     } else {
-      ww = onebit_main_alias[genovec_widx];
+	    memcpy(&ww, onebit_main_alias + genovec_widx, sizeof(ww));
     }
     // apply middle-out operation
     // 64-bit:
