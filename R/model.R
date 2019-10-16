@@ -255,6 +255,14 @@ setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
 	 algebra=aname), result)
 }
 
+#' @importFrom stats rbinom
+addPlaceholderSNP <- function(phenoData) {
+	# We use as.numeric because we currently only support dosages.
+	phenoData$snp <- as.numeric(rbinom(dim(phenoData)[1], 2, .5))
+	phenoData
+}
+
+
 #' Build a model suitable for a single item genome-wide association study
 #'
 #' @template detail-build
@@ -268,7 +276,6 @@ setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
 #' @template args-modeltype
 #' @template args-gxe
 #' @family model builder
-#' @importFrom stats rbinom
 #' @export
 #' @return
 #' A \link[OpenMx:MxModel-class]{MxModel}
@@ -289,7 +296,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
   }
   fac <- is.factor(phenoData[[depVar]])
 
-  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  phenoData <- addPlaceholderSNP(phenoData)
   snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
   snpBeta   <- mxPath(from = "snp", to = depVar, labels = "snpReg", values = 0, free = T)
   snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
@@ -322,7 +329,6 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 #' @template args-modeltype
 #' @template args-gxe
 #' @family model builder
-#' @importFrom stats rbinom
 #' @export
 #' @return
 #' A \link[OpenMx:MxModel-class]{MxModel}
@@ -340,7 +346,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
 
-  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F")
   lambda    <- mxPath(from=latents, to=itemNames,values=1, free = T, labels = paste("lambda", itemNames, sep = "_")  )
   snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
@@ -396,7 +402,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
 
-  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F")
   lambda    <- mxPath(from=latents, to=itemNames,values=1, free = T, labels = paste("lambda", itemNames, sep = "_")  )
   snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
@@ -454,7 +460,7 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
 
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
 
-  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F1", "F2")
   lambda1    <- mxPath(from="F1", to=F1itemNames,values=1, labels = paste("lambda", F1itemNames, sep = "_")  )
   lambda2    <- mxPath(from="F2", to=F2itemNames,values=1, labels = paste("lambda", F2itemNames, sep = "_")  )
