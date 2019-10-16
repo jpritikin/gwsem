@@ -8,6 +8,7 @@
 #' @param path vector of paths to result files created by \link{GWAS}
 #' @param focus parameter name on which to calculate a Z score and p-value
 #' @param extraColumns character vector of additional columns to load
+#' @param .retainSE logical. Keep a column for the SE of the focus parameter
 #' @template args-dots-barrier
 #' @export
 #' @importFrom data.table fread
@@ -20,7 +21,8 @@
 #' GWAS(m1, file.path(dir,"example.pgen"),
 #'     file.path(tdir,"out.log"))
 #' loadResults(file.path(tdir,"out.log"))
-loadResults <- function(path, focus="snpReg", ..., extraColumns=c()) {
+loadResults <- function(path, focus="snpReg", ..., extraColumns=c(),
+			.retainSE=FALSE) {
   sel <- c('MxComputeLoop1', 'CHR','BP','SNP','statusCode','catch1',
 	   focus,paste0(focus,'SE'), extraColumns)
   got <- list()
@@ -29,7 +31,7 @@ loadResults <- function(path, focus="snpReg", ..., extraColumns=c()) {
 			    sep="\t", check.names=FALSE, quote="", select = sel))
   }
   got$Z <- got[[focus]] / got[[paste0(focus,'SE')]]
-  got[[paste0(focus,'SE')]] <- NULL # redundent; save RAM
+  if (!.retainSE) got[[paste0(focus,'SE')]] <- NULL # redundent; save RAM
   got$P <- 2*pnorm(-abs(got$Z))
   got
 }
