@@ -113,7 +113,9 @@
 #ifdef _WIN32
   // needed for EnterCriticalSection, etc.
 #  ifndef _WIN64
-#    define WINVER 0x0501
+#    ifndef WINVER
+#      define WINVER 0x0501
+#    endif
 #  else
 #    define __LP64__
 #  endif
@@ -122,6 +124,7 @@
 #  endif
 #  include <windows.h>
 #endif
+#undef ERROR  // also defined in R_ext/RS.h
 
 #if __cplusplus >= 201103L
 #  include <array>
@@ -178,10 +181,10 @@ namespace plink2 {
 // for an imaginable downstream program (I'm looking at you, DivUp() and
 // RoundUpPow2()...), or (ii) it allows a useful static_assert to be inserted
 // for a hardcoded constant.
-#  if __cplusplus >= 201103L
+#  if __cplusplus >= 201402L
 #    define HEADER_CINLINE constexpr
 #    define CSINLINE static constexpr
-#    if __cplusplus > 201103L
+#    if __cplusplus > 201402L
 #      define HEADER_CINLINE2 constexpr
 #      define CSINLINE2 static constexpr
 #    else
@@ -2308,7 +2311,9 @@ HEADER_INLINE uint32_t SubU32Load(const void* bytearr, uint32_t ct) {
     return cur_uint;
   }
   if (ct == 2) {
-    return *S_CAST(const uint16_t*, bytearr);
+	  uint16_t tmp;
+	  memcpy(&tmp, bytearr, ct);
+	  return tmp;
   }
   return *S_CAST(const uint32_t*, bytearr);
 }
@@ -2538,7 +2543,7 @@ template <> struct MemequalKImpl<1> {
 
 template <> struct MemequalKImpl<2> {
   static int32_t MemequalK(const void* m1, const void* m2) {
-    return ((*R_CAST(const uint16_t*, m1)) == (*R_CAST(const uint16_t*, m2)));
+	  return memcmp(m1,m2,2)==0;
   }
 };
 
