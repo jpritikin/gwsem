@@ -91,7 +91,7 @@
 // 10000 * major + 100 * minor + patch
 // Exception to CONSTI32, since we want the preprocessor to have access
 // to this value.  Named with all caps as a consequence.
-#define PLINK2_BASE_VERNUM 500
+#define PLINK2_BASE_VERNUM 502
 
 
 #define _FILE_OFFSET_BITS 64
@@ -324,7 +324,10 @@ typedef enum
   kPglRetWriteFail,
   // MalformedInput should be returned on low-level file format violations,
   // while InconsistentInput should be returned for higher-level logical
-  // problems like mismatched files.
+  // problems like mismatched files (generally solvable by fixing the command
+  // line), and DegenerateData for properly-formatted-and-matched files that
+  // yields degenerate computational results due to e.g. divide by zero or
+  // insufficient rank.
   kPglRetMalformedInput,
   kPglRetInconsistentInput,
   kPglRetInvalidCmdline,
@@ -332,6 +335,9 @@ typedef enum
   kPglRetNetworkFail,
   kPglRetVarRecordTooLarge,
   kPglRetUnsupportedInstructions,
+  kPglRetDegenerateData,
+  kPglRetDecompressFail, // also distinguish this from MalformedInput
+  kPglRetRewindFail,
   kPglRetSampleMajorBed = 32,
   kPglRetInternalError = 60,
   kPglRetWarningErrcode = 61,
@@ -387,6 +393,9 @@ const PglErr kPglRetThreadCreateFail = PglErr::ec::kPglRetThreadCreateFail;
 const PglErr kPglRetNetworkFail = PglErr::ec::kPglRetNetworkFail;
 const PglErr kPglRetVarRecordTooLarge = PglErr::ec::kPglRetVarRecordTooLarge;
 const PglErr kPglRetUnsupportedInstructions = PglErr::ec::kPglRetUnsupportedInstructions;
+const PglErr kPglRetDegenerateData = PglErr::ec::kPglRetDegenerateData;
+const PglErr kPglRetDecompressFail = PglErr::ec::kPglRetDecompressFail;
+const PglErr kPglRetRewindFail = PglErr::ec::kPglRetRewindFail;
 const PglErr kPglRetSampleMajorBed = PglErr::ec::kPglRetSampleMajorBed;
 const PglErr kPglRetWarningErrcode = PglErr::ec::kPglRetWarningErrcode;
 const PglErr kPglRetInternalError = PglErr::ec::kPglRetInternalError;
@@ -411,7 +420,7 @@ struct IntErr {
   IntErr(int32_t source) : value_(source) {}
 
   explicit operator int32_t() const {
-    return static_cast<int32_t>(value_);
+    return value_;
   }
 
   explicit operator bool() const {
@@ -429,7 +438,7 @@ struct BoolErr {
   BoolErr(uint32_t source) : value_(source) {}
 
   explicit operator uint32_t() const {
-    return static_cast<uint32_t>(value_);
+    return value_;
   }
 
   explicit operator bool() const {
@@ -457,6 +466,7 @@ typedef uint32_t BoolErr;
 #  define FOPEN_WB "wb"
 #  define FOPEN_AB "ab"
 #  define ferror_unlocked ferror
+#  define feof_unlocked feof
 #  ifdef __LP64__
 #    define getc_unlocked _fgetc_nolock
 #    define putc_unlocked _fputc_nolock
@@ -484,6 +494,7 @@ typedef uint32_t BoolErr;
 #  endif
 #  if defined(__NetBSD__)
 #    define ferror_unlocked ferror
+#    define feof_unlocked feof
 #  endif
 #endif
 
@@ -625,12 +636,13 @@ HEADER_INLINE uint32_t bsrw(unsigned long ulii) {
 // to the need for too much duplicate C vs. C++ code ("initializer element is
 // not constant" when using const [type] in C99...)
 //
-// We start most pgenlib-specific numeric constant names here with "kPgl",
-// which should have a vanishingly small chance of colliding with anything in
-// C99.  Note that stuff like kBytesPerWord is not considered library-specific,
-// so it's exempt from having "Pgl" in the name.  Also, the few string literals
-// here are of the FOPEN_WB sort, which have similar usage patterns to e.g.
-// PRIuPTR which shouldn't be renamed, so those remain all-caps.
+// We start most plink2- and pgenlib-specific numeric constant names here with
+// "kPgl", which should have a vanishingly small chance of colliding with
+// anything in C99.  Note that stuff like kBytesPerWord is not considered
+// library-specific, so it's exempt from having "Pgl" in the name.  Also, the
+// few string literals here are of the FOPEN_WB sort, which have similar usage
+// patterns to e.g. PRIuPTR which shouldn't be renamed, so those remain
+// all-caps.
 //
 // (Update, May 2018: CONSTU31 was renamed to CONSTI32 and changed to type
 // int32_t, to prevent C vs. C++ differences.  This almost never makes a
@@ -741,6 +753,11 @@ HEADER_INLINE VecW vecw_slli(VecW vv, uint32_t ct) {
   return R_CAST(VecW, _mm256_slli_epi64(R_CAST(__m256i, vv), ct));
 }
 
+// Compiler still doesn't seem to be smart enough to use andnot properly.
+HEADER_INLINE VecW vecw_and_notfirst(VecW excl, VecW main) {
+  return R_CAST(VecW, _mm256_andnot_si256(R_CAST(__m256i, excl), R_CAST(__m256i, main)));
+}
+
 HEADER_INLINE VecW vecw_set1(uintptr_t ulii) {
   return R_CAST(VecW, _mm256_set1_epi64x(ulii));
 }
@@ -811,6 +828,26 @@ HEADER_INLINE VecW vecw_unpackhi8(VecW evens, VecW odds) {
   return R_CAST(VecW, _mm256_unpackhi_epi8(R_CAST(__m256i, evens), R_CAST(__m256i, odds)));
 }
 
+HEADER_INLINE VecW vecw_unpacklo16(VecW evens, VecW odds) {
+  return R_CAST(VecW, _mm256_unpacklo_epi16(R_CAST(__m256i, evens), R_CAST(__m256i, odds)));
+}
+
+HEADER_INLINE VecW vecw_unpackhi16(VecW evens, VecW odds) {
+  return R_CAST(VecW, _mm256_unpackhi_epi16(R_CAST(__m256i, evens), R_CAST(__m256i, odds)));
+}
+
+HEADER_INLINE VecW vecw_unpacklo32(VecW evens, VecW odds) {
+  return R_CAST(VecW, _mm256_unpacklo_epi32(R_CAST(__m256i, evens), R_CAST(__m256i, odds)));
+}
+
+HEADER_INLINE VecW vecw_unpackhi32(VecW evens, VecW odds) {
+  return R_CAST(VecW, _mm256_unpackhi_epi32(R_CAST(__m256i, evens), R_CAST(__m256i, odds)));
+}
+
+HEADER_INLINE VecW vecw_permute0xd8_if_avx2(VecW vv) {
+  return R_CAST(VecW, _mm256_permute4x64_epi64(R_CAST(__m256i, vv), 0xd8));
+}
+
 HEADER_INLINE VecW vecw_shuffle8(VecW table, VecW indexes) {
   return R_CAST(VecW, _mm256_shuffle_epi8(R_CAST(__m256i, table), R_CAST(__m256i, indexes)));
 }
@@ -823,11 +860,40 @@ HEADER_INLINE VecUc vecuc_shuffle8(VecUc table, VecUc indexes) {
   return R_CAST(VecUc, _mm256_shuffle_epi8(R_CAST(__m256i, table), R_CAST(__m256i, indexes)));
 }
 
+HEADER_INLINE uintptr_t vecw_extract64_0(VecW vv) {
+  return _mm256_extract_epi64(R_CAST(__m256i, vv), 0);
+}
+
+HEADER_INLINE uintptr_t vecw_extract64_1(VecW vv) {
+  return _mm256_extract_epi64(R_CAST(__m256i, vv), 1);
+}
+
+// *** AVX2-only section ***
+HEADER_INLINE uintptr_t vecw_extract64_2(VecW vv) {
+  return _mm256_extract_epi64(R_CAST(__m256i, vv), 2);
+}
+
+HEADER_INLINE uintptr_t vecw_extract64_3(VecW vv) {
+  return _mm256_extract_epi64(R_CAST(__m256i, vv), 3);
+}
+
+// todo: permute
+
+// *** end AVX2-only section ***
+
 #    define kVec8thUintMax UINT32_MAX
 
 typedef uint16_t Vec16thUint;
 typedef uint32_t Vec8thUint;
 typedef uint64_t Vec4thUint;
+
+HEADER_INLINE VecW vecw_load(const void* mem_addr) {
+  return R_CAST(VecW, _mm256_load_si256(S_CAST(const __m256i*, mem_addr)));
+}
+
+// There may be some value in adding a 4-consecutive-vector load function when
+// addresses are expected to be unaligned: see
+//   https://www.agner.org/optimize/blog/read.php?i=627&v=t
 
 HEADER_INLINE VecW vecw_loadu(const void* mem_addr) {
   return R_CAST(VecW, _mm256_loadu_si256(S_CAST(const __m256i*, mem_addr)));
@@ -889,7 +955,7 @@ HEADER_INLINE VecUc vecuc_adds(VecUc v1, VecUc v2) {
   return R_CAST(VecUc, _mm256_adds_epu8(R_CAST(__m256i, v1), R_CAST(__m256i, v2)));
 }
 
-#  else
+#  else  // !USE_AVX2
 
 #    define VCONST_W(xx) {xx, xx}
 #    define VCONST_S(xx) {xx, xx, xx, xx, xx, xx, xx, xx}
@@ -926,6 +992,10 @@ HEADER_INLINE VecW vecw_srli(VecW vv, uint32_t ct) {
 
 HEADER_INLINE VecW vecw_slli(VecW vv, uint32_t ct) {
   return R_CAST(VecW, _mm_slli_epi64(R_CAST(__m128i, vv), ct));
+}
+
+HEADER_INLINE VecW vecw_and_notfirst(VecW excl, VecW main) {
+  return R_CAST(VecW, _mm_andnot_si128(R_CAST(__m128i, excl), R_CAST(__m128i, main)));
 }
 
 HEADER_INLINE VecW vecw_set1(uintptr_t ulii) {
@@ -983,6 +1053,10 @@ CONSTI32(kVec8thUintMax, 65535);
 typedef unsigned char Vec16thUint;
 typedef uint16_t Vec8thUint;
 typedef uint32_t Vec4thUint;
+
+HEADER_INLINE VecW vecw_load(const void* mem_addr) {
+  return R_CAST(VecW, _mm_load_si128(S_CAST(const __m128i*, mem_addr)));
+}
 
 HEADER_INLINE VecW vecw_loadu(const void* mem_addr) {
   return R_CAST(VecW, _mm_loadu_si128(S_CAST(const __m128i*, mem_addr)));
@@ -1062,6 +1136,34 @@ HEADER_INLINE VecW vecw_unpackhi8(VecW evens, VecW odds) {
   return R_CAST(VecW, _mm_unpackhi_epi8(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
 }
 
+HEADER_INLINE VecW vecw_unpacklo16(VecW evens, VecW odds) {
+  return R_CAST(VecW, _mm_unpacklo_epi16(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
+}
+
+HEADER_INLINE VecW vecw_unpackhi16(VecW evens, VecW odds) {
+  return R_CAST(VecW, _mm_unpackhi_epi16(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
+}
+
+HEADER_INLINE VecW vecw_unpacklo32(VecW evens, VecW odds) {
+  return R_CAST(VecW, _mm_unpacklo_epi32(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
+}
+
+HEADER_INLINE VecW vecw_unpackhi32(VecW evens, VecW odds) {
+  return R_CAST(VecW, _mm_unpackhi_epi32(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
+}
+
+HEADER_INLINE VecW vecw_unpacklo64(VecW evens, VecW odds) {
+  return R_CAST(VecW, _mm_unpacklo_epi64(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
+}
+
+HEADER_INLINE VecW vecw_unpackhi64(VecW evens, VecW odds) {
+  return R_CAST(VecW, _mm_unpackhi_epi64(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
+}
+
+HEADER_INLINE VecW vecw_permute0xd8_if_avx2(VecW vv) {
+  return vv;
+}
+
 #    ifdef USE_SSE42
 HEADER_INLINE VecI32 veci32_max(VecI32 v1, VecI32 v2) {
   return R_CAST(VecI32, _mm_max_epi32(R_CAST(__m128i, v1), R_CAST(__m128i, v2)));
@@ -1077,6 +1179,23 @@ HEADER_INLINE VecU16 vecu16_shuffle8(VecU16 table, VecU16 indexes) {
 
 HEADER_INLINE VecUc vecuc_shuffle8(VecUc table, VecUc indexes) {
   return R_CAST(VecUc, _mm_shuffle_epi8(R_CAST(__m128i, table), R_CAST(__m128i, indexes)));
+}
+
+HEADER_INLINE uintptr_t vecw_extract64_0(VecW vv) {
+  return _mm_extract_epi64(R_CAST(__m128i, vv), 0);
+}
+
+HEADER_INLINE uintptr_t vecw_extract64_1(VecW vv) {
+  return _mm_extract_epi64(R_CAST(__m128i, vv), 1);
+}
+#    else
+HEADER_INLINE uintptr_t vecw_extract64_0(VecW vv) {
+  return R_CAST(uintptr_t, _mm_movepi64_pi64(R_CAST(__m128i, vv)));
+}
+
+HEADER_INLINE uintptr_t vecw_extract64_1(VecW vv) {
+  const __m128i v0 = _mm_srli_si128(R_CAST(__m128i, vv), 8);
+  return R_CAST(uintptr_t, _mm_movepi64_pi64(v0));
 }
 #    endif
 
@@ -1205,6 +1324,7 @@ static_assert(sizeof(int64_t) == 8, "plink2_base requires sizeof(int64_t) == 8."
 
 CONSTI32(kWordsPerVec, kBytesPerVec / kBytesPerWord);
 CONSTI32(kInt32PerVec, kBytesPerVec / 4);
+CONSTI32(kInt16PerVec, kBytesPerVec / 2);
 
 CONSTI32(kFloatPerFVec, kBytesPerFVec / 4);
 
@@ -1222,8 +1342,16 @@ CONSTI32(kVecsPerCacheline, kCacheline / kBytesPerVec);
 // parameter to e.g. PgfiMultiread()
 CONSTI32(kDiskBlockSize, 4096);
 
+CONSTI32(kPglFwriteBlockSize, 131072);
+
 // unsafe to fread or fwrite more bytes than this on e.g. OS X
 CONSTI32(kMaxBytesPerIO, 0x7ffff000);
+
+// Maximum size of "dynamically" allocated line load buffer.  (This is the
+// limit that applies to .vcf and similar files.)  Inconvenient to go higher
+// since fgets() takes a int32_t size argument.
+CONSTI32(kMaxLongLine, 0x7fffffc0);
+static_assert(!(kMaxLongLine % kCacheline), "kMaxLongLine must be a multiple of kCacheline.");
 
 #ifdef __APPLE__
 // OS X is limited to 256?
@@ -1643,7 +1771,9 @@ HEADER_INLINE uint32_t IsI32Neg(uint32_t uii) {
 }
 
 HEADER_INLINE uint32_t abs_i32(int32_t ii) {
-  const uint32_t neg_sign_bit = -IsI32Neg(ii);
+  // Arithmetic right shift.  0xffffffffU when ii is negative, 0 otherwise.
+  const uint32_t neg_sign_bit = S_CAST(uint32_t, ii >> 31);
+
   return (S_CAST(uint32_t, ii) ^ neg_sign_bit) - neg_sign_bit;
 }
 
@@ -2125,6 +2255,8 @@ HEADER_INLINE uintptr_t PopcountWords(const uintptr_t* bitvec, uintptr_t word_ct
   return tot;
 }
 #endif  // !USE_AVX2
+
+uintptr_t PopcountWordsIntersect(const uintptr_t* __restrict bitvec1_iter, const uintptr_t* __restrict bitvec2_iter, uintptr_t word_ct);
 
 // Turns out memcpy(&cur_word, bytearr, ct) can't be trusted to be fast when ct
 // isn't known at compile time.
@@ -2742,6 +2874,10 @@ HEADER_INLINE void ZeroU64Arr(uintptr_t entry_ct, uint64_t* u64arr) {
   memset(u64arr, 0, entry_ct * sizeof(int64_t));
 }
 
+HEADER_INLINE void ZeroPtrArr(uintptr_t entry_ct, void* pp) {
+  memset(pp, 0, entry_ct * sizeof(intptr_t));
+}
+
 HEADER_INLINE void ZeroHwArr(uintptr_t entry_ct, Halfword* hwarr) {
   memset(hwarr, 0, entry_ct * sizeof(Halfword));
 }
@@ -3017,10 +3153,9 @@ uintptr_t PopcountBytesMasked(const void* bitarr, const uintptr_t* mask_arr, uin
 
 // transpose_quaterblock(), which is more plink-specific, is in
 // pgenlib_internal
-CONSTI32(kBitTransposeBatch, kBitsPerCacheline);
-CONSTI32(kBitTransposeWords, kWordsPerCacheline);
-// * Up to 512x512; vecaligned_buf must have size 32k (64k in 32-bit case)
-//   (er, can reduce buffer size to 512 bytes in 64-bit case...)
+CONSTI32(kPglBitTransposeBatch, kBitsPerCacheline);
+CONSTI32(kPglBitTransposeWords, kWordsPerCacheline);
+// * Up to 512x512; vecaligned_buf must have size 64k
 // * write_iter must be allocated up to at least
 //   RoundUpPow2(write_batch_size, 2) rows
 // * We use pointers with different types to read from and write to buf0/buf1,
@@ -3029,27 +3164,27 @@ CONSTI32(kBitTransposeWords, kWordsPerCacheline);
 //   tell the compiler it doesn't need to be paranoid about writes to one of
 //   the buffers screwing with reads from the other.
 #ifdef __LP64__
-CONSTI32(kBitTransposeBufbytes, kBitTransposeBatch);
-void TransposeBitblockInternal(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, void* buf0);
+CONSTI32(kPglBitTransposeBufbytes, (kPglBitTransposeBatch * kPglBitTransposeBatch) / (CHAR_BIT / 2));
+void TransposeBitblock64(const uintptr_t* read_iter, uintptr_t read_ul_stride, uintptr_t write_ul_stride, uint32_t read_row_ct, uint32_t write_row_ct, uintptr_t* write_iter, VecW* __restrict buf0, VecW* __restrict buf1);
 
-HEADER_INLINE void TransposeBitblock(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, VecW* vecaligned_buf) {
-  TransposeBitblockInternal(read_iter, read_ul_stride, write_ul_stride, read_batch_size, write_batch_size, write_iter, vecaligned_buf);
+HEADER_INLINE void TransposeBitblock(const uintptr_t* read_iter, uintptr_t read_ul_stride, uintptr_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, VecW* vecaligned_buf) {
+  TransposeBitblock64(read_iter, read_ul_stride, write_ul_stride, read_batch_size, write_batch_size, write_iter, vecaligned_buf, &(vecaligned_buf[kPglBitTransposeBufbytes / (2 * kBytesPerVec)]));
 }
 
 #else  // !__LP64__
-CONSTI32(kBitTransposeBufbytes, (kBitTransposeBatch * kBitTransposeBatch) / (CHAR_BIT / 2));
-void TransposeBitblockInternal(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, VecW* __restrict buf0, VecW* __restrict buf1);
+CONSTI32(kPglBitTransposeBufbytes, (kPglBitTransposeBatch * kPglBitTransposeBatch) / (CHAR_BIT / 2));
+void TransposeBitblock32(const uintptr_t* read_iter, uintptr_t read_ul_stride, uintptr_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, VecW* __restrict buf0, VecW* __restrict buf1);
 
 // If this ever needs to be called on an input byte array, read_iter could be
 // changed to const void*; in that case, read_ul_stride should be changed to a
 // byte count.
-HEADER_INLINE void TransposeBitblock(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, VecW* vecaligned_buf) {
-  TransposeBitblockInternal(read_iter, read_ul_stride, write_ul_stride, read_batch_size, write_batch_size, write_iter, vecaligned_buf, &(vecaligned_buf[kBitTransposeBufbytes / (2 * kBytesPerWord)]));
+HEADER_INLINE void TransposeBitblock(const uintptr_t* read_iter, uintptr_t read_ul_stride, uintptr_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, VecW* vecaligned_buf) {
+  TransposeBitblock32(read_iter, read_ul_stride, write_ul_stride, read_batch_size, write_batch_size, write_iter, vecaligned_buf, &(vecaligned_buf[kPglBitTransposeBufbytes / (2 * kBytesPerVec)]));
 }
 #endif
 
-CONSTI32(kBitTransposeBufwords, kBitTransposeBufbytes / kBytesPerWord);
-CONSTI32(kBitTransposeBufvecs, kBitTransposeBufbytes / kBytesPerVec);
+CONSTI32(kPglBitTransposeBufwords, kPglBitTransposeBufbytes / kBytesPerWord);
+CONSTI32(kPglBitTransposeBufvecs, kPglBitTransposeBufbytes / kBytesPerVec);
 
 CONSTI32(kNibblesPerWord, 2 * kBytesPerWord);
 CONSTI32(kNibblesPerCacheline, 2 * kCacheline);
@@ -3062,14 +3197,13 @@ HEADER_CINLINE uintptr_t NibbleCtToWordCt(uintptr_t val) {
   return DivUp(val, kNibblesPerWord);
 }
 
-CONSTI32(kNibbleTransposeBatch, kNibblesPerCacheline);
-CONSTI32(kNibbleTransposeWords, kWordsPerCacheline);
+CONSTI32(kPglNibbleTransposeBatch, kNibblesPerCacheline);
+CONSTI32(kPglNibbleTransposeWords, kWordsPerCacheline);
 
-CONSTI32(kNibbleTransposeBufbytes, (kNibbleTransposeBatch * kNibbleTransposeBatch) / 2);
+CONSTI32(kPglNibbleTransposeBufbytes, (kPglNibbleTransposeBatch * kPglNibbleTransposeBatch) / 2);
 
 // up to 128x128; vecaligned_buf must have size 8k
-// important: write_iter must be allocated up to at least
-//   RoundUpPow2(write_batch_size, 2) rows
+// now ok for write_iter to not be padded when write_batch_size odd
 void TransposeNibbleblock(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* __restrict write_iter, VecW* vecaligned_buf);
 
 HEADER_INLINE uintptr_t GetNibbleArrEntry(const uintptr_t* nibblearr, uint32_t idx) {
