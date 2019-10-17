@@ -134,7 +134,9 @@ void LoadDataBGENProvider::loadRowImpl(int index)
 class LoadDataPGENProvider : public LoadDataProvider<LoadDataPGENProvider> {
 	struct PgenFileInfoDtor {
 		void operator()(PgenFileInfo *pfi) {
-			CleanupPgfi(pfi);
+			PglErr err = kPglRetSuccess;
+			CleanupPgfi(pfi, &err);
+			if (err != kPglRetSuccess) mxThrow("CleanupPgfi not happy");
 			if (pfi->vrtypes) aligned_free(pfi->vrtypes);
 			delete pfi;
 		}
@@ -142,7 +144,9 @@ class LoadDataPGENProvider : public LoadDataProvider<LoadDataPGENProvider> {
 	typedef std::unique_ptr< PgenFileInfo, PgenFileInfoDtor > PgenFileInfoPtr;
 	struct PgenReaderStructDtor {
 		void operator()(PgenReaderStruct *pgr) {
-			CleanupPgr(pgr);
+			PglErr err = kPglRetSuccess;
+			CleanupPgr(pgr, &err);
+			if (err != kPglRetSuccess) mxThrow("CleanupPgr not happy");
 			if (pgr->fread_buf) aligned_free(pgr->fread_buf);
 			delete pgr;
 		}
@@ -154,6 +158,8 @@ class LoadDataPGENProvider : public LoadDataProvider<LoadDataPGENProvider> {
 	uintptr_t* pgen_subset_include_vec;
 	uint32_t* pgen_subset_cumulative_popcounts;
 	uintptr_t* pgen_genovec;
+	uintptr_t* pgen_dosage_present;
+	uint16_t* pgen_dosage_main;
 
 	virtual const char *getName() { return "pgen"; };
 	virtual void init(SEXP rObj) {
@@ -162,28 +168,6 @@ class LoadDataPGENProvider : public LoadDataProvider<LoadDataPGENProvider> {
 	virtual void loadRowImpl(int index);
 	virtual int getNumVariants();
 };
-
-static const double kGenoToDouble[4] = {0, 1, 2, NA_REAL};
-
-// TODO: investigate GenoarrLookup16x8bx2()
-static void GenoarrToDouble(const uintptr_t* genoarr, uint32_t sample_ct, double *geno_out) {
-  const uint32_t word_ct_m1 = (sample_ct - 1) / kBitsPerWordD2;
-  double* write_iter = geno_out;
-  uint32_t subgroup_len = kBitsPerWordD2;
-  for (uint32_t widx = 0; ; ++widx) {
-    if (widx >= word_ct_m1) {
-      if (widx > word_ct_m1) {
-        return;
-      }
-      subgroup_len = ModNz(sample_ct, kBitsPerWordD2);
-    }
-    uintptr_t geno_word = genoarr[widx];
-    for (uint32_t uii = 0; uii != subgroup_len; ++uii) {
-      *write_iter++ = kGenoToDouble[geno_word & 3];
-      geno_word >>= 2;
-    }
-  }
-}
 
 static const int kGenoToFactor[4] = {1, 2, 3, NA_INTEGER};
 
@@ -205,6 +189,28 @@ static void GenoarrToFactor(const uintptr_t* genoarr, uint32_t sample_ct, int *g
       geno_word >>= 2;
     }
   }
+}
+
+void Dosage16ToDoubles(const double* geno_double_pair_table, const uintptr_t* genoarr, const uintptr_t* dosage_present, const uint16_t* dosage_main, uint32_t sample_ct, uint32_t dosage_ct, double* geno_double) {
+  GenoarrLookup16x8bx2(genoarr, geno_double_pair_table, sample_ct, geno_double);
+  if (dosage_ct) {
+    const uint16_t* dosage_main_iter = dosage_main;
+    uintptr_t sample_uidx_base = 0;
+    uintptr_t cur_bits = dosage_present[0];
+    for (uint32_t dosage_idx = 0; dosage_idx != dosage_ct; ++dosage_idx) {
+      const uintptr_t sample_uidx = BitIter1(dosage_present, &sample_uidx_base, &cur_bits);
+      // We use 2.0- to obtain exactly the same dosages as bgen format.
+      // I guess it's arbitrary so why not?
+      geno_double[sample_uidx] = 2.0 - S_CAST(double, *dosage_main_iter++) * 0.00006103515625;
+    }
+  }
+}
+
+const double kGenoDoublePairs[32] ALIGNV16 = PAIR_TABLE16(0.0, 1.0, 2.0, -9.0);
+
+void Dosage16ToDoublesMinus9(const uintptr_t* genoarr, const uintptr_t* dosage_present, const uint16_t* dosage_main, uint32_t sample_ct, uint32_t dosage_ct, double* geno_double)
+{
+	Dosage16ToDoubles(kGenoDoublePairs, genoarr, dosage_present, dosage_main, sample_ct, dosage_ct, geno_double);
 }
 
 int LoadDataPGENProvider::getNumVariants()
@@ -278,6 +284,10 @@ void LoadDataPGENProvider::loadRowImpl(int index)
 		pgen_subset_cumulative_popcounts = (uint32_t*)pgr_alloc_iter;
 		pgr_alloc_iter = &(pgr_alloc_iter[cumulative_popcounts_byte_ct]);
 		pgen_genovec = (uintptr_t*)pgr_alloc_iter;
+		pgr_alloc_iter = &(pgr_alloc_iter[genovec_byte_ct]);
+		pgen_dosage_present = (uintptr_t*)pgr_alloc_iter;
+		pgr_alloc_iter = &(pgr_alloc_iter[sample_subset_byte_ct]);
+		pgen_dosage_main = (uint16_t*)pgr_alloc_iter;
 		loadCounter += 1;
 	}
 
@@ -286,14 +296,21 @@ void LoadDataPGENProvider::loadRowImpl(int index)
 		  name, 1+index, int(pgen_info->raw_variant_ct));
 	}
 
-        PglErr reterr = PgrGet1(pgen_subset_include_vec, pgen_subset_cumulative_popcounts,
-				pgen_info->raw_sample_ct, index, 1, pgen_state.get(), pgen_genovec);
-        if (reterr != kPglRetSuccess)
-		mxThrow("%s: read(varient %d) error code %d", name, index, int(reterr));
-
 	if (colTypes[0] == COLUMNDATA_NUMERIC) {
-		GenoarrToDouble(pgen_genovec, pgen_info->raw_sample_ct, stripeData[0].realData);
+		uint32_t dosage_ct;
+		PglErr reterr = PgrGet1D(pgen_subset_include_vec, pgen_subset_cumulative_popcounts,
+					 pgen_info->raw_sample_ct, index, 1, pgen_state.get(), pgen_genovec,
+					 pgen_dosage_present, pgen_dosage_main, &dosage_ct);
+		if (reterr != kPglRetSuccess)
+			mxThrow("%s: read_dosages(varient %d) error code %d", name, index, int(reterr));
+		Dosage16ToDoublesMinus9(pgen_genovec, pgen_dosage_present, pgen_dosage_main,
+					pgen_info->raw_sample_ct, dosage_ct, stripeData[0].realData);
 	} else {
+		PglErr reterr = PgrGet1(pgen_subset_include_vec, pgen_subset_cumulative_popcounts,
+					pgen_info->raw_sample_ct, index, 1, pgen_state.get(), pgen_genovec);
+		if (reterr != kPglRetSuccess)
+			mxThrow("%s: read(varient %d) error code %d", name, index, int(reterr));
+
 		auto &rc = (*rawCols)[ columns[0] ];
 		if (rc.levels.size() != 3) mxThrow("%s: pgen files contain data with 3 levels (not %d)",
 						   name, int(rc.levels.size()));
