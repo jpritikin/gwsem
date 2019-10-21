@@ -18,12 +18,11 @@ You can install the released version of gwsem from [CRAN](https://CRAN.R-project
 install.packages("gwsem")
 ```
 
-## Example
+If you want to use a development snapshot, clone the source code and do
 
-This is a basic example which shows you how to solve a common problem:
-
-``` r
-library(gwsem)
-## basic example code
+```
+./tools/rox        # to generate doc and NAMESPACE
+R CMD INSTALL .    # to install it
 ```
 
+You cannot use **devtools** `install_github` because it does not run **roxygen2**.
