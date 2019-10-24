@@ -6,6 +6,7 @@ suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
 dir <- system.file("extdata", package = "gwsem")
+tdir <- tempdir()
 
 pheno <- read.table(file.path(dir, "example.psam"),
                     stringsAsFactors = FALSE,header=TRUE, comment.char="")
@@ -29,9 +30,10 @@ for (cx in 1:numCovariate) {
 
 GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators),
                  covariates = paste0("covar",1:numCovariate)),
-     file.path(dir,"example.pgen"))
+     file.path(dir,"example.pgen"),
+     file.path(tdir,"out.log"))
 
-pgen <- read.table("out.log", stringsAsFactors = FALSE, header=TRUE,
+pgen <- read.table(file.path(tdir,"out.log"), stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 
 mask <- (pgen$catch1 == "" & pgen$statusCode=="OK" & !is.na(pgen$snpRegSE))

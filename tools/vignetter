@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ ! -d vignettes ]; then
+    echo "Must be run from the top directory"
+    exit 1
+fi
+
+# Not sure why RStudio keeps changing the hashes in the knitr cache
+
+export NOT_CRAN=true
+cd vignettes
+Rscript -e "library(rmarkdown); render('growth.Rmd', html_document())"

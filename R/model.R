@@ -44,21 +44,28 @@ calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 #' the compute plan with a model (such as returned by \link{buildOneFac})
 #' to perform a GWAS.
 #'
-#' @param modelName name of the model to load data into
+#' @template args-model
 #' @template args-snpData
 #' @template args-snp
 #' @template args-out
 #' @template args-dots-barrier
+#' @template args-startfrom
 #' @return
-#' A compute plan.
+#' The given model with an appropriate compute plan.
 #'
 #' @export
+#' @importFrom methods is
 #' @seealso \link{GWAS}
 #' @examples
-#' makeComputePlan("test", "myData.pgen")
-makeComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out.log")
+#' m1 <- mxModel("test", mxFitFunctionWLS())
+#' dir <- system.file("extdata", package = "gwsem")
+#' m1 <- prepareComputePlan(m1, file.path(dir,"example.pgen"))
+#' m1$compute
+prepareComputePlan <- function(model, snpData, out="out.log", ...,
+			       SNP=NULL, startFrom=1L)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
+  modelName <- model$name
   pieces <- strsplit(snpData, ".", fixed=TRUE)[[1]]
   if (length(pieces) < 2) {
     stop(paste("Please rename snpData",omxQuotes(snpData),
@@ -81,62 +88,143 @@ makeComputePlan <- function(modelName, snpData, ..., SNP=NULL, out="out.log")
     # TODO doc column=1:3, sep='\t'
     onesnp <- c(
       onesnp,
-      LC=mxComputeLoadContext(path=paste(stem, "pvar", sep = "."), column=1:3, sep='\t'))
+      LC=mxComputeLoadContext(path=paste(stem, "pvar", sep = "."), column=1:3, sep='\t',
+			      col.names=c("CHR", "BP", "SNP")))
   } else if (snpFileExt == "bed") {
     onesnp <- c(
       onesnp,
       LC=mxComputeLoadContext(path=paste(stem, "bim", sep = "."),
                               column=c(1,2,4), sep='\t', header=FALSE,
-                              col.names=c("CHROM", "SNP", "POS")))
+                              col.names=c("CHR", "SNP", "BP")))
+  }
+
+  opt <- list(GD=mxComputeGradientDescent())
+  if (is(model$fitfunction, "MxFitFunctionWLS")) {
+	  opt <- c(opt, SE=mxComputeStandardError())
+  } else {
+	  opt <- c(opt,
+		   ND=mxComputeNumericDeriv(),
+		   SE=mxComputeStandardError(),
+		   HQ=mxComputeHessianQuality())
   }
 
   onesnp <- c(
     onesnp,
-    TC=mxComputeTryCatch(mxComputeSequence(list(
-      GD=mxComputeGradientDescent(),
-      SE=mxComputeStandardError()))),
+    TC=mxComputeTryCatch(mxComputeSequence(opt)),
     CK=mxComputeCheckpoint(path=out, standardErrors = TRUE))
 
-  mxComputeLoop(onesnp, i=SNP)
+  mxModel(model, mxComputeLoop(onesnp, i=SNP, startFrom=startFrom))
 }
 
 #' Run a genome-wide association study (GWAS) using the provided model
 #'
-#' Adds a compute plan returned by \link{makeComputePlan} to the
-#' provided \code{model} and runs it.
+#' Adds a compute plan returned by \link{prepareComputePlan} to the
+#' provided \code{model} and runs it. Once analyses are complete,
+#' load your aggregated results with \link{loadResults}. 
 #'
-#' @param model the MxModel object to be fit to each SNP
+#' @template args-model
 #' @template args-snpData
 #' @template args-snp
 #' @template args-out
+#' @template args-dots-barrier
+#' @template args-startfrom
 #' @export
 #' @return
 #' The \link[OpenMx:MxModel-class]{MxModel} returned by \link[OpenMx]{mxRun}.
 #' Data and estimates for the last SNP processed will be available for inspection.
-GWAS <- function(model, snpData, SNP=NULL, out="out.log")
+#' @examples
+#' dir <- system.file("extdata", package = "gwsem")
+#' pheno <- data.frame(anxiety=rnorm(500))
+#' m1 <- buildOneItem(pheno, 'anxiety')
+#' GWAS(m1, file.path(dir,"example.pgen"),
+#'      file.path(tempdir(),"out.log"))
+GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
 {
-  model <- mxModel(model, makeComputePlan(model$name, snpData, SNP=SNP, out=out))
+	# verify model has a continuous 'snp' data column TODO
+  if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
+  model <- prepareComputePlan(model, snpData, out=out,
+			      SNP=SNP, startFrom=startFrom)
   model <- mxRun(model)
   message(paste("Done. See", omxQuotes(out), "for results"))
   invisible(model)
 }
 
-# TODO doc scale of thresholds
-setupThresholds <- function(model, fac)
+#' Set up thresholds for ordinal indicators
+#'
+#' Ordinal indicator thresholds are freely estimated with fixed means
+#' and variance. This function adds thresholds to the given
+#' \code{model}.  If no indicators are ordinal, the given \code{model}
+#' is returned without changes.
+#'
+#' @details
+#' 
+#' Thresholds are added using \link[OpenMx]{mxThreshold}. Starting
+#' values for thresholds use the defaults provided by this function
+#' which assumes a mean of zero and variance of the square root of
+#' two.  This variance is appropriate for \link{buildOneFac} where the
+#' implied model variance of ordinal indicators is one plus the square
+#' of the factor loading, and the loading's starting value is 1.0.
+#'
+#' @template args-model
+#' @template detail-adv
+#'
+#' @return
+#' The given \link[OpenMx:MxModel-class]{MxModel} with appropriate thresholds added.
+#' @export
+#' @examples
+#' pheno <- data.frame(anxiety=cut(rnorm(500), c(-Inf, -.5, .5, Inf),
+#'                     ordered_result = TRUE))
+#' m1 <- buildOneItem(pheno, 'anxiety')
+#' m1 <- setupThresholds(m1)
+#' m1$Thresholds
+setupThresholds <- function(model)
 {
   phenoData <- model$data$observed
   itemNames <- setdiff(model$manifestVars, 'snp')
 
-  thr <- sapply(phenoData[,itemNames], nlevels)-1
+  thr <- sapply(phenoData[,itemNames,drop=FALSE], nlevels)-1
+  fac <- thr >= 1
   thr[thr< 0] <- 0
 
   if (max(thr) == 0) return(model)
 
   thresh <- mxThreshold(itemNames[fac], nThresh=thr[fac], free = T ,
-                        labels = paste0(rep(itemNames[fac], each = max(thr)), "_Thr_", 1:max(thr)))
+                        labels = paste0(rep(itemNames[fac], each = max(thr)), "_Thr_", 1:max(thr)),
+			values=mxNormalQuantiles(thr[fac], sd=sqrt(2.0)))
   mxModel(model, thresh)
 }
 
+#' Set up model covariates
+#'
+#' In GWAS, including a number of the first principle components as
+#' covariates helps reduce false positives caused by population
+#' stratification. This function adds paths from covariates to
+#' manifest indicators. Covariates are always treated as continuous
+#' variables (not ordinal).
+#'
+#' @details
+#' This is not the only way to adjust a model for
+#' covariates. For example, in a single factor model (e.g., \link{buildOneFac}),
+#' it would be more
+#' appropriate to adjust the latent factor instead of the manifest
+#' indicators. However, covariate adjustments to latent variables are only
+#' possible with a maximum likelihood fit function
+#' (\link[OpenMx]{mxFitFunctionML}).  For
+#' \link[OpenMx]{mxFitFunctionWLS}, only manifest indicators can be
+#' adjusted for covariates.
+#' This function always adjusts manifest indicators regardless of the fit function.
+#' 
+#' @template args-model
+#' @param covariates a character vector naming covariates available in the model data
+#' @template detail-adv
+#' @return
+#' The given \link[OpenMx:MxModel-class]{MxModel} with paths
+#' added from covariates to manifest indicators.
+#' @export
+#' @examples
+#' m1 <- mxModel("test", type="RAM",
+#'              latentVars = "sex", manifestVars = "anxiety")
+#' m1 <- setupCovariates(m1, 'sex')
 setupCovariates <- function(model, covariates)
 {
   if (length(covariates)==0) return(model)
@@ -148,9 +236,89 @@ setupCovariates <- function(model, covariates)
   mxModel(model, covMean, cov2item)
 }
 
+# export? TODO
+setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
+{
+  if (customMinMAF && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
+  minVar <- calcMinVar(minMAF)
+  result <- list()
+  aname <- c()
+  if (length(gxe)) for (v1 in gxe) {
+	  alg <- mxAlgebraFromString(paste0("data.snp * data.",v1),
+				     name=paste0('snp_',v1,"Alg"),
+				     dimnames=list(NULL,paste0('snp_',v1)))
+	  result <- c(result, alg)
+	  phenoData[[ paste0('snp_',v1) ]] <- 0.0  # placeholder
+	  aname <- c(aname, paste0('snp_',v1))
+  }
+  c(mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE,
+	 algebra=aname), result)
+}
+
+#' @importFrom stats rbinom
+addPlaceholderSNP <- function(phenoData) {
+	# We use as.numeric because we currently only support dosages.
+	phenoData$snp <- as.numeric(rbinom(dim(phenoData)[1], 2, .5))
+	phenoData
+}
+
+
+#' Build a model suitable for a single item genome-wide association study
+#'
+#' @template detail-build
+#'
+#' @template args-phenoData
+#' @param depVar the name of the single item to predict
+#' @template args-covariates
+#' @template args-dots-barrier
+#' @template args-fitfun
+#' @template args-minmaf
+#' @template args-modeltype
+#' @template args-gxe
+#' @family model builder
+#' @export
+#' @return
+#' A \link[OpenMx:MxModel-class]{MxModel}
+#' @examples
+#' pheno <- data.frame(anxiety=cut(rnorm(500), c(-Inf, -.5, .5, Inf),
+#'                     ordered_result = TRUE))
+#' m1 <- buildOneItem(pheno, 'anxiety')
+buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
+			 modelType=c('RAM','LISREL'), gxe=NULL)
+{
+  if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
+  fitfun <- match.arg(fitfun)
+  modelType <- match.arg(modelType)
+
+  if (length(depVar) != 1) {
+    stop(paste("buildOneItem provided with", length(depVar), "dependent variables",
+	       "instead of 1. Did you intend to use buildOneFac instead?"))
+  }
+  fac <- is.factor(phenoData[[depVar]])
+
+  phenoData <- addPlaceholderSNP(phenoData)
+  snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
+  snpBeta   <- mxPath(from = "snp", to = depVar, labels = "snpReg", values = 0, free = T)
+  snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
+  resid     <- mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_"))
+  itemMean  <- mxPath(from = 'one', to = depVar, free= !fac, values = 0, labels = paste0(depVar, "Mean"))
+
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
+
+  modelName <- "OneItem"
+  oneFacPre <- mxModel(model=modelName, type=modelType,
+                       manifestVars = c("snp", depVar),
+                       latentVars = c(covariates),
+                       snpMu, snpBeta, snpres, resid,
+                       itemMean, dat, makeFitFunction(fitfun))
+
+  oneFacPre <- setupThresholds(oneFacPre)
+  setupCovariates(oneFacPre, covariates)
+}
+
 #' Build a model suitable for a single factor genome-wide association study
 #'
-#' You can plot the model using \link[OpenMx]{omxGraphviz}.
+#' @template detail-build
 #'
 #' @template args-phenoData
 #' @param itemNames a vector of phenotypic item names that load on the latent factor
@@ -159,20 +327,26 @@ setupCovariates <- function(model, covariates)
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-modeltype
-#' @family build
-#' @importFrom stats rbinom
+#' @template args-gxe
+#' @family model builder
 #' @export
+#' @return
+#' A \link[OpenMx:MxModel-class]{MxModel}
+#' @examples
+#' pheno <- list()
+#' for (i in 1:5) pheno[[paste0('i',i)]] <- rnorm(500)
+#' pheno <- as.data.frame(pheno)
+#' buildOneFac(pheno, colnames(pheno))
 buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
-			modelType=c('RAM','LISREL'))
+			modelType=c('RAM','LISREL'), gxe=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
-  minVar <- calcMinVar(minMAF)
   modelType <- match.arg(modelType)
 
-  fac <- sapply(phenoData[,itemNames], is.factor)
+  fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
 
-  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F")
   lambda    <- mxPath(from=latents, to=itemNames,values=1, free = T, labels = paste("lambda", itemNames, sep = "_")  )
   snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
@@ -182,7 +356,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
   itemMean  <- mxPath(from = 'one', to = itemNames, free= !fac, values = 0, labels = paste0(itemNames, "Mean"))
 
-  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneFac"
   oneFacPre <- mxModel(model=modelName, type=modelType,
@@ -191,11 +365,13 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
                        lambda, snpMu, snpBeta, snpres, resid, facRes,
                        itemMean, dat, makeFitFunction(fitfun))
 
-  oneFacPre <- setupThresholds(oneFacPre, fac)
+  oneFacPre <- setupThresholds(oneFacPre)
   setupCovariates(oneFacPre, covariates)
 }
 
 #' Build a model suitable for a single factor residual genome-wide association study
+#' 
+#' @template detail-build
 #' 
 #' @param itemNames a vector of phenotypic item names that load on the latent factor
 #' @param factor whether to estimate a regression from the SNP to the latent factor (default FALSE)
@@ -206,20 +382,27 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' @template args-minmaf
 #' @template args-dots-barrier
 #' @template args-modeltype
+#' @template args-gxe
 #' 
-#' @family build
+#' @family model builder
 #' @export
+#' @return
+#' A \link[OpenMx:MxModel-class]{MxModel}
+#' @examples
+#' pheno <- list()
+#' for (i in 1:5) pheno[[paste0('i',i)]] <- rnorm(500)
+#' pheno <- as.data.frame(pheno)
+#' buildOneFacRes(pheno, colnames(pheno))
 buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, covariates = NULL,
-			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
+			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'), gxe=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
-  if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
   modelType <- match.arg(modelType)
   
-  fac <- sapply(phenoData[,itemNames], is.factor)
+  fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
 
-  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F")
   lambda    <- mxPath(from=latents, to=itemNames,values=1, free = T, labels = paste("lambda", itemNames, sep = "_")  )
   snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
@@ -230,8 +413,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
-  minVar <- calcMinVar(minMAF)
-  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneFacRes"
   oneFacPre <- mxModel(model=modelName, type=modelType,
@@ -240,12 +422,14 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
                        lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes,
                        itemMean, dat, makeFitFunction(fitfun))
 
-  oneFacPre <- setupThresholds(oneFacPre, fac)
+  oneFacPre <- setupThresholds(oneFacPre)
   setupCovariates(oneFacPre, covariates)
 }
 
 #' Build a model suitable for a two factor genome-wide association study
 #'
+#' @template detail-build
+#' 
 #' @param F1itemNames a vector of item names that load on the first latent factor
 #' @param F2itemNames a vector of item names that load on the second latent factor
 #' 
@@ -255,23 +439,28 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' @template args-minmaf
 #' @template args-dots-barrier
 #' @template args-modeltype
+#' @template args-gxe
 #' @export
-#' @family build
+#' @family model builder
+#' @return
+#' A \link[OpenMx:MxModel-class]{MxModel}
+#' @examples
+#' pheno <- list()
+#' for (i in 1:10) pheno[[paste0('i',i)]] <- rnorm(500)
+#' pheno <- as.data.frame(pheno)
+#' buildTwoFac(pheno, paste0('i',1:6), paste0('i',5:10))
 buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, ...,
-			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'))
+			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'), gxe=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
-  if (!missing(minMAF) && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
   modelType <- match.arg(modelType)
-
-  minVar <- calcMinVar(minMAF)
 
   itemNames <- union(F1itemNames, F2itemNames)
 
-  fac <- sapply(phenoData[,itemNames], is.factor)
+  fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
 
-  phenoData$snp <- rbinom(dim(phenoData)[1], 2, .5) # create placeholder
+  phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F1", "F2")
   lambda1    <- mxPath(from="F1", to=F1itemNames,values=1, labels = paste("lambda", F1itemNames, sep = "_")  )
   lambda2    <- mxPath(from="F2", to=F2itemNames,values=1, labels = paste("lambda", F2itemNames, sep = "_")  )
@@ -286,7 +475,7 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
   
-  dat       <- mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "TwoFac"
   twoFacPre <- mxModel(model=modelName, type=modelType,
@@ -296,6 +485,6 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
                        resid, facRes,
                        itemMean, dat, makeFitFunction(fitfun))
 
-  twoFacPre <- setupThresholds(twoFacPre, fac)
+  twoFacPre <- setupThresholds(twoFacPre)
   setupCovariates(twoFacPre, covariates)
 }

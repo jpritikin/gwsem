@@ -1,7 +1,7 @@
 Package: gwsem
 Type: Package
-Title: Genome Wide Structural Equation Modeling
-Version: 0.1.0
+Title: Genome-Wide Structural Equation Modeling
+Version: 0.1.6
 Authors@R:
   c(person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com", role=c("aut", 'cre')),
     person("Bradley", "Verhulst", role="cph", email="brad.verhulst@gmail.com"),
@@ -10,20 +10,32 @@ Authors@R:
     person("Facebook, Inc.", role="cph"),
     person("Yuta", "Mori", role="cph"),
     person("Shaun", "Purcell", role="cph"),
-    person("Christopher", "Chang", role="cph"))
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+    person("Christopher", "Chang", role="cph"),
+    person("Wojciech", "Mula", role="cph"),
+    person("Kim", "Walisch", role="cph"))
+Description: Melds genome-wide association tests with structural
+    equation modeling (SEM) using 'OpenMx'. This package contains low-level
+    C/C++ code to rapidly read genetic data encoded in U.K. Biobank or 'plink'
+    formats. Prebuilt modeling options include one and two factor
+    models. Alternately, analyses may utilize arbitrary, user-provided SEMs.
+    See Verhulst, Maes, & Neale (2017) <doi:10.1007/s10519-017-9842-6> for
+    details. An updated manuscript is in preparation.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Language: en-US
 LinkingTo: BH (>= 1.69.0-1)
-Depends: R (>= 3.5), OpenMx (>= 2.0)
+Depends: R (>= 3.5), OpenMx (>= 2.14)
+Imports: data.table, methods
 Suggests: 
     testthat (>= 2.1.0),
-    covr
+    MASS,
+    covr,
+    knitr,
+    rmarkdown, qqman
 RoxygenNote: 6.1.1
 SystemRequirements: GNU make
 URL: https://github.com/jpritikin/gwsem
 BugReports: https://github.com/jpritikin/gwsem/issues
 NeedsCompilation: yes
+VignetteBuilder: knitr

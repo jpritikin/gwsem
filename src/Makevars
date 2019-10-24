@@ -1,5 +1,8 @@
 CXX_STD = CXX11
 
+#xcheck_CXXFLAGS=-fsanitize=undefined -fno-omit-frame-pointer
+#xcheck_LDFLAGS=-fsanitize=undefined
+
 NO_INLINE=-fno-inline -fno-inline-small-functions -fno-default-inline
 
 # -D_GLIBCXX_DEBUG must match how OpenMx was compiled!
@@ -21,9 +24,9 @@ $(BGEN_DEBUG)
 PKG_CFLAGS= $(COMMON_FLAGS) $(COMPILER_CFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS)
 
 PKG_CXXFLAGS=  \
- $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) \
+ $(xcheck_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) \
  $(COMMON_FLAGS)
 
-PKG_LIBS= $(COMPILER_LDFLAGS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS) -lz
+PKG_LIBS= $(xcheck_LDFLAGS) $(COMPILER_LDFLAGS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS) -lz
 
 -include autodep

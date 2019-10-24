@@ -81,7 +81,7 @@ void mxThrow(const char* msg, ...) __attribute__((format (printf, 1, 2))) __attr
 // 10000 * major + 100 * minor + patch
 // Exception to CONSTI32, since we want the preprocessor to have access to this
 // value.  Named with all caps as a consequence.
-#define PGENLIB_INTERNAL_VERNUM 1200
+#define PGENLIB_INTERNAL_VERNUM 1300
 
 #ifdef __cplusplus
 namespace plink2 {
@@ -406,28 +406,30 @@ CONSTI32(kPglQuaterTransposeBatch, kQuatersPerCacheline);
 // word width of each matrix row
 CONSTI32(kPglQuaterTransposeWords, kWordsPerCacheline);
 
-#ifdef USE_SSE42
-CONSTI32(kPglQuaterTransposeBufbytes, (kPglQuaterTransposeBatch * kPglQuaterTransposeBatch) / 4);
-
-void TransposeQuaterblockShuffle(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* __restrict write_iter, void* __restrict buf0);
-#else  // !USE_SSE42
+#ifdef __LP64__
 CONSTI32(kPglQuaterTransposeBufbytes, (kPglQuaterTransposeBatch * kPglQuaterTransposeBatch) / 2);
 
-void TransposeQuaterblockNoshuffle(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* __restrict write_iter, unsigned char* __restrict buf0, unsigned char* __restrict buf1);
+void TransposeQuaterblock64(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* __restrict write_iter, unsigned char* __restrict buf0, unsigned char* __restrict buf1);
+#else  // !__LP64__
+CONSTI32(kPglQuaterTransposeBufbytes, (kPglQuaterTransposeBatch * kPglQuaterTransposeBatch) / 2);
+
+void TransposeQuaterblock32(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* __restrict write_iter, unsigned char* __restrict buf0, unsigned char* __restrict buf1);
 #endif
 CONSTI32(kPglQuaterTransposeBufwords, kPglQuaterTransposeBufbytes / kBytesPerWord);
 
-// up to 256x256; vecaligned_buf must have size 16k (shuffle) or 32k
-// (noshuffle)
-// important: write_iter must be allocated up to at least
-//   RoundUpPow2(write_batch_size, 4) rows
+// - up to 256x256; vecaligned_buf must have size 16k (64-bit) or 32k (32-bit)
+// - does NOT zero out trailing bits, because main application is ind-major-bed
+//   <-> plink2 format conversion, where the zeroing would be undone...
+// - important: write_iter must be allocated up to at least
+//   RoundUpPow2(write_batch_size, 4) rows (may want to remove this
+//   requirement)
 
 HEADER_INLINE void TransposeQuaterblock(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, VecW* vecaligned_buf) {
-#ifdef USE_SSE42
+#ifdef __LP64__
   // assert(!(write_ul_stride % 2));
-  TransposeQuaterblockShuffle(read_iter, read_ul_stride, write_ul_stride, read_batch_size, write_batch_size, write_iter, vecaligned_buf);
+  TransposeQuaterblock64(read_iter, read_ul_stride, write_ul_stride, read_batch_size, write_batch_size, write_iter, R_CAST(unsigned char*, vecaligned_buf), &(R_CAST(unsigned char*, vecaligned_buf)[kPglQuaterTransposeBufbytes / 2]));
 #else
-  TransposeQuaterblockNoshuffle(read_iter, read_ul_stride, write_ul_stride, read_batch_size, write_batch_size, write_iter, R_CAST(unsigned char*, vecaligned_buf), &(R_CAST(unsigned char*, vecaligned_buf)[kPglQuaterTransposeBufbytes / 2]));
+  TransposeQuaterblock32(read_iter, read_ul_stride, write_ul_stride, read_batch_size, write_batch_size, write_iter, R_CAST(unsigned char*, vecaligned_buf), &(R_CAST(unsigned char*, vecaligned_buf)[kPglQuaterTransposeBufbytes / 2]));
 #endif
 }
 
@@ -460,15 +462,44 @@ void SplitHomRef2het(const uintptr_t* genoarr, uint32_t sample_ct, uintptr_t* __
 //   f: {0,1,2,3} -> x
 // to genoarr, saving the output to result[].
 // 256-element tables result in a substantially faster inner loop, but they are
-// more expensive to set up and consume a non-negligible fractino of L1 cache,
-// they aren't always the right choice.
+// more expensive to set up and consume a non-negligible fraction of L1 cache,
+// so they aren't always the right choice.
 // When lookup table rows are 16 bytes, they are assumed to be 16-byte aligned
 // in 64-bit builds.  result[] is not assumed to be aligned.
 void GenoarrLookup16x4bx2(const uintptr_t* genoarr, const void* table16x4bx2, uint32_t sample_ct, void* result);
 
 void GenoarrLookup256x2bx4(const uintptr_t* genoarr, const void* table256x2bx4, uint32_t sample_ct, void* result);
 
+void GenoarrLookup4x16b(const uintptr_t* genoarr, const void* table4x16b, uint32_t sample_ct, void* result);
+
+#define PAIR_TABLE16(a, b, c, d) \
+  {(a), (a), (b), (a), (c), (a), (d), (a), \
+  (a), (b), (b), (b), (c), (b), (d), (b), \
+  (a), (c), (b), (c), (c), (c), (d), (c), \
+  (a), (d), (b), (d), (c), (d), (d), (d)}
+
 void GenoarrLookup16x8bx2(const uintptr_t* genoarr, const void* table16x8bx2, uint32_t sample_ct, void* result);
+
+#define QUAD_TABLE256_INTERNAL2(a, b, c, d, f2, f3, f4) \
+  (a), (f2), (f3), (f4), \
+  (b), (f2), (f3), (f4), \
+  (c), (f2), (f3), (f4), \
+  (d), (f2), (f3), (f4)
+#define QUAD_TABLE256_INTERNAL3(a, b, c, d, f3, f4) \
+  QUAD_TABLE256_INTERNAL2((a), (b), (c), (d), (a), (f3), (f4)), \
+  QUAD_TABLE256_INTERNAL2((a), (b), (c), (d), (b), (f3), (f4)), \
+  QUAD_TABLE256_INTERNAL2((a), (b), (c), (d), (c), (f3), (f4)), \
+  QUAD_TABLE256_INTERNAL2((a), (b), (c), (d), (d), (f3), (f4))
+#define QUAD_TABLE256_INTERNAL4(a, b, c, d, f4) \
+  QUAD_TABLE256_INTERNAL3((a), (b), (c), (d), (a), (f4)), \
+  QUAD_TABLE256_INTERNAL3((a), (b), (c), (d), (b), (f4)), \
+  QUAD_TABLE256_INTERNAL3((a), (b), (c), (d), (c), (f4)), \
+  QUAD_TABLE256_INTERNAL3((a), (b), (c), (d), (d), (f4))
+#define QUAD_TABLE256(a, b, c, d) \
+  {QUAD_TABLE256_INTERNAL4((a), (b), (c), (d), (a)), \
+   QUAD_TABLE256_INTERNAL4((a), (b), (c), (d), (b)), \
+   QUAD_TABLE256_INTERNAL4((a), (b), (c), (d), (c)), \
+   QUAD_TABLE256_INTERNAL4((a), (b), (c), (d), (d))}
 
 void GenoarrLookup256x4bx4(const uintptr_t* genoarr, const void* table256x4bx4, uint32_t sample_ct, void* result);
 
@@ -513,7 +544,11 @@ void ClearGenovecMissing1bit8Unsafe(const uintptr_t* __restrict genovec, uint32_
 
 void ClearGenovecMissing1bit16Unsafe(const uintptr_t* __restrict genovec, uint32_t* subset_sizep, uintptr_t* __restrict subset, void* __restrict sparse_vals);
 
-double MultiallelicDiploidMachR2(const uint64_t* __restrict sums, const uint64_t* __restrict ssqs, uint32_t nm_sample_ct, uint32_t allele_ct);
+double MultiallelicDiploidMinimac3R2(const uint64_t* __restrict sums, const uint64_t* __restrict hap_ssqs_x2, uint32_t nm_sample_ct, uint32_t allele_ct, uint32_t extra_phased_het_ct);
+
+HEADER_INLINE double MultiallelicDiploidMachR2(const uint64_t* __restrict sums, const uint64_t* __restrict ssqs, uint32_t nm_sample_ct, uint32_t allele_ct) {
+  return 2 * MultiallelicDiploidMinimac3R2(sums, ssqs, nm_sample_ct, allele_ct, 0);
+}
 
 // ----- end plink2_common subset -----
 
@@ -549,7 +584,7 @@ FLAGSET_DEF_START()
   kfPgenGlobalLdCompressionPresent = (1 << 0),
   kfPgenGlobalDifflistOrLdPresent = (1 << 1),
 
-  // set opportunistically for now; may still be present if unset.
+  // Only guaranteed to be set when present if phase or dosage also present.
   kfPgenGlobalMultiallelicHardcallFound = (1 << 2),
 
   kfPgenGlobalHardcallPhasePresent = (1 << 3),
@@ -592,7 +627,7 @@ CONSTI32(kPglMaxDeltalistLenDivisor, 9);
 //      These are designed to be easy to write.  Note that the dosage formats
 //      require hardcalls to be stored as well; however, you can just set them
 //      to all-missing and then use
-//        plink2 --hard-call-threshold [...] --make-pgen
+//        plink2 --hard-call-threshold <...> --make-pgen
 //      to populate them.
 //
 //      0x10 = variable-type and/or variable-length records present.
@@ -614,16 +649,31 @@ CONSTI32(kPglMaxDeltalistLenDivisor, 9);
 //         instead of 4 bits for vrtypes).
 //         If bit 3 is set, a specialized encoding is used which combines the
 //         two pieces of information (reducing the overhead for files with few
-//         samples).  The following encodings are currently defined:
-//         1000: No difflist/LD/onebit compression, 2 bit
-//               (vrec_len - ceil(sample_ct / 4))) value.  vrtype is zero if
-//               the entry is zero, and 8 (multiallelic-hardcall) if the record
-//               has 1-3 extra bytes.  Designed for single-sample files sharing
-//               a single .bim-like file (note that if they don't share a .bim,
-//               .bim size will dominate).
-//         1001: No difflist/LD/onebit compression, 4 bit
-//               (vrec_len - ceil(sample_ct / 4)) value.  vrtype is zero if the
-//               entry is zero, and 8 if the record has 1-15 extra bytes.
+//         samples).  The following encodings are now defined (note that there
+//         was a change of plans in Mar 2019):
+//           8: 1 bit per fused vrtype-length.  Unset = vrtype 5, set = vrtype
+//              0.
+//           9: 2 bits, multiallelic.  0 = vrtype 5, 1 = vrtype 0, 2-3 = vrtype
+//              8 with that many more bytes than vrtype 0.  Note that this is
+//              limited to 16 ALT alleles.
+//          10: 2 bits, phased.  0 = vrtype 5, 1 = vrtype 0, 2-3 = vrtype 16
+//              with that many minus 1 bytes beyond vrtype 0.  While this is
+//              also aimed at the single-sample use case, it technically
+//              supports up to 15 always-phased or 7 partially-phased samples.
+//          11: 4 bits, multiallelic + phased.  0 = vrtype 5, 1 = vrtype 0, 2-7
+//              = vrtype 8 with that many bytes beyond vrtype 0, 9 = vrtype 16
+//              phase info requiring just 1 byte, 10-15 = vrtype 24 with (x-7)
+//              extra bytes required between multiallelic and phased tracks.
+//          12: 2 bits, dosage, must be single-sample.  0 = vrtype 5, 1 =
+//              vrtype 0, 2 = vrtype 0x45 with 2 bytes, 3 = vrtype 0x40 with 3
+//              total bytes.
+//          13: reserved for single-sample multiallelic + dosage.
+//          14: 4 bits, phased + dosage, must be single-sample.  0 and 1 as
+//              usual, 3 = vrtype 16 with 1 phaseinfo byte, 4 = vrtype 0x45
+//              with 2 bytes, 5 = vrtype 0x40 with 3 total bytes, 12 = vrtype
+//              0xc5 with 4 total bytes, 13 = vrtype 0xc0 with 5 total bytes,
+//              15 = vrtype 0xe0 with 6 total bytes
+//          15: reserved for single-sample multiallelic + phased dosage.
 //       bits 4-5: allele count storage (00 = unstored, 01-11 = bytes per ct)
 //       bits 6-7: nonref flags info (00 = unstored, 01 = all ref/alt, 10 =
 //                 never ref/alt, 11 = explicitly stored)
@@ -980,7 +1030,8 @@ struct PgenReaderStruct {
   uintptr_t* workspace_raregeno_tmp_loadbuf;
 
   uintptr_t* workspace_aux1x_present;
-  uint64_t* workspace_mach_r2;  // needed in multiallelic case
+  uint64_t* workspace_imp_r2;  // needed in multiallelic case
+
   uintptr_t* workspace_all_hets;
   uintptr_t* workspace_subset;  // currently used for hphase decoding
 
@@ -1023,7 +1074,7 @@ HEADER_INLINE uint32_t PgfiIsSimpleFormat(const PgenFileInfo* pgfip) {
 }
 
 HEADER_INLINE uint32_t VrtypeDifflist(uint32_t vrtype) {
-  return (vrtype & 4);
+  return (vrtype & 4) && ((vrtype & 3) != 1);
 }
 
 HEADER_INLINE uint32_t VrtypeLdCompressed(uint32_t vrtype) {
@@ -1259,6 +1310,8 @@ PglErr PgrGet(const uintptr_t* __restrict sample_include, const uint32_t* __rest
 // difflist_common_geno to the common genotype value in that case.  Otherwise,
 // genovec is populated and difflist_common_geno is set to UINT32_MAX.
 //
+// max_simple_difflist_len must be smaller than sample_ct.
+//
 // Note that the returned difflist_len can be much larger than
 // max_simple_difflist_len when the variant is LD-encoded; it's bounded by
 //   2 * (raw_sample_ct / kPglMaxDifflistLenDivisor).
@@ -1381,6 +1434,10 @@ PglErr PgrGet1D(const uintptr_t* __restrict sample_include, const uint32_t* __re
 
 PglErr PgrGetInv1D(const uintptr_t* __restrict sample_include, const uint32_t* __restrict sample_include_cumulative_popcounts, uint32_t sample_ct, uint32_t vidx, AlleleCode allele_idx, PgenReader* pgrp, uintptr_t* __restrict allele_invcountvec, uintptr_t* __restrict dosage_present, uint16_t* dosage_main, uint32_t* dosage_ct_ptr);
 
+// When computing either form of imputation-r2, this function requires the
+// variant to be biallelic; PgrGetMDCounts must be called in that multiallelic
+// case.
+// imp_r2_ptr must be non-null when is_minimac3_r2 is set.
 PglErr PgrGetDCounts(const uintptr_t* __restrict sample_include, const uintptr_t* __restrict sample_include_interleaved_vec, const uint32_t* __restrict sample_include_cumulative_popcounts, uint32_t sample_ct, uint32_t vidx, uint32_t is_minimac3_r2, PgenReader* pgrp, double* imp_r2_ptr, STD_ARRAY_REF(uint32_t, 4) genocounts, uint64_t* __restrict all_dosages);
 
 PglErr PgrGetMDCounts(const uintptr_t* __restrict sample_include, const uintptr_t* __restrict sample_include_interleaved_vec, const uint32_t* __restrict sample_include_cumulative_popcounts, uint32_t sample_ct, uint32_t vidx, uint32_t is_minimac3_r2, PgenReader* pgrp, double* __restrict imp_r2_ptr, uint32_t* __restrict het_ctp, STD_ARRAY_REF(uint32_t, 4) genocounts, uint64_t* __restrict all_dosages);
@@ -1414,10 +1471,11 @@ PglErr PgrGetMissingness(const uintptr_t* __restrict sample_include, const uint3
 PglErr PgrGetMissingnessD(const uintptr_t* __restrict sample_include, const uint32_t* sample_include_cumulative_popcounts, uint32_t sample_ct, uint32_t vidx, PgenReader* pgrp, uintptr_t* __restrict missingness_hc, uintptr_t* __restrict missingness_dosage, uintptr_t* __restrict hets, uintptr_t* __restrict genovec_buf);
 
 
-// failure = kPglRetReadFail
-BoolErr CleanupPgfi(PgenFileInfo* pgfip);
+// error-return iff reterr was success and was changed to kPglRetReadFail (i.e.
+// an error message should be printed).
+BoolErr CleanupPgfi(PgenFileInfo* pgfip, PglErr* reterrp);
 
-BoolErr CleanupPgr(PgenReader* pgrp);
+BoolErr CleanupPgr(PgenReader* pgrp, PglErr* reterrp);
 
 
 struct PgenWriterCommonStruct {
@@ -1467,8 +1525,6 @@ struct PgenWriterCommonStruct {
 
 typedef struct PgenWriterCommonStruct PgenWriterCommon;
 
-CONSTI32(kPglFwriteBlockSize, 131072);
-
 // Given packed arrays of unphased biallelic genotypes in uncompressed plink2
 // binary format (00 = hom ref, 01 = het ref/alt1, 10 = hom alt1, 11 =
 // missing), {Single,Multi}threaded_pgen_writer performs difflist (sparse
@@ -1507,6 +1563,8 @@ void PreinitSpgw(STPgenWriter* spgwp);
 //   1 = always trusted
 //   2 = always untrusted
 //   3 = use explicit_nonref_flags
+//
+// Caller is responsible for printing open-fail error message.
 PglErr SpgwInitPhase1(const char* __restrict fname, const uintptr_t* __restrict allele_idx_offsets, uintptr_t* __restrict explicit_nonref_flags, uint32_t variant_ct, uint32_t sample_ct, PgenGlobalFlags phase_dosage_gflags, uint32_t nonref_flags_storage, STPgenWriter* spgwp, uintptr_t* alloc_cacheline_ct_ptr, uint32_t* max_vrec_len_ptr);
 
 void SpgwInitPhase2(uint32_t max_vrec_len, STPgenWriter* spgwp, unsigned char* spgw_alloc);
@@ -1519,6 +1577,7 @@ void SpgwInitPhase2(uint32_t max_vrec_len, STPgenWriter* spgwp, unsigned char* s
 // for the most commonly used plink 2.0 functions)
 void MpgwInitPhase1(const uintptr_t* __restrict allele_idx_offsets, uint32_t variant_ct, uint32_t sample_ct, PgenGlobalFlags phase_dosage_gflags, uintptr_t* alloc_base_cacheline_ct_ptr, uint64_t* alloc_per_thread_cacheline_ct_ptr, uint32_t* vrec_len_byte_ct_ptr, uint64_t* vblock_cacheline_ct_ptr);
 
+// Caller is responsible for printing open-fail error message.
 PglErr MpgwInitPhase2(const char* __restrict fname, const uintptr_t* __restrict allele_idx_offsets, uintptr_t* __restrict explicit_nonref_flags, uint32_t variant_ct, uint32_t sample_ct, PgenGlobalFlags phase_dosage_gflags, uint32_t nonref_flags_storage, uint32_t vrec_len_byte_ct, uintptr_t vblock_cacheline_ct, uint32_t thread_ct, unsigned char* mpgw_alloc, MTPgenWriter* mpgwp);
 
 
