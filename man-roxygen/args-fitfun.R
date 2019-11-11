@@ -1,1 +1,1 @@
-#' @param fitfun the name of the fit function to optimize
+#' @param fitfun A character string naming the fit function used to optimize the model. Must be either \sQuote{WLS} or \sQuote{ML}.

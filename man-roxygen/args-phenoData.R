@@ -1,1 +1,1 @@
-#' @param phenoData phenotype data with one individual per row
+#' @param phenoData A matrix or data.frame which provides all of the phenotype data to the model (both the items and the covariates). Data should be constructed so that variables are on the columns and individuals are on the rows.

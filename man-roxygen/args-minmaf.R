@@ -1,1 +1,1 @@
-#' @param minMAF minimum minor allele frequency. Only used when \code{fitfun=WLS}
+#' @param minMAF A numerical value that specifies the minimum valid minor allele frequency for a SNP. SNPs with minimum minor allele frequencies that are smaller than the minMAF value will not be analyzed. Only used when \code{fitfun=WLS}

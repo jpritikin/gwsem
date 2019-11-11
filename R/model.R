@@ -134,6 +134,8 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 
 #' Run a genome-wide association study (GWAS) using the provided model
 #'
+#' The GWAS function is used to run a genome-wide association study based on the specified model. This function is design to take the output from \link{buildOneFac}, \link{buildOneFacRes}, and \link{buildTwoFac} as input, but can also take a similar user specified model. Users should be confident that the models they are running are statistically identified. It is advisable that the users empirically gauge time requirements by running a limited number of SNPs (e.g. 10) to ensure that all SNPs can be fit in a reasonable amount of time.
+#' 
 #' Adds a compute plan returned by \link{prepareComputePlan} to the
 #' provided \code{model} and runs it. Once analyses are complete,
 #' load your aggregated results with \link{loadResults}. 
@@ -146,8 +148,11 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 #' @template args-startfrom
 #' @export
 #' @return
-#' The \link[OpenMx:MxModel-class]{MxModel} returned by \link[OpenMx]{mxRun}.
-#' Data and estimates for the last SNP processed will be available for inspection.
+#' The results for each SNP are recorded in the specified log file (\code{out}).
+#' In addition, data and estimates for the last SNP run are returned
+#' as an \link[OpenMx:MxModel-class]{MxModel} object
+#' (similar to the return value of \link[OpenMx]{mxRun}).
+#' In this way, the last SNP processed is available for close inspection.
 #' @examples
 #' dir <- system.file("extdata", package = "gwsem")
 #' pheno <- data.frame(anxiety=rnorm(500))
@@ -334,10 +339,12 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 
 #' Build a model suitable for a single factor genome-wide association study
 #'
+#' The \code{buildOneFac} function is used to specify a single factor latent variable model where the latent variable is predicted by a genomic variant such as a single nucleotide polymorphism, as well as range of covariates.
+#'
 #' @template detail-build
 #'
 #' @template args-phenoData
-#' @param itemNames a vector of phenotypic item names that load on the latent factor
+#' @param itemNames A vector of phenotypic item names (from \code{phenoData}) that load on the latent factor.
 #' @template args-covariates
 #' @template args-dots-barrier
 #' @template args-fitfun
@@ -347,7 +354,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 #' @family model builder
 #' @export
 #' @return
-#' A \link[OpenMx:MxModel-class]{MxModel}
+#' \code{buildOneFac} returns an \link[OpenMx:MxModel-class]{MxModel} object that can serve as input for the \link{GWAS} function.
 #' @examples
 #' pheno <- list()
 #' for (i in 1:5) pheno[[paste0('i',i)]] <- rnorm(500)
@@ -386,12 +393,16 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 }
 
 #' Build a model suitable for a single factor residual genome-wide association study
+#'
+#' The \code{buildOneFacRes} function is used to specify a single factor latent variable model where a combination of items as well as the latent variable may be predicted by a genomic variant such as a single nucleotide polymorphism, as well as range of covariates.
+#'
+#' Be aware that a latent variable model is not identified if all of the residuals as well as the latent variable are simultaneously predicted by the SNP.  Specifically, if users wish to use the SNP to predict the latent variable, they much choose at least one (and preferably more that one) item to not be predicted by the SNP.
 #' 
 #' @template detail-build
 #' 
-#' @param itemNames a vector of phenotypic item names that load on the latent factor
-#' @param factor whether to estimate a regression from the SNP to the latent factor (default FALSE)
-#' @param res character vector. Which indicators to estimate a regression to
+#' @param itemNames A vector of phenotypic item names (from phenoData) that load on the latent factor.
+#' @param factor A logical expression (\code{FALSE} or \code{TRUE}) indicating whether to estimate a regression pathway from the SNP to the latent factor (default FALSE).
+#' @param res A character vector of phenotypic item names that indicate which specific items the user wishes to regress on the SNP. The default is to regress all of the items on the SNP.
 #' @template args-phenoData
 #' @template args-covariates
 #' @template args-fitfun
@@ -403,7 +414,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' @family model builder
 #' @export
 #' @return
-#' A \link[OpenMx:MxModel-class]{MxModel}
+#' \code{buildOneFacRes} returns an \link[OpenMx:MxModel-class]{MxModel} object that can serve as input for the \link{GWAS} function.
 #' @examples
 #' pheno <- list()
 #' for (i in 1:5) pheno[[paste0('i',i)]] <- rnorm(500)
@@ -444,10 +455,12 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 
 #' Build a model suitable for a two factor genome-wide association study
 #'
+#' The buildTwoFac function is used to specify a model with two latent variables where each latent variable is simultaneously predicted by a genomic variant such as a single nucleotide polymorphism, as well as range of covariates. The model allows the latent variables to correlate to accomodate comorbidity between latent traits.
+#'
 #' @template detail-build
 #' 
-#' @param F1itemNames a vector of item names that load on the first latent factor
-#' @param F2itemNames a vector of item names that load on the second latent factor
+#' @param F1itemNames A vector of phenotypic item names (from phenoData) that load on the first latent factor.
+#' @param F2itemNames a vector of phenotypic item names (from phenoData) that load on the second latent factor.
 #' 
 #' @template args-phenoData
 #' @template args-covariates
@@ -459,7 +472,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' @export
 #' @family model builder
 #' @return
-#' A \link[OpenMx:MxModel-class]{MxModel}
+#' \code{buildTwoFac} returns an \link[OpenMx:MxModel-class]{MxModel} object that can serve as input for the \link{GWAS} function.
 #' @examples
 #' pheno <- list()
 #' for (i in 1:10) pheno[[paste0('i',i)]] <- rnorm(500)

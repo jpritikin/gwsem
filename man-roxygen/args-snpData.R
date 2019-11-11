@@ -1,1 +1,1 @@
-#' @param snpData the name of the file where the SNP data is stored
+#' @param snpData A character vector specifying the pathname of a file where the SNP data is stored.
