@@ -258,7 +258,7 @@ setupCovariates <- function(model, covariates)
 }
 
 # export? TODO
-setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
+setupData <- function(phenoData, observed, covariates, gxe, customMinMAF, minMAF, fitfun)
 {
   if (customMinMAF && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
   minVar <- calcMinVar(minMAF)
@@ -272,8 +272,11 @@ setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
 	  phenoData[[ paste0('snp_',v1) ]] <- 0.0  # placeholder
 	  aname <- c(aname, paste0('snp_',v1))
   }
+  exoFree <- matrix(TRUE, length(observed), length(covariates),
+		    dimnames=list(observed, covariates))
+  exoFree['snp',] <- FALSE
   c(mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE,
-	 algebra=aname), result)
+	   exoFree=exoFree, algebra=aname), result)
 }
 
 #' @importFrom stats rbinom
@@ -324,11 +327,12 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
   resid     <- mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_"))
   itemMean  <- mxPath(from = 'one', to = depVar, free= !fac, values = 0, labels = paste0(depVar, "Mean"))
 
-  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  manifest <- c("snp", depVar)
+  dat       <- setupData(phenoData, manifest, covariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneItem"
   oneFacPre <- mxModel(model=modelName, type=modelType,
-                       manifestVars = c("snp", depVar),
+                       manifestVars = manifest,
                        latentVars = c(covariates),
                        snpMu, snpBeta, snpres, resid,
                        itemMean, dat, makeFitFunction(fitfun))
@@ -379,11 +383,12 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
   itemMean  <- mxPath(from = 'one', to = itemNames, free= !fac, values = 0, labels = paste0(itemNames, "Mean"))
 
-  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  manifest <- c("snp", itemNames)
+  dat       <- setupData(phenoData, manifest, covariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneFac"
   oneFacPre <- mxModel(model=modelName, type=modelType,
-                       manifestVars = c("snp", itemNames),
+                       manifestVars = manifest,
                        latentVars = c(latents, covariates),
                        lambda, snpMu, snpBeta, snpres, resid, facRes,
                        itemMean, dat, makeFitFunction(fitfun))
@@ -440,11 +445,12 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
-  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  manifest <- c("snp", itemNames)
+  dat       <- setupData(phenoData, manifest, covariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneFacRes"
   oneFacPre <- mxModel(model=modelName, type=modelType,
-                       manifestVars = c("snp", itemNames),
+                       manifestVars = manifest,
                        latentVars = c(latents, covariates),
                        lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes,
                        itemMean, dat, makeFitFunction(fitfun))
@@ -503,12 +509,12 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
   facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
   itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
-  
-  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  manifest <- c("snp", itemNames)
+  dat       <- setupData(phenoData, manifest, covariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "TwoFac"
   twoFacPre <- mxModel(model=modelName, type=modelType,
-                       manifestVars = c("snp", itemNames),
+                       manifestVars = manifest,
                        latentVars = c(latents, covariates),
                        lambda1, lambda2, facCor, snpMu, snpBeta, snpres, 
                        resid, facRes,

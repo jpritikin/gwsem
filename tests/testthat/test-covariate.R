@@ -45,3 +45,4 @@ pgen <- pgen[mask,]
 cvNames <- paste(rep(paste0("covar",1:numCovariate), each = numIndicators),
       paste0("i", 1:numIndicators), sep = "_")
 expect_equivalent(colMeans(pgen[,cvNames]), rep(0, length(cvNames)), tolerance=.1)
+
