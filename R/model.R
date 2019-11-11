@@ -40,6 +40,22 @@ calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 #' details). The chromosome, base-pair coordinate, and variant ID are
 #' added to each line of \code{out}.
 #'
+#' The code to implement method='pgen' is based on plink 2.0
+#' alpha. plink's \sQuote{bed} file format is supported in addition
+#' to \sQuote{pgen}. Data are coerced appropriately depending on the
+#' type of the destination column. For a numeric column, data are
+#' recorded as the values NA, 0, 1, or 2. An ordinal column must have
+#' exactly 3 levels.
+#'
+#' For \code{method='bgen'}, the file \code{path+".bgi"} must also
+#' exist. If not available, generate this index file with the
+#' \href{https://bitbucket.org/gavinband/bgen/wiki/bgenix}{bgenix}
+#' tool.
+#'
+#' For \sQuote{bgen} and \sQuote{pgen} formats, the numeric column can be
+#' populated with a dosage (sum of probabilities multiplied by genotypes)
+#' if these data are available.
+#'
 #' A compute plan does not do anything by itself. You'll need to combine
 #' the compute plan with a model (such as returned by \link{buildOneFac})
 #' to perform a GWAS.
