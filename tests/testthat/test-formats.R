@@ -78,13 +78,6 @@ bgen <- bgen[mask,]
 pgen <- pgen[mask,]
 expect_equal(sum(mask), 197)
 
-mask <- (abs(pgen$snpReg) < 6*mad(pgen$snpReg))
-
-bgen <- bgen[mask,]
-pgen <- pgen[mask,]
-
-expect_equal(nrow(bgen), 197)
-
 rmse <- function(x,y) sqrt(mean((x-y)^2))
 expect_equal(rmse(bgen$snpReg, pgen$snpReg), 0, tolerance=.05)
 
