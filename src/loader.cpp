@@ -324,6 +324,7 @@ void LoadDataPGENProvider::loadRowImpl(int index)
 
 void setup2(AddLoadDataProviderType aldp)
 {
-	aldp(OPENMX_LOAD_DATA_API_VERSION, new LoadDataPGENProvider());
-	aldp(OPENMX_LOAD_DATA_API_VERSION, new LoadDataBGENProvider());
+	int sz = sizeof(LoadDataProviderBase);
+	aldp(OPENMX_LOAD_DATA_API_VERSION, sz, new LoadDataPGENProvider());
+	aldp(OPENMX_LOAD_DATA_API_VERSION, sz, new LoadDataBGENProvider());
 }
