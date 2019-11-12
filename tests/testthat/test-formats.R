@@ -79,7 +79,7 @@ pgen <- pgen[mask,]
 expect_equal(sum(mask), 197)
 
 rmse <- function(x,y) sqrt(mean((x-y)^2))
-expect_equal(rmse(bgen$snpReg, pgen$snpReg), 0, tolerance=.05)
+expect_equal(rmse(bgen$snpReg, pgen$snpReg), 0, tolerance=.2)
 
 #cat(deparse(pgen$ID))
 # c("RSID_4", "RSID_5", "RSID_7", "RSID_11", "RSID_12", "RSID_15",  "RSID_27", "RSID_28", "RSID_35", "RSID_37", "RSID_39", "RSID_40",  "RSID_41", "RSID_46", "RSID_47", "RSID_49", "RSID_51", "RSID_60",  "RSID_63", "RSID_65", "RSID_66", "RSID_67", "RSID_68", "RSID_69",  "RSID_71", "RSID_85", "RSID_90", "RSID_97", "RSID_98", "RSID_100",  "RSID_101", "RSID_105", "RSID_111", "RSID_112", "RSID_115", "RSID_116",  "RSID_125", "RSID_127", "RSID_128", "RSID_135", "RSID_139", "RSID_140",  "RSID_141", "RSID_147", "RSID_151", "RSID_160", "RSID_163", "RSID_166",  "RSID_167", "RSID_168", "RSID_171", "RSID_182", "RSID_185", "RSID_190",  "RSID_192", "RSID_197", "RSID_200")

@@ -258,6 +258,7 @@ setupCovariates <- function(model, covariates)
 }
 
 # export? TODO
+# just pass in model as argument? TODO
 setupData <- function(phenoData, observed, covariates, gxe, customMinMAF, minMAF, fitfun)
 {
   if (customMinMAF && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
