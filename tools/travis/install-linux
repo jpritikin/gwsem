@@ -6,12 +6,12 @@ Rscript -e 'remove.packages("OpenMx")' || true
 
 sudo apt-get install -yq --allow-unauthenticated --no-install-suggests --no-install-recommends \
      r-cran-testthat r-cran-roxygen2 r-cran-devtools r-cran-covr r-cran-data.table \
-     r-cran-rpf r-cran-bh r-cran-rcpp r-cran-rcppeigen r-cran-stanheaders r-cran-openmx
+     r-cran-rpf r-cran-bh r-cran-rcpp r-cran-rcppeigen r-cran-stanheaders #r-cran-openmx
 #     r-cran-knitr r-cran-rmarkdown  # for vignettes
 
-# Need to grab from GIT until there is a release with the plug-in API
-# git clone --depth 10 https://github.com/OpenMx/OpenMx.git
-# pushd OpenMx
-# make cran-install
-# popd
-# rm -rf OpenMx
+# Need to grab from GIT
+git clone --depth 10 https://github.com/OpenMx/OpenMx.git
+pushd OpenMx
+make cran-install
+popd
+rm -rf OpenMx
