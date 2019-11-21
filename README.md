@@ -32,3 +32,13 @@ Rscript tools/test.R
 ```
 
 You cannot use **devtools** `install_github` because it does not run **roxygen2**.
+
+GW-SEM utilized the optimization function of OpenMx. Therefore to use GW-SEM you must have an up-to-date version of OpenMx (Newer than version X.X-XX)
+
+You can install the released version of OpenMx from [CRAN](https://CRAN.R-project.org) with:
+
+``` r
+install.packages("OpenMx")
+```
+
+If you want a new version of OpenMx, you can follow the instruction to build it from source [HERE](https://openmx.ssri.psu.edu).
