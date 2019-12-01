@@ -10,7 +10,13 @@ if [ ! -x tools/rox ]; then
 fi
 
 rm -f man/*.Rd
-touch NAMESPACE
+touch NAMESPACE  # needed for compilation
+R --no-restore --no-save --no-readline <<EOF
+library(roxygen2)
+pkgload::load_all()
+EOF
+
+rm -f NAMESPACE  # now want roxygen to generate it
 R --no-restore --no-save --no-readline <<EOF
 library(roxygen2)
 pkgload::load_all()
