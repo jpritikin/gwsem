@@ -221,7 +221,7 @@ setupThresholds <- function(model)
 #' In GWAS, including a number of the first principle components as
 #' covariates helps reduce false positives caused by population
 #' stratification. This function adds paths from covariates to
-#' manifest indicators. Covariates are always treated as continuous
+#' manifest indicators (\code{itemNames}). Covariates are always treated as continuous
 #' variables (not ordinal).
 #'
 #' @details
@@ -229,15 +229,18 @@ setupThresholds <- function(model)
 #' covariates. For example, in a single factor model (e.g., \link{buildOneFac}),
 #' it would be more
 #' appropriate to adjust the latent factor instead of the manifest
-#' indicators. However, covariate adjustments to latent variables are only
+#' indicators.
+#' This is how endogenous covariates work.
+#' However, exogenous covariate adjustments to latent variables are only
 #' possible with a maximum likelihood fit function
 #' (\link[OpenMx]{mxFitFunctionML}).  For
 #' \link[OpenMx]{mxFitFunctionWLS}, only manifest indicators can be
-#' adjusted for covariates.
+#' adjusted for exogenous covariates.
 #' This function always adjusts manifest indicators regardless of the fit function.
 #' 
 #' @template args-model
 #' @param covariates a character vector naming covariates available in the model data
+#' @param itemNames a character vector of item names
 #' @template detail-adv
 #' @return
 #' The given \link[OpenMx:MxModel-class]{MxModel} with paths
@@ -246,7 +249,7 @@ setupThresholds <- function(model)
 #' @examples
 #' m1 <- mxModel("test", type="RAM",
 #'              latentVars = "sex", manifestVars = "anxiety")
-#' m1 <- setupExogenousCovariates(m1, 'sex')
+#' m1 <- setupExogenousCovariates(m1, 'sex', 'anxiety')
 setupExogenousCovariates <- function(model, covariates, itemNames)
 {
   if (length(covariates)==0) return(model)
@@ -309,6 +312,7 @@ setupPaths <- function(covariates, depVar)
 #' @template args-phenoData
 #' @param depVar the name of the single item to predict
 #' @template args-covariates
+#' @template args-exogenouscovariates
 #' @template args-dots-barrier
 #' @template args-fitfun
 #' @template args-minmaf
@@ -363,6 +367,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 #' @template args-phenoData
 #' @param itemNames A vector of phenotypic item names (from \code{phenoData}) that load on the latent factor.
 #' @template args-covariates
+#' @template args-exogenouscovariates
 #' @template args-dots-barrier
 #' @template args-fitfun
 #' @template args-minmaf
@@ -424,6 +429,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' @param res A character vector of phenotypic item names that indicate which specific items the user wishes to regress on the SNP. The default is to regress all of the items on the SNP.
 #' @template args-phenoData
 #' @template args-covariates
+#' @template args-exogenouscovariates
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-dots-barrier
@@ -486,6 +492,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' 
 #' @template args-phenoData
 #' @template args-covariates
+#' @template args-exogenouscovariates
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-dots-barrier

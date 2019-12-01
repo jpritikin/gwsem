@@ -5,6 +5,6 @@
 #' There is no limit on the number of items that can be included, but more items will exponentially increase computation time.  To address this, we suggest that users use the \sQuote{WLS} fit function. The \sQuote{WLS} fit function is dramatically faster than the \sQuote{ML} fit function, especially for ordinal items.
 #' 
 #' Ordinal indicator thresholds are setup by
-#' \link{setupThresholds}. Covariates adjustments are setup by
-#' \link{setupCovariates}.
+#' \link{setupThresholds}. Exogenous covariates adjustments are setup by
+#' \link{setupExogenousCovariates}.
 #' You can plot the model using \link[OpenMx]{omxGraphviz}.
