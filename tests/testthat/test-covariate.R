@@ -47,6 +47,8 @@ cvNames <- paste(rep(paste0("covar",1:numCovariate), each = numIndicators),
 expect_equivalent(colMeans(pgen[,cvNames]), rep(0, length(cvNames)), tolerance=.1)
 
 pgen <- loadResults(file.path(tdir,"out.log"), "snp2F")
+expect_error(plot(pgen, y=1),
+             "plot does not accept a y= argument")
 
 # -----
 

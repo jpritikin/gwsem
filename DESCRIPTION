@@ -26,13 +26,13 @@ LazyData: true
 Language: en-US
 LinkingTo: BH (>= 1.69.0-1)
 Depends: R (>= 3.5), OpenMx (>= 2.0)
-Imports: data.table, methods
+Imports: data.table, methods, qqman
 Suggests: 
     testthat (>= 2.1.0),
     MASS,
     covr,
     knitr,
-    rmarkdown, qqman
+    rmarkdown
 RoxygenNote: 6.1.1
 SystemRequirements: GNU make
 URL: https://github.com/jpritikin/gwsem
