@@ -141,7 +141,7 @@ output of `buildOneItem` or similar model building function.
 We just need to set up the covariates.
 
 ```{r}
-m2 <- setupCovariates(m2, paste0('pc', 1:5))
+m2 <- setupExogenousCovariates(m2, paste0('pc', 1:5))
 ```
 
 The model is ready to run. If we had ordinal indicators

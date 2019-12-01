@@ -46,7 +46,7 @@ GWAS(oi,
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
 
-pgen <- loadResults(file.path(tdir, "out.log"))
+pgen <- loadResults(file.path(tdir, "out.log"), "snp2i1")
 rx <- which(min(pgen$P) == pgen$P)
 expect_equal(rx, 2)
 expect_equal(pgen$P[rx], 0.128, tolerance=1e-2)
@@ -64,7 +64,7 @@ GWAS(oi,
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
 
-ml <- loadResults(file.path(tdir, "out.log"))
+ml <- loadResults(file.path(tdir, "out.log"), "snp2i1")
 expect_equal(cor(ml$P, pgen$P), 1, tolerance=1e-3)
 
 expect_error(buildOneItem(pheno, paste0("i", 1), fitfun = "bob"),
@@ -80,12 +80,12 @@ GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
 
-pgen <- loadResults(file.path(tdir, "out.log"))
-pgen2 <- loadResults(rep(file.path(tdir, "out.log"), 2))
+pgen <- loadResults(file.path(tdir, "out.log"), "snp2F")
+pgen2 <- loadResults(rep(file.path(tdir, "out.log"), 2), 'snp2F')
 
 expect_equal(pgen$SNP, paste0("RSID_", c(4,5,7)))
 expect_equal(pgen2$SNP, rep(paste0("RSID_", c(4,5,7)), 2))
-expect_equal(pgen$snpReg, c(-.188, -.066, .006), tolerance=.001)
+expect_equal(pgen$snp2F, c(-.188, -.066, .006), tolerance=.001)
 
 pgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
@@ -113,8 +113,7 @@ l2 <- pgen[,paste0('lambda_i',1:7)]
 expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.2)
 
 pgen <- loadResults(file.path(tdir, "out.log"), "snp2i2")
-rx <- which(min(pgen$P) == pgen$P)
-expect_equal(rx, 3)
+expect_equal(pgen$P, rep(1,3), tolerance=1e-5)
 
 # -----------------
 

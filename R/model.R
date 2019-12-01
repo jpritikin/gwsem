@@ -1,5 +1,6 @@
 makeFitFunction <- function(fitfun)
 {
+	# prefer marginal TODO
   if(fitfun == "WLS")        mxFitFunctionWLS(allContinuousMethod= "marginals")
   else if(fitfun == "ML")  mxFitFunctionML()
   else stop(paste("Unknown fitfun", omxQuotes(fitfun)))
@@ -201,21 +202,21 @@ GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
 setupThresholds <- function(model)
 {
   phenoData <- model$data$observed
-  itemNames <- setdiff(model$manifestVars, 'snp')
+  manifestNames <- setdiff(model$manifestVars, 'snp')
 
-  thr <- sapply(phenoData[,itemNames,drop=FALSE], nlevels)-1
+  thr <- sapply(phenoData[,manifestNames,drop=FALSE], nlevels)-1
   fac <- thr >= 1
   thr[thr< 0] <- 0
 
   if (max(thr) == 0) return(model)
 
-  thresh <- mxThreshold(itemNames[fac], nThresh=thr[fac], free = T ,
-                        labels = paste0(rep(itemNames[fac], each = max(thr)), "_Thr_", 1:max(thr)),
+  thresh <- mxThreshold(manifestNames[fac], nThresh=thr[fac], free = T ,
+                        labels = paste0(rep(manifestNames[fac], each = max(thr)), "_Thr_", 1:max(thr)),
 			values=mxNormalQuantiles(thr[fac], sd=sqrt(2.0)))
   mxModel(model, thresh)
 }
 
-#' Set up model covariates
+#' Set up exogenous model covariates
 #'
 #' In GWAS, including a number of the first principle components as
 #' covariates helps reduce false positives caused by population
@@ -245,12 +246,11 @@ setupThresholds <- function(model)
 #' @examples
 #' m1 <- mxModel("test", type="RAM",
 #'              latentVars = "sex", manifestVars = "anxiety")
-#' m1 <- setupCovariates(m1, 'sex')
-setupCovariates <- function(model, covariates)
+#' m1 <- setupExogenousCovariates(m1, 'sex')
+setupExogenousCovariates <- function(model, covariates, itemNames)
 {
   if (length(covariates)==0) return(model)
 
-  itemNames <- setdiff(model$manifestVars, 'snp')
   covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
   cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs",
                       labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_"))
@@ -259,7 +259,7 @@ setupCovariates <- function(model, covariates)
 
 # export? TODO
 # just pass in model as argument? TODO
-setupData <- function(phenoData, observed, covariates, gxe, customMinMAF, minMAF, fitfun)
+setupData <- function(phenoData, observed, covariates, exogenousCovariates, gxe, customMinMAF, minMAF, fitfun)
 {
   if (customMinMAF && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
   minVar <- calcMinVar(minMAF)
@@ -273,9 +273,9 @@ setupData <- function(phenoData, observed, covariates, gxe, customMinMAF, minMAF
 	  phenoData[[ paste0('snp_',v1) ]] <- 0.0  # placeholder
 	  aname <- c(aname, paste0('snp_',v1))
   }
-  exoFree <- matrix(TRUE, length(observed), length(covariates),
-		    dimnames=list(observed, covariates))
-  exoFree['snp',] <- FALSE
+  exoFree <- matrix(TRUE, length(observed), length(exogenousCovariates),
+		    dimnames=list(observed, exogenousCovariates))
+  exoFree[c('snp',covariates),] <- FALSE
   c(mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE,
 	   exoFree=exoFree, algebra=aname), result)
 }
@@ -287,6 +287,20 @@ addPlaceholderSNP <- function(phenoData) {
 	phenoData
 }
 
+setupPaths <- function(covariates, depVar)
+{
+	paths <- list(mxPath(from = "one", to = "snp" , labels = "snpMean"),
+		      mxPath(from = "snp", to = depVar, values = 0,
+			     labels=paste("snp", depVar, sep = "2")),
+		      mxPath(from = "snp", arrows=2, values=1, labels = paste("snp", "res", sep = "_")))
+
+	if (length(covariates)) {
+		paths <- c(paths, list(mxPath(from='one',covariates),
+				       mxPath(from=covariates, arrows=2, values=1),
+				       mxPath(from=covariates, to=depVar)))
+	}
+	paths
+}
 
 #' Build a model suitable for a single item genome-wide association study
 #'
@@ -309,7 +323,7 @@ addPlaceholderSNP <- function(phenoData) {
 #'                     ordered_result = TRUE))
 #' m1 <- buildOneItem(pheno, 'anxiety')
 buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
-			 modelType=c('RAM','LISREL'), gxe=NULL)
+			 modelType=c('RAM','LISREL'), gxe=NULL, exogenousCovariates=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -322,24 +336,22 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
   fac <- is.factor(phenoData[[depVar]])
 
   phenoData <- addPlaceholderSNP(phenoData)
-  snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
-  snpBeta   <- mxPath(from = "snp", to = depVar, labels = "snpReg", values = 0, free = T)
-  snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
-  resid     <- mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_"))
-  itemMean  <- mxPath(from = 'one', to = depVar, free= !fac, values = 0, labels = paste0(depVar, "Mean"))
+  paths <- setupPaths(covariates, depVar)
+  paths <- c(paths,
+	     mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_")),
+	     mxPath(from = 'one', to = depVar, free= !fac, values = 0, labels = paste0(depVar, "Mean")))
 
-  manifest <- c("snp", depVar)
-  dat       <- setupData(phenoData, manifest, covariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  manifest <- c("snp", depVar, covariates)
+  dat       <- setupData(phenoData, manifest, covariates, exogenousCovariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneItem"
   oneFacPre <- mxModel(model=modelName, type=modelType,
                        manifestVars = manifest,
-                       latentVars = c(covariates),
-                       snpMu, snpBeta, snpres, resid,
-                       itemMean, dat, makeFitFunction(fitfun))
+                       latentVars = c(exogenousCovariates),
+                       paths, dat, makeFitFunction(fitfun))
 
   oneFacPre <- setupThresholds(oneFacPre)
-  setupCovariates(oneFacPre, covariates)
+  setupExogenousCovariates(oneFacPre, exogenousCovariates, depVar)
 }
 
 #' Build a model suitable for a single factor genome-wide association study
@@ -366,7 +378,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 #' pheno <- as.data.frame(pheno)
 #' buildOneFac(pheno, colnames(pheno))
 buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
-			modelType=c('RAM','LISREL'), gxe=NULL)
+			modelType=c('RAM','LISREL'), gxe=NULL, exogenousCovariates=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -376,26 +388,27 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 
   phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F")
-  lambda    <- mxPath(from=latents, to=itemNames,values=1, free = T, labels = paste("lambda", itemNames, sep = "_")  )
-  snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
-  snpBeta   <- mxPath(from = "snp", to = "F", labels = "snpReg", values = 0, free = T)
-  snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
-  resid     <- mxPath(from = c(itemNames), arrows=2, values=1, free = !fac, labels = paste(c(itemNames), "res", sep = "_"))
-  facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
-  itemMean  <- mxPath(from = 'one', to = itemNames, free= !fac, values = 0, labels = paste0(itemNames, "Mean"))
+  paths <- setupPaths(covariates, "F")
+  paths <- c(paths,
+	     mxPath(from=latents, to=itemNames,values=1, free = T,
+		    labels = paste("lambda", itemNames, sep = "_")  ),
+	     mxPath(from = c(itemNames), arrows=2, values=1, free = !fac,
+		    labels = paste(c(itemNames), "res", sep = "_")),
+	     mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes"),
+	     mxPath(from = 'one', to = itemNames, free= !fac, values = 0,
+		    labels = paste0(itemNames, "Mean")))
 
-  manifest <- c("snp", itemNames)
-  dat       <- setupData(phenoData, manifest, covariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  manifest <- c("snp", itemNames, covariates)
+  dat       <- setupData(phenoData, manifest, covariates, exogenousCovariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneFac"
   oneFacPre <- mxModel(model=modelName, type=modelType,
                        manifestVars = manifest,
-                       latentVars = c(latents, covariates),
-                       lambda, snpMu, snpBeta, snpres, resid, facRes,
-                       itemMean, dat, makeFitFunction(fitfun))
+                       latentVars = c(latents, exogenousCovariates),
+                       paths, dat, makeFitFunction(fitfun))
 
   oneFacPre <- setupThresholds(oneFacPre)
-  setupCovariates(oneFacPre, covariates)
+  setupExogenousCovariates(oneFacPre, exogenousCovariates, itemNames)
 }
 
 #' Build a model suitable for a single factor residual genome-wide association study
@@ -427,7 +440,8 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' pheno <- as.data.frame(pheno)
 #' buildOneFacRes(pheno, colnames(pheno))
 buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, covariates = NULL,
-			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'), gxe=NULL)
+			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'), gxe=NULL,
+			 exogenousCovariates=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -437,27 +451,28 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 
   phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F")
-  lambda    <- mxPath(from=latents, to=itemNames,values=1, free = T, labels = paste("lambda", itemNames, sep = "_")  )
-  snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
-  snpFac  <- mxPath(from = "snp", to = "F", labels = "snp2fac", values = 0, free = factor)
-  snpItemRes   <- mxPath(from = "snp", to = res, labels = paste("snp", res, sep = "2"), values = 0, free = T)
-  snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
-  resid     <- mxPath(from = c(itemNames), arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
-  facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
-  itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
 
-  manifest <- c("snp", itemNames)
-  dat       <- setupData(phenoData, manifest, covariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  paths <- setupPaths(covariates, c("F", res))
+  paths <- c(paths,
+	     mxPath(from=latents, to=itemNames,values=1, free = T,
+		    labels = paste("lambda", itemNames, sep = "_")  ),
+	     mxPath(from = c(itemNames), arrows=2, values=1, free = c(fac==0),
+		    labels = paste(c(itemNames), "res", sep = "_")),
+	     mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes"),
+	     mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0,
+		    labels = paste0(itemNames, "Mean")))
+
+  manifest <- c("snp", itemNames, covariates)
+  dat       <- setupData(phenoData, manifest, covariates, exogenousCovariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneFacRes"
   oneFacPre <- mxModel(model=modelName, type=modelType,
                        manifestVars = manifest,
-                       latentVars = c(latents, covariates),
-                       lambda, snpMu, snpFac, snpItemRes, snpres, resid, facRes,
-                       itemMean, dat, makeFitFunction(fitfun))
+                       latentVars = c(latents, exogenousCovariates),
+                       paths, dat, makeFitFunction(fitfun))
 
   oneFacPre <- setupThresholds(oneFacPre)
-  setupCovariates(oneFacPre, covariates)
+  setupExogenousCovariates(oneFacPre, exogenousCovariates, itemNames)
 }
 
 #' Build a model suitable for a two factor genome-wide association study
@@ -486,7 +501,8 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' pheno <- as.data.frame(pheno)
 #' buildTwoFac(pheno, paste0('i',1:6), paste0('i',5:10))
 buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, ...,
-			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'), gxe=NULL)
+			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'), gxe=NULL,
+			exogenousCovariates=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -498,29 +514,25 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
 
   phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F1", "F2")
-  lambda1    <- mxPath(from="F1", to=F1itemNames,values=1, labels = paste("lambda", F1itemNames, sep = "_")  )
-  lambda2    <- mxPath(from="F2", to=F2itemNames,values=1, labels = paste("lambda", F2itemNames, sep = "_")  )
-  facCor    <- mxPath(from="F1", to= "F2", arrows=2,free=T, values=.3)
+  paths <- setupPaths(covariates, latents)
+  paths <- c(paths,
+	     mxPath(from="F1", to=F1itemNames,values=1, labels = paste("lambda", F1itemNames, sep = "_")  ),
+	     mxPath(from="F2", to=F2itemNames,values=1, labels = paste("lambda", F2itemNames, sep = "_")  ),
+	     mxPath(from="F1", to= "F2", arrows=2,free=T, values=.3),
+	     mxPath(from = itemNames, arrows=2, values=1, free = c(fac==0),
+		    labels = paste(c(itemNames), "res", sep = "_")),
+	     mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes"),
+	     mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean")))
 
-  snpMu     <- mxPath(from = "one", to = "snp" , labels = "snpMean")
-  snpBeta   <- mxPath(from = "snp", to = latents, labels = paste0("snp", 2, latents), values = 0, free = T)
-  snpres    <- mxPath(from = "snp", arrows=2, values=1, free = T, labels = paste("snp", "res", sep = "_"))
-
-  resid     <- mxPath(from = itemNames, arrows=2, values=1, free = c(fac==0), labels = paste(c(itemNames), "res", sep = "_"))
-  facRes    <- mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes")
-  itemMean  <- mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean"))
-
-  manifest <- c("snp", itemNames)
-  dat       <- setupData(phenoData, manifest, covariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  manifest <- c("snp", itemNames, covariates)
+  dat       <- setupData(phenoData, manifest, covariates, exogenousCovariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "TwoFac"
   twoFacPre <- mxModel(model=modelName, type=modelType,
                        manifestVars = manifest,
-                       latentVars = c(latents, covariates),
-                       lambda1, lambda2, facCor, snpMu, snpBeta, snpres, 
-                       resid, facRes,
-                       itemMean, dat, makeFitFunction(fitfun))
+                       latentVars = c(latents, exogenousCovariates),
+                       paths, dat, makeFitFunction(fitfun))
 
   twoFacPre <- setupThresholds(twoFacPre)
-  setupCovariates(twoFacPre, covariates)
+  setupExogenousCovariates(twoFacPre, exogenousCovariates, itemNames)
 }

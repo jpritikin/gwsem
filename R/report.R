@@ -21,7 +21,7 @@
 #' GWAS(m1, file.path(dir,"example.pgen"),
 #'     file.path(tdir,"out.log"))
 #' loadResults(file.path(tdir,"out.log"))
-loadResults <- function(path, focus="snpReg", ..., extraColumns=c(),
+loadResults <- function(path, focus, ..., extraColumns=c(),
 			.retainSE=FALSE) {
   sel <- c('MxComputeLoop1', 'CHR','BP','SNP','statusCode','catch1',
 	   focus,paste0(focus,'SE'), extraColumns)
@@ -35,3 +35,5 @@ loadResults <- function(path, focus="snpReg", ..., extraColumns=c(),
   got$P <- 2*pnorm(-abs(got$Z))
   got
 }
+
+# add plot method that sends to qqman TODO

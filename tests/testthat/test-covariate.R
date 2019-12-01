@@ -29,20 +29,32 @@ for (cx in 1:numCovariate) {
 }
 
 GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators),
-                 covariates = paste0("covar",1:numCovariate)),
+                 exogenousCovariates = paste0("covar",1:numCovariate)),
      file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 
 pgen <- read.table(file.path(tdir,"out.log"), stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 
-mask <- (pgen$catch1 == "" & pgen$statusCode=="OK" & !is.na(pgen$snpRegSE))
+mask <- (pgen$catch1 == "" & pgen$statusCode=="OK" & !is.na(pgen$snp2FSE))
 pgen <- pgen[mask,]
 
-mask <- (abs(pgen$snpReg) < 2.6*mad(pgen$snpReg) & (abs(pgen$snpReg / pgen$snpRegSE) > .5))
+mask <- (abs(pgen$snp2F) < 2.6*mad(pgen$snp2F) & (abs(pgen$snp2F / pgen$snp2FSE) > .5))
 pgen <- pgen[mask,]
 
 cvNames <- paste(rep(paste0("covar",1:numCovariate), each = numIndicators),
       paste0("i", 1:numIndicators), sep = "_")
 expect_equivalent(colMeans(pgen[,cvNames]), rep(0, length(cvNames)), tolerance=.1)
 
+pgen <- loadResults(file.path(tdir,"out.log"), "snp2F")
+
+# -----
+
+GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators),
+                 covariates = paste0("covar",1:numCovariate)),
+     file.path(dir,"example.pgen"),
+     file.path(tdir,"out.log"))
+
+pgen2 <- loadResults(file.path(tdir,"out.log"), "snp2F")
+
+expect_equal(cor(pgen$Z, pgen2$Z, use = "pairwise"), 1, tolerance=.15)
