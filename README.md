@@ -8,32 +8,11 @@
 [![Total Downloads](http://cranlogs.r-pkg.org/badges/grand-total/gwsem)](http://cranlogs.r-pkg.org/badges/grand-total/gwsem)
 <!-- badges: end -->
 
-The goal of gwsem is to provide users with the opportunity to to analyze the complex, interconnected array of risk factors, biomarkers, environmental antecedents, comorbid disorders and other health outcomes on a genome-wide basis using structural equation modeling techniques.
+The goal of gwsem is to provide users with the opportunity to analyze the complex, interconnected array of risk factors, biomarkers, environmental antecedents, comorbid disorders, and other health outcomes on a genome-wide basis using structural equation modeling techniques.
 
 ## Installation
 
-You can install the released version of gwsem from [CRAN](https://CRAN.R-project.org) with:
-
-``` r
-install.packages("gwsem")
-```
-
-GW-SEM is currently under intense development. Therefore, the CRAN version of the software will not include the latest modifactions, enhancements, enhancements or functionality.
-
-If you want to use a development snapshot, clone the source code and do
-
-```
-git clone https://github.com/jpritikin/gwsem
-cd gwsem 
-./tools/rox
-cd ..
-R CMD INSTALL gwsem R_LIBS_USER
-Rscript tools/test.R
-```
-
-You cannot use **devtools** `install_github` because it does not run **roxygen2**.
-
-GW-SEM utilized the optimization function of OpenMx. Therefore to use GW-SEM you must have an up-to-date version of OpenMx (Newer than version X.X-XX)
+GW-SEM utilizes the optimization function of OpenMx.
 
 You can install the released version of OpenMx from [CRAN](https://CRAN.R-project.org) with:
 
@@ -42,3 +21,23 @@ install.packages("OpenMx")
 ```
 
 If you want a new version of OpenMx, you can follow the instruction to build it from source [HERE](https://openmx.ssri.psu.edu).
+
+You can install the released version of gwsem from [CRAN](https://CRAN.R-project.org) with:
+
+``` r
+install.packages("gwsem")
+```
+
+GW-SEM is currently under development. Therefore, the CRAN version of the software may not include the latest modifactions, enhancements, or functionality.
+
+If you want to use a development snapshot, clone the source code and do
+
+```
+git clone https://github.com/jpritikin/gwsem
+cd gwsem 
+./tools/rox
+R CMD INSTALL .
+Rscript tools/test.R
+```
+
+You cannot use **devtools** `install_github` because it does not run **roxygen2**.
