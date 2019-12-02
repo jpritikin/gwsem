@@ -78,6 +78,8 @@ bgen <- bgen[mask,]
 pgen <- pgen[mask,]
 expect_equal(sum(mask), 197)
 
+skip_if(.Platform$OS.type == "windows" && .Machine$sizeof.pointer == 4)
+
 rmse <- function(x,y) sqrt(mean((x-y)^2))
 expect_equal(rmse(bgen$snp2F, pgen$snp2F), 0, tolerance=.21)
 

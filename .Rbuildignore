@@ -5,3 +5,4 @@
 ^.gdbinit$
 ^.covrignore$
 ^.dir-locals.el$
+^_config\.yml$
