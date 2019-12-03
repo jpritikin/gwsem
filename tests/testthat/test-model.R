@@ -32,7 +32,7 @@ pheno$i2 <- cut(pheno$i2, c(-Inf, quantile(pheno$i2, .5), Inf), ordered_result =
 expect_error(buildOneItem(pheno, paste0("i", 1:5)),
              "buildOneItem provided with 5 dependent")
 
-oi <- buildOneItem(pheno, paste0("i", 1))
+oi <- buildOneItem(pheno, paste0("i", 3))
 expect_error(GWAS(oi, "example"),
              "rename snpData")
 
@@ -42,21 +42,22 @@ expect_error(GWAS(oi, file.path(dir,"example.xyz")),
 expect_error(GWAS(oi, something_else=1),
              "Rejected are any values")
 
-GWAS(oi,
+got6 <- GWAS(oi,
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
+is.null(got6$data$observedStats$means)
 
-pgen <- loadResults(file.path(tdir, "out.log"), "snp2i1")
+pgen <- loadResults(file.path(tdir, "out.log"), "snp2i3")
 rx <- which(min(pgen$P) == pgen$P)
-expect_equal(rx, 2)
-expect_equal(pgen$P[rx], 0.128, tolerance=1e-2)
+expect_equal(rx, 1)
+expect_equal(pgen$P[rx], .515, tolerance=1e-2)
 
 expect_error(GWAS(oi,
                   file.path(dir,"example.pgen"),
                   file.path(tdir, "out.log"), SNP=c(250)),
              "out of data")
 
-oi <- expect_warning(buildOneItem(pheno, paste0("i", 1),fitfun = "ML",
+oi <- expect_warning(buildOneItem(pheno, paste0("i", 3), fitfun = "ML",
                    minMAF=.1),
                    "minMAF is ignored when fitfun")
 
@@ -64,7 +65,7 @@ GWAS(oi,
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
 
-ml <- loadResults(file.path(tdir, "out.log"), "snp2i1")
+ml <- loadResults(file.path(tdir, "out.log"), "snp2i3")
 expect_equal(cor(ml$P, pgen$P), 1, tolerance=1e-3)
 
 expect_error(buildOneItem(pheno, paste0("i", 1), fitfun = "bob"),
@@ -76,7 +77,7 @@ if (.Platform$OS.type == "windows" && packageVersion("data.table") <= '1.12.2') 
   skip("data.table has a bug on windows")
 }
 
-GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
+z1 = GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
 

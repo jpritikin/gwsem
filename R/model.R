@@ -308,6 +308,16 @@ setupPaths <- function(covariates, depVar)
 #' Build a model suitable for a single item genome-wide association study
 #'
 #' @template detail-build
+#' 
+#' @section WLS Technical Note:
+#' When the \code{depVar} item is continuous, there are no exogenous
+#' covariates, and the fit function is \code{WLS} then the
+#' \code{cumulants} method is used to create observed summary
+#' statistics (see \link[OpenMx]{mxFitFunctionWLS}). In other cases,
+#' the \code{marginals} method is used. The \code{cumulants} method is
+#' more accurate than \code{marginals}. The difference in accuracy
+#' becomes vivid when comparing estimates against the \code{ML} fit
+#' function.
 #'
 #' @template args-phenoData
 #' @param depVar the name of the single item to predict
@@ -337,9 +347,11 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
     stop(paste("buildOneItem provided with", length(depVar), "dependent variables",
 	       "instead of 1. Did you intend to use buildOneFac instead?"))
   }
+  phenoData <- addPlaceholderSNP(phenoData)
+  # Remove extraneous factor columns that could prevent WLS cumulants
+  phenoData <- phenoData[,c('snp', depVar, covariates, exogenousCovariates)]
   fac <- is.factor(phenoData[[depVar]])
 
-  phenoData <- addPlaceholderSNP(phenoData)
   paths <- setupPaths(covariates, depVar)
   paths <- c(paths,
 	     mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_")),
@@ -349,13 +361,20 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
   dat       <- setupData(phenoData, manifest, covariates, exogenousCovariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneItem"
-  oneFacPre <- mxModel(model=modelName, type=modelType,
+  model <- mxModel(model=modelName, type=modelType,
                        manifestVars = manifest,
                        latentVars = c(exogenousCovariates),
                        paths, dat, makeFitFunction(fitfun))
 
-  oneFacPre <- setupThresholds(oneFacPre)
-  setupExogenousCovariates(oneFacPre, exogenousCovariates, depVar)
+  if (!fac && length(exogenousCovariates) == 0 && fitfun == 'WLS') {
+	  # cumulants is substantially more precise than marginals
+	  model <- mxModel(model, 'M', remove = TRUE)
+	  model$expectation$M <- as.character(NA)
+	  model$fitfunction$continuousType <- 'cumulants'
+  }
+
+  model <- setupThresholds(model)
+  setupExogenousCovariates(model, exogenousCovariates, depVar)
 }
 
 #' Build a model suitable for a single factor genome-wide association study
