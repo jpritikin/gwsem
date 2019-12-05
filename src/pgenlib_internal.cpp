@@ -9265,7 +9265,9 @@ PglErr ParseDosage16(const unsigned char* fread_ptr, const unsigned char* fread_
       } else {
         if (!subsetting_required) {
           for (uint32_t sample_idx = 0; sample_idx != sample_ct; ++sample_idx) {
-            const uint16_t cur_dosage = *dosage_main_read_iter++;
+	    uint16_t cur_dosage;
+	    memcpy(&cur_dosage, dosage_main_read_iter, sizeof(cur_dosage));
+	    dosage_main_read_iter++;
             if (cur_dosage != 65535) {
               *dosage_main_write_iter++ = cur_dosage;
             } else {
