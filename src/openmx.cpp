@@ -2,6 +2,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <stdarg.h>
+#include <stdexcept>
 
 #include "openmx.h"
 
