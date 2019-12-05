@@ -125,8 +125,8 @@ GWAS(buildTwoFac(pheno, F1itemNames = paste0("i",1:4),
 
 pgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
-l2 <- pgen[,paste0('lambda_i',1:7)]
-expect_equivalent((colMeans(l2) / loadings)[-4], rep(1, numIndicators-1),
+l2 <- pgen[,c(paste0('F1_lambda_i',1:3), paste0('F2_lambda_i',5:7))]
+expect_equivalent((colMeans(l2) / loadings[-4]), rep(1, numIndicators-1),
                   tolerance=.15)
 expect_equal(pgen[['TwoFac.S[9,10]']], rep(1.17,3), .02)
 
