@@ -286,10 +286,11 @@ setupData <- function(phenoData, observed, covariates, exogenousCovariates, gxe,
 #' @importFrom stats rbinom
 addPlaceholderSNP <- function(phenoData) {
 	if (!is.null(phenoData[[ 'snp' ]])) {
-		warning("Data already contains placeholder data for the 'snp' column. Ignoring it")
+		warning("Data already contains placeholder data for the 'snp' column. This is unnecessary and not recommended")
+	} else {
+		# We use as.numeric because we currently only support dosages.
+		phenoData$snp <- as.numeric(rbinom(dim(phenoData)[1], 2, .5))
 	}
-	# We use as.numeric because we currently only support dosages.
-	phenoData$snp <- as.numeric(rbinom(dim(phenoData)[1], 2, .5))
 	phenoData
 }
 
