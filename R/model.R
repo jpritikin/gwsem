@@ -1,6 +1,5 @@
 makeFitFunction <- function(fitfun)
 {
-	# prefer marginal TODO
   if(fitfun == "WLS")        mxFitFunctionWLS(allContinuousMethod= "marginals")
   else if(fitfun == "ML")  mxFitFunctionML()
   else stop(paste("Unknown fitfun", omxQuotes(fitfun)))
@@ -210,9 +209,13 @@ setupThresholds <- function(model)
 
   if (max(thr) == 0) return(model)
 
-  thresh <- mxThreshold(manifestNames[fac], nThresh=thr[fac], free = T ,
-                        labels = paste0(rep(manifestNames[fac], each = max(thr)), "_Thr_", 1:max(thr)),
-			values=mxNormalQuantiles(thr[fac], sd=sqrt(2.0)))
+  thresh <- list()
+  for (m1 in manifestNames[fac]) {
+	  thresh <- c(thresh,
+		      mxThreshold(m1, nThresh=thr[m1], free = T ,
+				  labels = paste0(m1, "_Thr_", 1:max(thr[m1])),
+				  values=mxNormalQuantiles(thr[m1], sd=sqrt(2.0))))
+  }
   mxModel(model, thresh)
 }
 
@@ -294,19 +297,27 @@ addPlaceholderSNP <- function(phenoData) {
 	phenoData
 }
 
-setupPaths <- function(covariates, depVar)
+setupPaths <- function(phenoData, covariates, depVar)
 {
 	paths <- list(mxPath(from = "one", to = "snp" , labels = "snpMean"),
 		      mxPath(from = "snp", to = depVar, values = 0,
 			     labels=paste("snp", depVar, sep = "2")),
 		      mxPath(from = "snp", arrows=2, values=1, labels = paste("snp", "res", sep = "_")))
 
-	if (length(covariates)) {
-		regLabels <- apply(expand.grid(depVar, covariates)[,c(2,1)], 1, paste0, collapse="2")
+	if (length(covariates)) for (cx in 1:length(covariates)) {
+		c1 <- covariates[cx]
+		if (is.factor(phenoData[[c1]])) {
+			nth <- length(levels(phenoData[[c1]]))-1
+			paths <- c(paths, list(
+				mxPath(from=c1, arrows=2, values=1, free=FALSE)))
+			# see setupThresholds
+		} else {
+			paths <- c(paths, list(
+				mxPath(from='one',c1,labels=paste0(c1,"_mean")),
+				mxPath(from=c1, arrows=2, values=1, labels=paste0(c1,"_var"))))
+		}
 		paths <- c(paths, list(
-			mxPath(from='one',covariates,labels=paste0(covariates,"_mean")),
-			mxPath(from=covariates, arrows=2, values=1, labels=paste0(covariates,"_var")),
-			mxPath(from=covariates, to=depVar, connect="all.pairs", labels=regLabels)))
+			mxPath(from=c1, to=depVar, labels=paste0(c1,'2',depVar))))
 	}
 	paths
 }
@@ -358,7 +369,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
   phenoData <- phenoData[,c('snp', depVar, covariates, exogenousCovariates)]
   fac <- is.factor(phenoData[[depVar]])
 
-  paths <- setupPaths(covariates, depVar)
+  paths <- setupPaths(phenoData, covariates, depVar)
   paths <- c(paths,
 	     mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_")),
 	     mxPath(from = 'one', to = depVar, free= !fac, values = 0, labels = paste0(depVar, "Mean")))
@@ -418,7 +429,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 
   phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F")
-  paths <- setupPaths(covariates, "F")
+  paths <- setupPaths(phenoData, covariates, "F")
   paths <- c(paths,
 	     mxPath(from=latents, to=itemNames,values=1, free = T,
 		    labels = paste("lambda", itemNames, sep = "_")  ),
@@ -483,7 +494,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F")
 
-  paths <- setupPaths(covariates, c("F", res))
+  paths <- setupPaths(phenoData, covariates, c("F", res))
   paths <- c(paths,
 	     mxPath(from=latents, to=itemNames,values=1, free = T,
 		    labels = paste("lambda", itemNames, sep = "_")  ),
@@ -546,7 +557,7 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
 
   phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F1", "F2")
-  paths <- setupPaths(covariates, latents)
+  paths <- setupPaths(phenoData, covariates, latents)
   paths <- c(paths,
 	     mxPath(from="F1", to=F1itemNames,values=1, labels = paste("F1_lambda", F1itemNames, sep = "_")  ),
 	     mxPath(from="F2", to=F2itemNames,values=1, labels = paste("F2_lambda", F2itemNames, sep = "_")  ),
