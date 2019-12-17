@@ -322,6 +322,33 @@ setupPaths <- function(phenoData, covariates, depVar)
 	paths
 }
 
+postprocessModel <- function(model, indicators, exogenousCovariates)
+{
+	model <- setupThresholds(model)
+
+	if (is.na(model$expectation$thresholds) &&
+		    is(model$fitfunction, 'MxFitFunctionWLS') &&
+		    length(exogenousCovariates) == 0) {
+
+		# cumulants is substantially more precise than marginals
+		model$fitfunction$continuousType <- 'cumulants'
+
+		# discard model means
+		if (is(model$expectation, "MxExpectationRAM")) {
+			model$expectation$M <- as.character(NA)
+			model <- mxModel(model, 'M', remove = TRUE)
+		} else {
+			for (mat in c('TX', 'TY', 'KA', 'AL')) {
+				model$expectation[[ mat ]] <- as.character(NA)
+				model[[ mat ]]$free <- FALSE
+			}
+		}
+	} else {
+		model <- setupExogenousCovariates(model, exogenousCovariates, indicators)
+	}
+	model
+}
+
 #' Build a model suitable for a single item genome-wide association study
 #'
 #' @template detail-build
@@ -383,15 +410,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
                        latentVars = c(exogenousCovariates),
                        paths, dat, makeFitFunction(fitfun))
 
-  if (!fac && length(exogenousCovariates) == 0 && fitfun == 'WLS') {
-	  # cumulants is substantially more precise than marginals
-	  model <- mxModel(model, 'M', remove = TRUE)
-	  model$expectation$M <- as.character(NA)
-	  model$fitfunction$continuousType <- 'cumulants'
-  }
-
-  model <- setupThresholds(model)
-  setupExogenousCovariates(model, exogenousCovariates, depVar)
+  postprocessModel(model, depVar, exogenousCovariates)
 }
 
 #' Build a model suitable for a single factor genome-wide association study
@@ -448,8 +467,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
                        latentVars = c(latents, exogenousCovariates),
                        paths, dat, makeFitFunction(fitfun))
 
-  oneFacPre <- setupThresholds(oneFacPre)
-  setupExogenousCovariates(oneFacPre, exogenousCovariates, itemNames)
+  postprocessModel(oneFacPre, itemNames, exogenousCovariates)
 }
 
 #' Build a model suitable for a single factor residual genome-wide association study
@@ -513,8 +531,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
                        latentVars = c(latents, exogenousCovariates),
                        paths, dat, makeFitFunction(fitfun))
 
-  oneFacPre <- setupThresholds(oneFacPre)
-  setupExogenousCovariates(oneFacPre, exogenousCovariates, itemNames)
+  postprocessModel(oneFacPre, itemNames, exogenousCovariates)
 }
 
 #' Build a model suitable for a two factor genome-wide association study
@@ -576,6 +593,5 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
                        latentVars = c(latents, exogenousCovariates),
                        paths, dat, makeFitFunction(fitfun))
 
-  twoFacPre <- setupThresholds(twoFacPre)
-  setupExogenousCovariates(twoFacPre, exogenousCovariates, itemNames)
+  postprocessModel(twoFacPre, itemNames, exogenousCovariates)
 }
