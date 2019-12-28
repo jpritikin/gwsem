@@ -277,7 +277,7 @@ setupData <- function(phenoData, observed, covariates, exogenousCovariates, gxe,
 				     dimnames=list(NULL,paste0('snp_',v1)))
 	  result <- c(result, alg)
 	  phenoData[[ paste0('snp_',v1) ]] <- 0.0  # placeholder
-	  aname <- c(aname, paste0('snp_',v1))
+	  aname <- c(aname, paste0('snp_',v1,"Alg"))
   }
   exoFree <- matrix(TRUE, length(observed), length(exogenousCovariates),
 		    dimnames=list(observed, exogenousCovariates))
@@ -393,7 +393,8 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
   }
   phenoData <- addPlaceholderSNP(phenoData)
   # Remove extraneous factor columns that could prevent WLS cumulants
-  phenoData <- phenoData[,c('snp', depVar, covariates, exogenousCovariates)]
+  phenoData <- phenoData[,intersect(colnames(phenoData),
+				    c('snp', depVar, covariates, exogenousCovariates))]
   fac <- is.factor(phenoData[[depVar]])
 
   paths <- setupPaths(phenoData, covariates, depVar)
