@@ -513,7 +513,9 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   phenoData <- addPlaceholderSNP(phenoData)
   latents   <- c("F")
 
-  paths <- setupPaths(phenoData, covariates, c("F", res))
+  depVar <- res
+  if (factor) depVar <- c(latents, res)
+  paths <- setupPaths(phenoData, covariates, depVar)
   paths <- c(paths,
 	     mxPath(from=latents, to=itemNames,values=1, free = T,
 		    labels = paste("lambda", itemNames, sep = "_")  ),

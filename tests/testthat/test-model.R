@@ -101,9 +101,13 @@ if(0) {
 
 # -----------------
 
-GWAS(buildOneFacRes(pheno, paste0("i", 1:numIndicators)),
+m1 <- buildOneFacRes(pheno, paste0("i", 1:numIndicators), factor=TRUE)
+expect_true(m1$A$free['F','snp'])
+
+m2 <- GWAS(buildOneFacRes(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
+expect_false(m2$A$free['F','snp'])
 
 pgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
@@ -114,7 +118,7 @@ l2 <- pgen[,paste0('lambda_i',1:7)]
 expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.2)
 
 pgen <- loadResults(file.path(tdir, "out.log"), "snp2i2")
-expect_equal(pgen$P, rep(1,3), tolerance=1e-5)
+expect_equal(pgen$P, c(0.481, 0.896, 0.473), tolerance=1e-2)
 
 # -----------------
 
