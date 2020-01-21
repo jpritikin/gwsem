@@ -29,10 +29,8 @@ pheno$i2 <- cut(pheno$i2, c(-Inf, quantile(pheno$i2, .5), Inf), ordered_result =
 
 # -----------------
 
-expect_error(buildOneItem(pheno, paste0("i", 1:5)),
-             "buildOneItem provided with 5 dependent")
-
 oi <- buildOneItem(pheno, paste0("i", 3))
+oi <- buildItem(pheno, paste0("i", 3))
 expect_error(GWAS(oi, "example"),
              "rename snpData")
 
@@ -57,7 +55,7 @@ expect_error(GWAS(oi,
                   file.path(tdir, "out.log"), SNP=c(250)),
              "out of data")
 
-oi <- expect_warning(buildOneItem(pheno, paste0("i", 3), fitfun = "ML",
+oi <- expect_warning(buildItem(pheno, paste0("i", 3), fitfun = "ML",
                    minMAF=.1),
                    "minMAF is ignored when fitfun")
 
@@ -68,8 +66,27 @@ GWAS(oi,
 ml <- loadResults(file.path(tdir, "out.log"), "snp2i3")
 expect_equal(cor(ml$P, pgen$P), 1, tolerance=1e-3)
 
-expect_error(buildOneItem(pheno, paste0("i", 1), fitfun = "bob"),
+expect_error(buildItem(pheno, paste0("i", 1), fitfun = "bob"),
              "should be one of")
+
+# -----------------
+
+oi <- buildItem(pheno, paste0("i", 2:3))
+expect_true(oi$S$free['i2','i3'])
+
+GWAS(oi,
+     file.path(dir,"example.pgen"),
+     file.path(tdir, "out.log"), SNP=c(1:10))
+
+pgen <- loadResults(file.path(tdir, "out.log"), "snp2i2")
+rx <- which(min(pgen$P) == pgen$P)
+expect_equal(rx, 1)
+expect_equal(pgen$P[rx], .133, tolerance=1e-2)
+
+pgen <- loadResults(file.path(tdir, "out.log"), "snp2i3")
+rx <- which(min(pgen$P) == pgen$P)
+expect_equal(rx, 2)
+expect_equal(pgen$P[rx], .127, tolerance=1e-2)
 
 # -----------------
 
@@ -136,7 +153,7 @@ expect_equal(pgen[['TwoFac.S[9,10]']], rep(1.17,3), .02)
 
 # ------------
 
-for (f in c("buildOneFac", "buildOneFacRes", "buildOneItem",
+for (f in c("buildOneFac", "buildOneFacRes", "buildItem",
                "buildTwoFac")) {
   expect_error(do.call(f, args=list(pheno, another.arg="xyz")),
                "Rejected are any values")

@@ -156,7 +156,7 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 #' @examples
 #' dir <- system.file("extdata", package = "gwsem")
 #' pheno <- data.frame(anxiety=rnorm(500))
-#' m1 <- buildOneItem(pheno, 'anxiety')
+#' m1 <- buildItem(pheno, 'anxiety')
 #' GWAS(m1, file.path(dir,"example.pgen"),
 #'      file.path(tempdir(),"out.log"))
 GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
@@ -195,7 +195,7 @@ GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
 #' @examples
 #' pheno <- data.frame(anxiety=cut(rnorm(500), c(-Inf, -.5, .5, Inf),
 #'                     ordered_result = TRUE))
-#' m1 <- buildOneItem(pheno, 'anxiety')
+#' m1 <- buildItem(pheno, 'anxiety')
 #' m1 <- setupThresholds(m1)
 #' m1$Thresholds
 setupThresholds <- function(model)
@@ -364,7 +364,7 @@ postprocessModel <- function(model, indicators, exogenousCovariates)
 #' function.
 #'
 #' @template args-phenoData
-#' @param depVar the name of the single item to predict
+#' @param depVar the name of items to predict
 #' @template args-covariates
 #' @template args-exogenouscovariates
 #' @template args-dots-barrier
@@ -376,30 +376,28 @@ postprocessModel <- function(model, indicators, exogenousCovariates)
 #' @export
 #' @return
 #' A \link[OpenMx:MxModel-class]{MxModel}
+#' @aliases buildOneItem
 #' @examples
 #' pheno <- data.frame(anxiety=cut(rnorm(500), c(-Inf, -.5, .5, Inf),
 #'                     ordered_result = TRUE))
-#' m1 <- buildOneItem(pheno, 'anxiety')
-buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
+#' m1 <- buildItem(pheno, 'anxiety')
+buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
 			 modelType=c('RAM','LISREL'), gxe=NULL, exogenousCovariates=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
   modelType <- match.arg(modelType)
 
-  if (length(depVar) != 1) {
-    stop(paste("buildOneItem provided with", length(depVar), "dependent variables",
-	       "instead of 1. Did you intend to use buildOneFac instead?"))
-  }
   phenoData <- addPlaceholderSNP(phenoData)
   # Remove extraneous factor columns that could prevent WLS cumulants
   phenoData <- phenoData[,intersect(colnames(phenoData),
 				    c('snp', depVar, covariates, exogenousCovariates))]
-  fac <- is.factor(phenoData[[depVar]])
+  fac <- sapply(phenoData[,depVar,drop=FALSE], is.factor)
 
   paths <- setupPaths(phenoData, covariates, depVar)
   paths <- c(paths,
 	     mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_")),
+	     mxPath(depVar, arrows=2, values=0, connect="unique.bivariate"),
 	     mxPath(from = 'one', to = depVar, free= !fac, values = 0, labels = paste0(depVar, "Mean")))
 
   manifest <- c("snp", depVar, covariates)
@@ -413,6 +411,9 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 
   postprocessModel(model, depVar, exogenousCovariates)
 }
+
+#' @export
+buildOneItem <- buildItem
 
 #' Build a model suitable for a single factor genome-wide association study
 #'
