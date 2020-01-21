@@ -251,7 +251,8 @@ setupThresholds <- function(model)
 #' @export
 #' @examples
 #' m1 <- mxModel("test", type="RAM",
-#'              latentVars = "sex", manifestVars = "anxiety")
+#'              latentVars = "sex", manifestVars = "anxiety",
+#'              mxData(data.frame(sex=rbinom(10,1,.5)), 'raw'))
 #' m1 <- setupExogenousCovariates(m1, 'sex', 'anxiety')
 setupExogenousCovariates <- function(model, covariates, itemNames)
 {
@@ -259,13 +260,19 @@ setupExogenousCovariates <- function(model, covariates, itemNames)
 
   covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
   cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs",
-                      labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "_"))
-  mxModel(model, covMean, cov2item)
+                      labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "2"))
+  model <- mxModel(model, covMean, cov2item)
+  emean <- mxGetExpected(model, "means")
+  exoFree <- matrix(FALSE, length(emean), length(covariates),
+		    dimnames=list(colnames(emean), covariates))
+  exoFree[itemNames, covariates] <- TRUE
+  model@data$exoFree <- exoFree
+  model
 }
 
 # export? TODO
-# just pass in model as argument? TODO
-setupData <- function(phenoData, observed, covariates, exogenousCovariates, gxe, customMinMAF, minMAF, fitfun)
+# add test for gxe TODO
+setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
 {
   if (customMinMAF && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
   minVar <- calcMinVar(minMAF)
@@ -279,11 +286,8 @@ setupData <- function(phenoData, observed, covariates, exogenousCovariates, gxe,
 	  phenoData[[ paste0('snp_',v1) ]] <- 0.0  # placeholder
 	  aname <- c(aname, paste0('snp_',v1,"Alg"))
   }
-  exoFree <- matrix(TRUE, length(observed), length(exogenousCovariates),
-		    dimnames=list(observed, exogenousCovariates))
-  exoFree[c('snp',covariates),] <- FALSE
   c(mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE,
-	   exoFree=exoFree, algebra=aname), result)
+	   algebra=aname), result)
 }
 
 #' @importFrom stats rbinom
@@ -297,12 +301,18 @@ addPlaceholderSNP <- function(phenoData) {
 	phenoData
 }
 
-setupPaths <- function(phenoData, covariates, depVar)
+endogenousSNPpath <- function(depVar)
 {
 	paths <- list(mxPath(from = "one", to = "snp" , labels = "snpMean"),
 		      mxPath(from = "snp", to = depVar, values = 0,
 			     labels=paste("snp", depVar, sep = "2")),
 		      mxPath(from = "snp", arrows=2, values=1, labels = paste("snp", "res", sep = "_")))
+}
+
+# endogenous covariates handled here
+setupPaths <- function(phenoData, covariates, depVar)
+{
+	paths <- list()
 
 	if (length(covariates)) for (cx in 1:length(covariates)) {
 		c1 <- covariates[cx]
@@ -322,13 +332,13 @@ setupPaths <- function(phenoData, covariates, depVar)
 	paths
 }
 
-postprocessModel <- function(model, indicators, exogenousCovariates)
+postprocessModel <- function(model, indicators, exogenous)
 {
 	model <- setupThresholds(model)
 
-	if (is.na(model$expectation$thresholds) &&
-		    is(model$fitfunction, 'MxFitFunctionWLS') &&
-		    length(exogenousCovariates) == 0) {
+	if (length(exogenous) == 0 &&
+		    is.na(model$expectation$thresholds) &&
+		    is(model$fitfunction, 'MxFitFunctionWLS')) {
 
 		# cumulants is substantially more precise than marginals
 		model$fitfunction$continuousType <- 'cumulants'
@@ -338,13 +348,14 @@ postprocessModel <- function(model, indicators, exogenousCovariates)
 			model$expectation$M <- as.character(NA)
 			model <- mxModel(model, 'M', remove = TRUE)
 		} else {
+			# test! doesn't work? TODO
 			for (mat in c('TX', 'TY', 'KA', 'AL')) {
 				model$expectation[[ mat ]] <- as.character(NA)
 				model[[ mat ]]$free <- FALSE
 			}
 		}
 	} else {
-		model <- setupExogenousCovariates(model, exogenousCovariates, indicators)
+		model <- setupExogenousCovariates(model, exogenous, indicators)
 	}
 	model
 }
@@ -354,8 +365,9 @@ postprocessModel <- function(model, indicators, exogenousCovariates)
 #' @template detail-build
 #' 
 #' @section WLS Technical Note:
-#' When the \code{depVar} item is continuous, there are no exogenous
-#' covariates, and the fit function is \code{WLS} then the
+#' When the \code{depVar} item is/are continuous,
+#' covariates are endogenous (the default),
+#' and the fit function is \code{WLS} then the
 #' \code{cumulants} method is used to create observed summary
 #' statistics (see \link[OpenMx]{mxFitFunctionWLS}). In other cases,
 #' the \code{marginals} method is used. The \code{cumulants} method is
@@ -366,7 +378,7 @@ postprocessModel <- function(model, indicators, exogenousCovariates)
 #' @template args-phenoData
 #' @param depVar the name of items to predict
 #' @template args-covariates
-#' @template args-exogenouscovariates
+#' @template args-exogenous
 #' @template args-dots-barrier
 #' @template args-fitfun
 #' @template args-minmaf
@@ -382,34 +394,49 @@ postprocessModel <- function(model, indicators, exogenousCovariates)
 #'                     ordered_result = TRUE))
 #' m1 <- buildItem(pheno, 'anxiety')
 buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
-			 modelType=c('RAM','LISREL'), gxe=NULL, exogenousCovariates=NULL)
+			 modelType=c('RAM','LISREL'), gxe=NULL, exogenous=NA)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
   modelType <- match.arg(modelType)
 
   phenoData <- addPlaceholderSNP(phenoData)
-  # Remove extraneous factor columns that could prevent WLS cumulants
+  # Remove extraneous data columns that could prevent WLS cumulants
   phenoData <- phenoData[,intersect(colnames(phenoData),
-				    c('snp', depVar, covariates, exogenousCovariates))]
+				    c('snp', depVar, covariates))]
   fac <- sapply(phenoData[,depVar,drop=FALSE], is.factor)
 
-  paths <- setupPaths(phenoData, covariates, depVar)
+  if (is.na(exogenous)) {
+	  if (fitfun == 'WLS' && !any(fac)) exogenous <- FALSE
+	  else exogenous <- TRUE
+  }
+
+  manifest <- depVar
+  latents <- c()
+  endoCovariates <- c()
+  if (!exogenous) {
+	  manifest <- c(manifest, "snp", covariates)
+	  endoCovariates <- covariates
+  } else {
+	  latents <- c("snp", covariates)
+  }
+  
+  paths <- setupPaths(phenoData, endoCovariates, depVar)
+  if (!exogenous) paths <- c(endogenousSNPpath(depVar))
   paths <- c(paths,
 	     mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_")),
 	     mxPath(depVar, arrows=2, values=0, connect="unique.bivariate"),
 	     mxPath(from = 'one', to = depVar, free= !fac, values = 0, labels = paste0(depVar, "Mean")))
 
-  manifest <- c("snp", depVar, covariates)
-  dat       <- setupData(phenoData, manifest, covariates, exogenousCovariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneItem"
   model <- mxModel(model=modelName, type=modelType,
                        manifestVars = manifest,
-                       latentVars = c(exogenousCovariates),
+                       latentVars = latents,
                        paths, dat, makeFitFunction(fitfun))
 
-  postprocessModel(model, depVar, exogenousCovariates)
+  postprocessModel(model, depVar, latents)
 }
 
 #' @export
@@ -424,7 +451,7 @@ buildOneItem <- buildItem
 #' @template args-phenoData
 #' @param itemNames A vector of phenotypic item names (from \code{phenoData}) that load on the latent factor.
 #' @template args-covariates
-#' @template args-exogenouscovariates
+#' @template args-exogenous
 #' @template args-dots-barrier
 #' @template args-fitfun
 #' @template args-minmaf
@@ -440,36 +467,47 @@ buildOneItem <- buildItem
 #' pheno <- as.data.frame(pheno)
 #' buildOneFac(pheno, colnames(pheno))
 buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
-			modelType=c('RAM','LISREL'), gxe=NULL, exogenousCovariates=NULL)
+			modelType=c('RAM','LISREL'), gxe=NULL, exogenous=NA)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
   modelType <- match.arg(modelType)
 
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
+  if (is.na(exogenous)) exogenous <- FALSE
 
   phenoData <- addPlaceholderSNP(phenoData)
-  latents   <- c("F")
-  paths <- setupPaths(phenoData, covariates, "F")
+  manifest <- c("snp", itemNames)
+  depVar   <- c("F")
+  latents  <- depVar
+  exoPred <- c()
+  endoCovariates <- c()
+  if (exogenous) {
+	  latents <- c(latents, covariates)
+	  exoPred <- covariates
+  } else {
+	  manifest <- c(manifest, covariates)
+	  endoCovariates <- covariates
+  }
+  paths <- c(endogenousSNPpath(depVar), setupPaths(phenoData, endoCovariates, depVar))
   paths <- c(paths,
-	     mxPath(from=latents, to=itemNames,values=1, free = T,
+	     mxPath(from=depVar, to=itemNames,values=1, free = T,
 		    labels = paste("lambda", itemNames, sep = "_")  ),
 	     mxPath(from = c(itemNames), arrows=2, values=1, free = !fac,
 		    labels = paste(c(itemNames), "res", sep = "_")),
-	     mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes"),
+	     mxPath(from=depVar, arrows=2,free=F, values=1.0, labels = "facRes"),
 	     mxPath(from = 'one', to = itemNames, free= !fac, values = 0,
 		    labels = paste0(itemNames, "Mean")))
 
-  manifest <- c("snp", itemNames, covariates)
-  dat       <- setupData(phenoData, manifest, covariates, exogenousCovariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneFac"
   oneFacPre <- mxModel(model=modelName, type=modelType,
                        manifestVars = manifest,
-                       latentVars = c(latents, exogenousCovariates),
+                       latentVars = latents,
                        paths, dat, makeFitFunction(fitfun))
 
-  postprocessModel(oneFacPre, itemNames, exogenousCovariates)
+  postprocessModel(oneFacPre, itemNames, exoPred)
 }
 
 #' Build a model suitable for a single factor residual genome-wide association study
@@ -485,7 +523,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' @param res A character vector of phenotypic item names that indicate which specific items the user wishes to regress on the SNP. The default is to regress all of the items on the SNP.
 #' @template args-phenoData
 #' @template args-covariates
-#' @template args-exogenouscovariates
+#' @template args-exogenous
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-dots-barrier
@@ -503,39 +541,49 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' buildOneFacRes(pheno, colnames(pheno))
 buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, covariates = NULL,
 			   ..., fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'), gxe=NULL,
-			 exogenousCovariates=NULL)
+			 exogenous=NA)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
   modelType <- match.arg(modelType)
   
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
+  if (is.na(exogenous)) exogenous <- FALSE
 
   phenoData <- addPlaceholderSNP(phenoData)
+  manifest <- c("snp", itemNames)
   latents   <- c("F")
-
   depVar <- res
   if (factor) depVar <- c(latents, res)
-  paths <- setupPaths(phenoData, covariates, depVar)
+  exoPred <- c()
+  endoCovariates <- c()
+  if (exogenous) {
+	  latents <- c(latents, covariates)
+	  exoPred <- covariates
+  } else {
+	  manifest <- c(manifest, covariates)
+	  endoCovariates <- covariates
+  }
+
+  paths <- c(endogenousSNPpath(depVar), setupPaths(phenoData, endoCovariates, depVar))
   paths <- c(paths,
-	     mxPath(from=latents, to=itemNames,values=1, free = T,
+	     mxPath(from="F", to=itemNames,values=1, free = T,
 		    labels = paste("lambda", itemNames, sep = "_")  ),
 	     mxPath(from = c(itemNames), arrows=2, values=1, free = c(fac==0),
 		    labels = paste(c(itemNames), "res", sep = "_")),
-	     mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes"),
+	     mxPath(from="F", arrows=2,free=F, values=1.0, labels = "facRes"),
 	     mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0,
 		    labels = paste0(itemNames, "Mean")))
 
-  manifest <- c("snp", itemNames, covariates)
-  dat       <- setupData(phenoData, manifest, covariates, exogenousCovariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "OneFacRes"
   oneFacPre <- mxModel(model=modelName, type=modelType,
                        manifestVars = manifest,
-                       latentVars = c(latents, exogenousCovariates),
+                       latentVars = latents,
                        paths, dat, makeFitFunction(fitfun))
 
-  postprocessModel(oneFacPre, itemNames, exogenousCovariates)
+  postprocessModel(oneFacPre, itemNames, exoPred)
 }
 
 #' Build a model suitable for a two factor genome-wide association study
@@ -549,7 +597,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' 
 #' @template args-phenoData
 #' @template args-covariates
-#' @template args-exogenouscovariates
+#' @template args-exogenous
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-dots-barrier
@@ -566,7 +614,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' buildTwoFac(pheno, paste0('i',1:6), paste0('i',5:10))
 buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, ...,
 			fitfun = c("WLS","ML"), minMAF = .01, modelType=c('RAM','LISREL'), gxe=NULL,
-			exogenousCovariates=NULL)
+			exogenous=NA)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -575,27 +623,39 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
   itemNames <- union(F1itemNames, F2itemNames)
 
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
+  if (is.na(exogenous)) exogenous <- FALSE
 
   phenoData <- addPlaceholderSNP(phenoData)
-  latents   <- c("F1", "F2")
-  paths <- setupPaths(phenoData, covariates, latents)
+  manifest <- c("snp", itemNames)
+  depVar <- c("F1", "F2")
+  latents   <- depVar
+  exoPred <- c()
+  endoCovariates <- c()
+  if (exogenous) {
+	  latents <- c(latents, covariates)
+	  exoPred <- covariates
+  } else {
+	  manifest <- c(manifest, covariates)
+	  endoCovariates <- covariates
+  }
+
+  paths <- c(endogenousSNPpath(depVar), setupPaths(phenoData, endoCovariates, depVar))
   paths <- c(paths,
 	     mxPath(from="F1", to=F1itemNames,values=1, labels = paste("F1_lambda", F1itemNames, sep = "_")  ),
 	     mxPath(from="F2", to=F2itemNames,values=1, labels = paste("F2_lambda", F2itemNames, sep = "_")  ),
 	     mxPath(from="F1", to= "F2", arrows=2,free=T, values=.3),
 	     mxPath(from = itemNames, arrows=2, values=1, free = c(fac==0),
 		    labels = paste(c(itemNames), "res", sep = "_")),
-	     mxPath(from=latents, arrows=2,free=F, values=1.0, labels = "facRes"),
+	     mxPath(from=depVar, arrows=2,free=F, values=1.0, labels = "facRes"),
 	     mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean")))
 
-  manifest <- c("snp", itemNames, covariates)
-  dat       <- setupData(phenoData, manifest, covariates, exogenousCovariates, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
   modelName <- "TwoFac"
   twoFacPre <- mxModel(model=modelName, type=modelType,
                        manifestVars = manifest,
-                       latentVars = c(latents, exogenousCovariates),
+                       latentVars = latents,
                        paths, dat, makeFitFunction(fitfun))
 
-  postprocessModel(twoFacPre, itemNames, exogenousCovariates)
+  postprocessModel(twoFacPre, itemNames, exoPred)
 }

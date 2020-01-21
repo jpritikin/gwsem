@@ -29,8 +29,12 @@ pheno$i2 <- cut(pheno$i2, c(-Inf, quantile(pheno$i2, .5), Inf), ordered_result =
 
 # -----------------
 
-oi <- buildOneItem(pheno, paste0("i", 3))
+oi <- buildOneItem(pheno, paste0("i", 3), exogenous = TRUE)
+expect_equivalent(oi$M$labels[1,'snp'], "data.snp")
+
 oi <- buildItem(pheno, paste0("i", 3))
+expect_true(is.null(oi$M))
+expect_true(oi$A$free['i3', 'snp'])
 expect_error(GWAS(oi, "example"),
              "rename snpData")
 
@@ -43,7 +47,7 @@ expect_error(GWAS(oi, something_else=1),
 got6 <- GWAS(oi,
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
-is.null(got6$data$observedStats$means)
+expect_true(is.null(got6$data$observedStats$means))
 
 pgen <- loadResults(file.path(tdir, "out.log"), "snp2i3")
 rx <- which(min(pgen$P) == pgen$P)
@@ -58,6 +62,7 @@ expect_error(GWAS(oi,
 oi <- expect_warning(buildItem(pheno, paste0("i", 3), fitfun = "ML",
                    minMAF=.1),
                    "minMAF is ignored when fitfun")
+expect_true(!is.null(oi$M))
 
 GWAS(oi,
      file.path(dir,"example.pgen"),
@@ -86,7 +91,7 @@ expect_equal(pgen$P[rx], .133, tolerance=1e-2)
 pgen <- loadResults(file.path(tdir, "out.log"), "snp2i3")
 rx <- which(min(pgen$P) == pgen$P)
 expect_equal(rx, 2)
-expect_equal(pgen$P[rx], .127, tolerance=1e-2)
+expect_equal(pgen$P[rx], .072, tolerance=1e-2)
 
 # -----------------
 
@@ -121,7 +126,8 @@ if(0) {
 m1 <- buildOneFacRes(pheno, paste0("i", 1:numIndicators), factor=TRUE)
 expect_true(m1$A$free['F','snp'])
 
-m2 <- GWAS(buildOneFacRes(pheno, paste0("i", 1:numIndicators)),
+m2 <- buildOneFacRes(pheno, paste0("i", 1:numIndicators))
+m2 <- GWAS(m2,
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:4,6))
 expect_false(m2$A$free['F','snp'])
