@@ -101,17 +101,16 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
                          path=snpData, method=method))
 
   if (snpFileExt == "pgen") {
-    # TODO doc column=1:3, sep='\t'
     onesnp <- c(
       onesnp,
-      LC=mxComputeLoadContext(path=paste(stem, "pvar", sep = "."), column=1:3, sep='\t',
-			      col.names=c("CHR", "BP", "SNP")))
+      LC=mxComputeLoadContext(path=paste(stem, "pvar", sep = "."), column=1:5, sep='\t',
+			      col.names=c("CHR", "BP", "SNP", "A1", "A2")))
   } else if (snpFileExt == "bed") {
     onesnp <- c(
       onesnp,
       LC=mxComputeLoadContext(path=paste(stem, "bim", sep = "."),
-                              column=c(1,2,4), sep='\t', header=FALSE,
-                              col.names=c("CHR", "SNP", "BP")))
+                              column=c(1,2,4:6), sep='\t', header=FALSE,
+                              col.names=c("CHR", "SNP", "BP", "A2", "A1")))
   }
 
   opt <- list(GD=mxComputeGradientDescent())

@@ -70,6 +70,10 @@ class LoadDataBGENProvider : public LoadDataProvider<LoadDataBGENProvider> {
 		cp.push_back(c1);
 		c1 = "BP";
 		cp.push_back(c1);
+		c1 = "A1";
+		cp.push_back(c1);
+		c1 = "A2";
+		cp.push_back(c1);
 	}
 	virtual int getNumVariants();
 };
@@ -120,6 +124,8 @@ void LoadDataBGENProvider::loadRowImpl(int index)
 		cv[cpIndex+1] = rsid;
 		cv[cpIndex+2] = chromosome;
 		cv[cpIndex+3] = string_snprintf("%u", position);
+		cv[cpIndex+4] = alleles[1];
+		cv[cpIndex+5] = alleles[0];
 	}
 	BgenXfer xfer(stripeData[0]);
 	bgenView->read_genotype_data_block(xfer);

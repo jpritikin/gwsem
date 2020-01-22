@@ -37,8 +37,8 @@ bed <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=T
 expect_equal(nrow(bed), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
 lr <- loadResults(file.path(tdir, "out.log"), focus = "snp2F")
-expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "statusCode", "catch1",
-                             "snp2F", "Z", "P"))
+expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
+                             "statusCode", "catch1", "snp2F", "Z", "P"))
 
 m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.bgen"),
@@ -49,8 +49,8 @@ bgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=
 expect_equal(nrow(bgen), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
 lr <- loadResults(file.path(tdir, "out.log"), "snp2F")
-expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "statusCode", "catch1",
-                             "snp2F", "Z", "P"))
+expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
+                             "statusCode", "catch1", "snp2F", "Z", "P"))
 
 m2 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
            file.path(dir,"example.bgen"),
@@ -62,10 +62,15 @@ expect_equal(m2$compute$steps$LD$debug$loadCounter, 1)
 expect_equal(last[['example.bgen:SNP']],
              bgen[['example.bgen:SNP']][190:199])
 lr <- loadResults(file.path(tdir, "out.log"), "snp2F")
-expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "statusCode", "catch1",
-                             "snp2F", "Z", "P"))
+expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
+                             "statusCode", "catch1", "snp2F", "Z", "P"))
 
 # ------------------
+
+expect_equal(pgen$A1, bgen$A1)
+expect_equal(pgen$A1, bed$A1)
+expect_equal(pgen$A2, bgen$A2)
+expect_equal(pgen$A2, bed$A2)
 
 expect_equal(match(pgen$SNP, bed$SNP), 1:199)  # same order
 
@@ -83,3 +88,4 @@ expect_equal(rmse(bgen$snp2F, pgen$snp2F), 0, tolerance=.4)
 
 #cat(deparse(pgen$ID))
 # c("RSID_4", "RSID_5", "RSID_7", "RSID_11", "RSID_12", "RSID_15",  "RSID_27", "RSID_28", "RSID_35", "RSID_37", "RSID_39", "RSID_40",  "RSID_41", "RSID_46", "RSID_47", "RSID_49", "RSID_51", "RSID_60",  "RSID_63", "RSID_65", "RSID_66", "RSID_67", "RSID_68", "RSID_69",  "RSID_71", "RSID_85", "RSID_90", "RSID_97", "RSID_98", "RSID_100",  "RSID_101", "RSID_105", "RSID_111", "RSID_112", "RSID_115", "RSID_116",  "RSID_125", "RSID_127", "RSID_128", "RSID_135", "RSID_139", "RSID_140",  "RSID_141", "RSID_147", "RSID_151", "RSID_160", "RSID_163", "RSID_166",  "RSID_167", "RSID_168", "RSID_171", "RSID_182", "RSID_185", "RSID_190",  "RSID_192", "RSID_197", "RSID_200")
+
