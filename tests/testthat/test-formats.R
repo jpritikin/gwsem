@@ -19,19 +19,25 @@ indicators <- pheno$phenotype %*% t(loadings) +
 colnames(indicators) <- paste0("i", 1:numIndicators)
 pheno <- cbind(pheno, indicators)
 
+# -----
+
 m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
            file.path(dir,"example.pgen"),
            file.path(tdir, "out.log"))
-rawSNP <- head(m1$data$observed$snp)
-
+rawSNP <- m1$data$observed$snp
 pgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                      sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(pgen), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
+expect_equal(range(m1$data$observed$snp), c(0,2), .01)
 
 m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.bed"),
      file.path(tdir, "out.log"))
+# bed can't store dosages so we get ordinal values with some NAs
+mask <- !is.na(m1$data$observed$snp)
+expect_equal(m1$data$observed$snp[mask] - rawSNP[mask],
+             rep(0, sum(mask)), .1)
 bed <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bed), 199)
@@ -39,11 +45,12 @@ expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
 lr <- loadResults(file.path(tdir, "out.log"), focus = "snp2F")
 expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
                              "statusCode", "catch1", "snp2F", "Z", "P"))
+expect_equal(range(m1$data$observed$snp, na.rm = TRUE), c(0,2), .01)
 
 m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.bgen"),
      file.path(tdir, "out.log"))
-expect_equal(rawSNP, head(m1$data$observed$snp), tolerance=5e-5)
+expect_equal(rawSNP, m1$data$observed$snp, tolerance=5e-5)
 bgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                   sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bgen), 199)
@@ -51,6 +58,9 @@ expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
 lr <- loadResults(file.path(tdir, "out.log"), "snp2F")
 expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
                              "statusCode", "catch1", "snp2F", "Z", "P"))
+expect_equal(range(m1$data$observed$snp), c(0,2), .01)
+
+# -----
 
 m2 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
            file.path(dir,"example.bgen"),
@@ -65,6 +75,19 @@ lr <- loadResults(file.path(tdir, "out.log"), "snp2F")
 expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
                              "statusCode", "catch1", "snp2F", "Z", "P"))
 
+# -----
+# These are the same SNP after permutation:
+
+m3 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
+           file.path(dir,"example.pgen"),
+           file.path(tdir, "out.log"), SNP=1)
+expect_true(is.na(m3$data$observed$snp[1]))
+
+m3 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
+           file.path(dir,"example.bgen"),
+           file.path(tdir, "out.log"), SNP=2)
+expect_true(is.na(m3$data$observed$snp[1]))
+
 # ------------------
 
 expect_equal(pgen$A1, bgen$A1)
@@ -72,16 +95,21 @@ expect_equal(pgen$A1, bed$A1)
 expect_equal(pgen$A2, bgen$A2)
 expect_equal(pgen$A2, bed$A2)
 
+# should not match exactly because bed can't store dosages
+expect_equal(sum(abs(pgen$MAF - bed$MAF)), 1.447, .01)
+expect_equal(pgen$MAF, bed$MAF, .06)
+
 expect_equal(match(pgen$SNP, bed$SNP), 1:199)  # same order
 
 bgen <- bgen[match(pgen$SNP, sub("^SNP","RS",bgen[['SNP']])),]
 
+expect_equal(bgen$MAF, pgen$MAF, 1e-4)
+
 mask <- (bgen$catch1=="" & pgen$catch1 == "" &
-           bgen$statusCode=="OK" & pgen$statusCode=="OK" &
-           !is.na(bgen$snp2FSE) & !is.na(pgen$snp2FSE))
+           bgen$statusCode=="OK" & pgen$statusCode=="OK")
 bgen <- bgen[mask,]
 pgen <- pgen[mask,]
-expect_equal(sum(mask), 197)
+expect_equal(sum(mask), 195)
 
 rmse <- function(x,y) sqrt(mean((x-y)^2))
 expect_equal(rmse(bgen$snp2F, pgen$snp2F), 0, tolerance=.4)

@@ -10,7 +10,9 @@ struct BgenXfer {
 	dataPtr dp;
 	std::vector<double> prob;
 	int row;
-	BgenXfer(dataPtr &_dp) : dp(_dp) {};
+	double total;
+	int nrows;
+	BgenXfer(dataPtr &_dp) : dp(_dp), total(0), nrows(0) {};
 	void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {}
 	void set_min_max_ploidy(genfile::bgen::uint32_t min_ploidy, genfile::bgen::uint32_t max_ploidy,
 				genfile::bgen::uint32_t min_entries, genfile::bgen::uint32_t max_entries)
@@ -35,15 +37,20 @@ struct BgenXfer {
 	void set_value( genfile::bgen::uint32_t entry_i, double value ) {
 		prob[entry_i] = value;
 		if (entry_i == 2) {
-			double dosage = prob[1] * 1 + prob[2] * 2;
+			double dosage = prob[1] * 1 + prob[0] * 2;
+			if (dosage == 0.0) {
+				dosage = NA_REAL;
+			} else {
+				total += dosage;
+				nrows += 1;
+			}
 			dp.realData[row++] = dosage;
 		}
 	}
 
 	void set_value( genfile::bgen::uint32_t entry_i, genfile::MissingValue) {
-		if (entry_i == 2) {
-			dp.realData[row++] = NA_REAL;
-		}
+		// Seems that NA is encoded as an exact zero?
+		throw std::runtime_error("not implemented");
 	}
 };
 
@@ -62,18 +69,13 @@ class LoadDataBGENProvider : public LoadDataProvider<LoadDataBGENProvider> {
 	virtual void addCheckpointColumns(std::vector< std::string > &cp)
 	{
 		cpIndex = cp.size();
-		std::string c1 = "SNP";
-		cp.push_back(c1);
-		c1 = "RSID";
-		cp.push_back(c1);
-		c1 = "CHR";
-		cp.push_back(c1);
-		c1 = "BP";
-		cp.push_back(c1);
-		c1 = "A1";
-		cp.push_back(c1);
-		c1 = "A2";
-		cp.push_back(c1);
+		cp.emplace_back("SNP");
+		cp.emplace_back("RSID");
+		cp.emplace_back("CHR");
+		cp.emplace_back("BP");
+		cp.emplace_back("A1");
+		cp.emplace_back("A2");
+		cp.emplace_back("MAF");
 	}
 	virtual int getNumVariants();
 };
@@ -118,15 +120,6 @@ void LoadDataBGENProvider::loadRowImpl(int index)
 	if (!bgenView->read_variant( &SNPID, &rsid, &chromosome, &position, &alleles )) {
 		mxThrow("%s: %s has no more varients", name, filePath.c_str());
 	}
-	if (checkpoint) {
-		auto &cv = *checkpointValues;
-		cv[cpIndex] = SNPID;
-		cv[cpIndex+1] = rsid;
-		cv[cpIndex+2] = chromosome;
-		cv[cpIndex+3] = string_snprintf("%u", position);
-		cv[cpIndex+4] = alleles[1];
-		cv[cpIndex+5] = alleles[0];
-	}
 	BgenXfer xfer(stripeData[0]);
 	bgenView->read_genotype_data_block(xfer);
 	curRecord += 1;
@@ -135,9 +128,21 @@ void LoadDataBGENProvider::loadRowImpl(int index)
 	for (int cx=0; cx < int(columns.size()); ++cx) {
 		rc[ columns[cx] ].ptr = stripeData[cx];
 	}
+	if (checkpoint) {
+		auto &cv = *checkpointValues;
+		cv[cpIndex] = SNPID;
+		cv[cpIndex+1] = rsid;
+		cv[cpIndex+2] = chromosome;
+		cv[cpIndex+3] = string_snprintf("%u", position);
+		cv[cpIndex+4] = alleles[1];
+		cv[cpIndex+5] = alleles[0];
+		cv[cpIndex+6] = string_snprintf("%.8f", xfer.total / (2.0 * xfer.nrows));
+	}
 }
 
 class LoadDataPGENProvider : public LoadDataProvider<LoadDataPGENProvider> {
+	int cpIndex;
+
 	struct PgenFileInfoDtor {
 		void operator()(PgenFileInfo *pfi) {
 			PglErr err = kPglRetSuccess;
@@ -170,6 +175,11 @@ class LoadDataPGENProvider : public LoadDataProvider<LoadDataPGENProvider> {
 	virtual const char *getName() { return "pgen"; };
 	virtual void init(SEXP rObj) {
 		requireFile(rObj);
+	}
+	virtual void addCheckpointColumns(std::vector< std::string > &cp)
+	{
+		cpIndex = cp.size();
+		cp.emplace_back("MAF");
 	}
 	virtual void loadRowImpl(int index);
 	virtual int getNumVariants();
@@ -205,14 +215,12 @@ void Dosage16ToDoubles(const double* geno_double_pair_table, const uintptr_t* ge
     uintptr_t cur_bits = dosage_present[0];
     for (uint32_t dosage_idx = 0; dosage_idx != dosage_ct; ++dosage_idx) {
       const uintptr_t sample_uidx = BitIter1(dosage_present, &sample_uidx_base, &cur_bits);
-      // We use 2.0- to obtain exactly the same dosages as bgen format.
-      // I guess it's arbitrary so why not?
-      geno_double[sample_uidx] = 2.0 - S_CAST(double, *dosage_main_iter++) * 0.00006103515625;
+      geno_double[sample_uidx] = S_CAST(double, *dosage_main_iter++) * 0.00006103515625;
     }
   }
 }
 
-const double kGenoDoublePairs[32] ALIGNV16 = PAIR_TABLE16(0.0, 1.0, 2.0, -9.0);
+const double kGenoDoublePairs[32] ALIGNV16 = PAIR_TABLE16(0.0, 1.0, 2.0, NA_REAL);
 
 void Dosage16ToDoublesMinus9(const uintptr_t* genoarr, const uintptr_t* dosage_present, const uint16_t* dosage_main, uint32_t sample_ct, uint32_t dosage_ct, double* geno_double)
 {
@@ -302,6 +310,7 @@ void LoadDataPGENProvider::loadRowImpl(int index)
 		  name, 1+index, int(pgen_info->raw_variant_ct));
 	}
 
+	double maf = 0;
 	if (colTypes[0] == COLUMNDATA_NUMERIC) {
 		uint32_t dosage_ct;
 		PglErr reterr = PgrGet1D(pgen_subset_include_vec, pgen_subset_cumulative_popcounts,
@@ -311,6 +320,15 @@ void LoadDataPGENProvider::loadRowImpl(int index)
 			mxThrow("%s: read_dosages(varient %d) error code %d", name, index, int(reterr));
 		Dosage16ToDoublesMinus9(pgen_genovec, pgen_dosage_present, pgen_dosage_main,
 					pgen_info->raw_sample_ct, dosage_ct, stripeData[0].realData);
+
+		double *rd = stripeData[0].realData;
+		int nrows = 0;
+		for (int rx=0; rx < rows; ++rx) {
+			if (!std::isfinite(rd[rx])) continue;
+			maf += rd[rx];
+			nrows += 1;
+		}
+		maf /= 2.0 * nrows;
 	} else {
 		PglErr reterr = PgrGet1(pgen_subset_include_vec, pgen_subset_cumulative_popcounts,
 					pgen_info->raw_sample_ct, index, 1, pgen_state.get(), pgen_genovec);
@@ -321,10 +339,23 @@ void LoadDataPGENProvider::loadRowImpl(int index)
 		if (rc.levels.size() != 3) mxThrow("%s: pgen files contain data with 3 levels (not %d)",
 						   name, int(rc.levels.size()));
 		GenoarrToFactor(pgen_genovec, pgen_info->raw_sample_ct, stripeData[0].intData);
+
+		int *rd = stripeData[0].intData;
+		int nrows = 0;
+		for (int rx=0; rx < rows; ++rx) {
+			if (rd[rx] == NA_INTEGER) continue;
+			maf += rd[rx];
+			nrows += 1;
+		}
+		maf /= 2.0 * nrows;
 	}
 
 	for (int cx=0; cx < int(columns.size()); ++cx) {
 		(*rawCols)[ columns[cx] ].ptr = stripeData[cx];
+	}
+	if (checkpoint) {
+		auto &cv = *checkpointValues;
+		cv[cpIndex] = string_snprintf("%.8f", maf);
 	}
 }
 
