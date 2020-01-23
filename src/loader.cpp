@@ -59,11 +59,11 @@ class LoadDataBGENProvider : public LoadDataProvider<LoadDataBGENProvider> {
 	genfile::bgen::View::UniquePtr bgenView;
 
 	virtual const char *getName() { return "bgen"; };
-	virtual void init(SEXP rObj) {
-		ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
-		bool byrow = Rf_asLogical(Rbyrow);
+	virtual void init(SEXP rObj1) {
+		RObject rObj(rObj1);
+		bool byrow = as<bool>(rObj.slot("byrow"));
 		if (!byrow) mxThrow("byrow=FALSE is not implemented for bgen format");
-		requireFile(rObj);
+		requireFile(rObj1);
 	}
 	virtual void loadRowImpl(int index);
 	virtual void addCheckpointColumns(std::vector< std::string > &cp)

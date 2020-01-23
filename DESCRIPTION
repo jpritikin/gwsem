@@ -1,7 +1,7 @@
 Package: gwsem
 Type: Package
 Title: Genome-Wide Structural Equation Modeling
-Version: 0.1.9
+Version: 0.1.10
 Authors@R:
   c(person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com", role=c("aut", 'cre')),
     person("Bradley", "Verhulst", role="cph", email="brad.verhulst@gmail.com"),
@@ -24,9 +24,9 @@ License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Language: en-US
-LinkingTo: BH (>= 1.69.0-1)
+LinkingTo: BH (>= 1.69.0-1), Rcpp
 Depends: R (>= 3.5), OpenMx (>= 2.15.5)
-Imports: data.table, methods, qqman
+Imports: data.table, methods, qqman, Rcpp
 Suggests: 
     testthat (>= 2.1.0),
     MASS,

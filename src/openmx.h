@@ -6,10 +6,8 @@
 #include <string>
 #include <cstring>
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
-#undef ERROR  // defined in R_ext/RS.h but used by include/db/SQLite3Statement.hpp
+#include <Rcpp.h>
+using namespace Rcpp;
 
 enum ColumnDataType {
 	COLUMNDATA_INVALID,
@@ -43,31 +41,6 @@ struct cstrCmp {
 
 typedef std::map< const char *, int, cstrCmp > ColMapType;
 
-void mxThrow(const char* msg, ...) __attribute__((format (printf, 1, 2))) __attribute__((noreturn));
-#define omxRaiseErrorf mxThrow
 std::string string_snprintf(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
-
-class ProtectedSEXP {
-	PROTECT_INDEX initialpix;
-	SEXP var;
- public:
-	ProtectedSEXP(SEXP src) {
-		R_ProtectWithIndex(R_NilValue, &initialpix);
-		Rf_unprotect(1);
-		Rf_protect(src);
-		var = src;
-	}
-	~ProtectedSEXP() {
-		PROTECT_INDEX pix;
-		R_ProtectWithIndex(R_NilValue, &pix);
-		PROTECT_INDEX diff = pix - initialpix;
-		if (diff != 1) mxThrow("Depth %d != 1, ProtectedSEXP was nested", diff);
-		Rf_unprotect(2);
-	}
-        operator SEXP() const { return var; }
- private:
-        ProtectedSEXP( const ProtectedSEXP& );
-        ProtectedSEXP& operator=( const ProtectedSEXP& );
-};
 
 #endif

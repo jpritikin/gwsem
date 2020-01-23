@@ -28,6 +28,7 @@
 #'
 #' @useDynLib gwsem, .registration = TRUE
 #' @import OpenMx
+#' @importFrom Rcpp evalCpp
 #' 
 NULL
 
