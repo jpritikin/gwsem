@@ -103,8 +103,8 @@ z1 = GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:5))
 
-pgen <- loadResults(file.path(tdir, "out.log"), "snp2F")
-pgen2 <- loadResults(rep(file.path(tdir, "out.log"), 2), 'snp2F')
+pgen <- loadResults(file.path(tdir, "out.log"), "snp2F", signAdj='lambda_i1')
+pgen2 <- loadResults(rep(file.path(tdir, "out.log"), 2), 'snp2F', signAdj='lambda_i1')
 
 expect_equal(pgen$SNP, paste0("RSID_", 4:6))
 expect_equal(pgen2$SNP, rep(paste0("RSID_", 4:6), 2))

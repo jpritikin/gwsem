@@ -1,5 +1,12 @@
 #' Load GWAS results into a single data.frame
 #'
+#' The \code{signAdj} column is important and not optional for latent
+#' factor models.  Loadings to factor indicators can take any sign. If
+#' your focus is the regression from the SNP to the factor then this
+#' regression estimate will need to be multiplied by the sign of one
+#' of the factor loadings. Pick a loading associated with a strong
+#' indicator of the factor.
+#' 
 #' A1 is the reference allele and A2 is the alternate allele.
 #' 
 #' Two columns are added, \code{Z} and \code{P}. \code{Z} is the
@@ -11,6 +18,7 @@
 #' @param focus parameter name on which to calculate a Z score and p-value
 #' @param extraColumns character vector of additional columns to load
 #' @param .retainSE logical. Keep a column for the SE of the focus parameter
+#' @param signAdj name of column. Value of focus parameter is multiplied by the sign of the named column
 #' @template args-dots-barrier
 #' @export
 #' @importFrom data.table fread
@@ -24,13 +32,19 @@
 #'     file.path(tdir,"out.log"))
 #' loadResults(file.path(tdir,"out.log"), "snp2anxiety")
 loadResults <- function(path, focus, ..., extraColumns=c(),
-			.retainSE=FALSE) {
+			.retainSE=FALSE, signAdj=NULL) {
+  if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   sel <- c('MxComputeLoop1', 'CHR','BP','SNP','A1','A2','statusCode','catch1',
-	   focus,paste0(focus,'SE'), extraColumns)
+	   focus,paste0(focus,'SE'), extraColumns, signAdj)
   got <- list()
   for (p1 in path) {
-    got <- rbind(got, fread(p1, stringsAsFactors = FALSE, header=TRUE,
-			    sep="\t", check.names=FALSE, quote="", select = sel))
+    d1 <- fread(p1, stringsAsFactors = FALSE, header=TRUE,
+                sep="\t", check.names=FALSE, quote="", select = sel)
+    if (!is.null(signAdj)) {
+      d1[[focus]] <- d1[[focus]] * sign(d1[[signAdj]])
+      if (!(signAdj %in% extraColumns)) d1[[signAdj]] <- NULL
+    }
+    got <- rbind(got, d1)
   }
   got$Z <- got[[focus]] / got[[paste0(focus,'SE')]]
   if (!.retainSE) got[[paste0(focus,'SE')]] <- NULL # redundent; save RAM

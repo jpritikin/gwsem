@@ -49,7 +49,7 @@ cvNames <- paste(rep(paste0("covar",1:numCovariate), each = numIndicators),
       paste0("i", 1:numIndicators), sep = "2")
 expect_equivalent(colMeans(pgen[,cvNames]), rep(0, length(cvNames)), tolerance=.1)
 
-pgen <- loadResults(file.path(tdir,"out.log"), "snp2F")
+pgen <- loadResults(file.path(tdir,"out.log"), "snp2F", signAdj='lambda_i1')
 expect_error(plot(pgen, y=1),
              "plot does not accept a y= argument")
 
@@ -62,7 +62,7 @@ GWAS(m2,
      file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 
-pgen2 <- loadResults(file.path(tdir,"out.log"), "snp2F")
+pgen2 <- loadResults(file.path(tdir,"out.log"), "snp2F", signAdj='lambda_i1')
 
 expect_equal(cor(pgen$Z, pgen2$Z, use = "pairwise"), 1, tolerance=.2)
 
@@ -106,9 +106,11 @@ expect_equivalent(m2$M$labels[1,'covar1'], 'covar1_mean')
 GWAS(m2, file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 
-for (ind in paste0("snp2F", 1:2)) {
-  m1o <- loadResults(file.path(tdir,"outx.log"), ind)
-  m2o <- loadResults(file.path(tdir,"out.log"), ind)
+for (fx in 1:2) {
+  ind <- paste0("snp2F", fx)
+  sa <- paste0('F',fx,'_lambda_i2')
+  m1o <- loadResults(file.path(tdir,"outx.log"), ind, signAdj=sa)
+  m2o <- loadResults(file.path(tdir,"out.log"), ind, signAdj=sa)
   # Wow, this tolerance is really terrible TODO
   expect_equal(cor(m1o$Z, m2o$Z, use="complete.obs"), 1, tolerance=1.2)
 }

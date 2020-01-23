@@ -42,7 +42,7 @@ bed <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=T
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bed), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
-lr <- loadResults(file.path(tdir, "out.log"), focus = "snp2F")
+lr <- loadResults(file.path(tdir, "out.log"), focus = "snp2F", signAdj="lambda_i1")
 expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
                              "statusCode", "catch1", "snp2F", "Z", "P"))
 expect_equal(range(m1$data$observed$snp, na.rm = TRUE), c(0,2), .01)
@@ -55,7 +55,7 @@ bgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=
                   sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bgen), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
-lr <- loadResults(file.path(tdir, "out.log"), "snp2F")
+lr <- loadResults(file.path(tdir, "out.log"), "snp2F", signAdj='lambda_i1')
 expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
                              "statusCode", "catch1", "snp2F", "Z", "P"))
 expect_equal(range(m1$data$observed$snp), c(0,2), .01)
@@ -71,7 +71,7 @@ expect_equal(nrow(last), 10)
 expect_equal(m2$compute$steps$LD$debug$loadCounter, 1)
 expect_equal(last[['example.bgen:SNP']],
              bgen[['example.bgen:SNP']][190:199])
-lr <- loadResults(file.path(tdir, "out.log"), "snp2F")
+lr <- loadResults(file.path(tdir, "out.log"), "snp2F", signAdj='lambda_i1')
 expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
                              "statusCode", "catch1", "snp2F", "Z", "P"))
 
