@@ -33,7 +33,7 @@ Suggests:
     covr,
     knitr,
     rmarkdown
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2
 SystemRequirements: GNU make
 URL: https://github.com/jpritikin/gwsem
 BugReports: https://github.com/jpritikin/gwsem/issues
