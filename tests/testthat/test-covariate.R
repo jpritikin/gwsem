@@ -138,3 +138,8 @@ expect_true(!lastFit$M$free[,'i1'])
 expect_equal(lastFit$S$values['i1','i1'], 1)
 expect_equal(lastFit$A$labels['F','i1'], 'i12F')
 expect_equal(lastFit$A$values['F','i1'], .67, tolerance=.01)
+
+# -----
+
+m1 <- buildItem(pheno, "phenotype", covariates=paste0('i', 3:5))
+expect_equal(length(coef(m1)), 9)

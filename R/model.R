@@ -421,7 +421,7 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
   }
   
   paths <- setupPaths(phenoData, endoCovariates, depVar)
-  if (!exogenous) paths <- c(endogenousSNPpath(depVar))
+  if (!exogenous) paths <- c(paths, endogenousSNPpath(depVar))
   paths <- c(paths,
 	     mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_")),
 	     mxPath(depVar, arrows=2, values=0, connect="unique.bivariate"),
