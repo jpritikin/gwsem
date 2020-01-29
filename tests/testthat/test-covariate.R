@@ -50,8 +50,13 @@ cvNames <- paste(rep(paste0("covar",1:numCovariate), each = numIndicators),
 expect_equivalent(colMeans(pgen[,cvNames]), rep(0, length(cvNames)), tolerance=.1)
 
 pgen <- loadResults(file.path(tdir,"out.log"), "snp2F", signAdj='lambda_i1')
+expect_equal(nrow(pgen), 197, 2)
 expect_error(plot(pgen, y=1),
              "plot does not accept a y= argument")
+
+bad <- loadSuspicious(file.path(tdir,"out.log"), "snp2F", signAdj='lambda_i1')
+expect_equal(nrow(bad), 2, 2)
+expect_true(any(grepl("observed variance less", bad$catch1, fixed=TRUE)))
 
 # -----
 
@@ -63,8 +68,14 @@ GWAS(m2,
      file.path(tdir,"out.log"))
 
 pgen2 <- loadResults(file.path(tdir,"out.log"), "snp2F", signAdj='lambda_i1')
+expect_equal(nrow(pgen2), 196)
 
-expect_equal(cor(pgen$Z, pgen2$Z, use = "pairwise"), 1, tolerance=.2)
+both <- intersect(pgen$SNP, pgen2$SNP)
+expect_equal(length(both), 196, 2)
+pgen <- subset(pgen, SNP %in% both)
+pgen2 <- subset(pgen2, SNP %in% both)
+
+expect_equal(cor(pgen$Z, pgen2$Z), 1, tolerance=.05)
 
 # ----- compare OneFacRes exo vs endo covariates
 
@@ -83,8 +94,11 @@ GWAS(m2, file.path(dir,"example.pgen"),
 for (ind in paste0("snp2i", 1:numIndicators)) {
   m1o <- loadResults(file.path(tdir,"outx.log"), ind)
   m2o <- loadResults(file.path(tdir,"out.log"), ind)
-  # Wow, this tolerance is really terrible TODO
-  expect_equal(cor(m1o$Z, m2o$Z, use="complete.obs"), 1, tolerance=1.2)
+  both <- intersect(m1o$SNP, m2o$SNP)
+  expect_equal(length(both), 200, 20)
+  m1o <- subset(m1o, SNP %in% both)
+  m2o <- subset(m2o, SNP %in% both)
+  expect_equal(cor(m1o$Z, m2o$Z), 1, tolerance=.05)
 }
 
 # ----- compare TwoFac exo vs endo covariates
@@ -111,8 +125,12 @@ for (fx in 1:2) {
   sa <- paste0('F',fx,'_lambda_i2')
   m1o <- loadResults(file.path(tdir,"outx.log"), ind, signAdj=sa)
   m2o <- loadResults(file.path(tdir,"out.log"), ind, signAdj=sa)
+  both <- intersect(m1o$SNP, m2o$SNP)
+  expect_equal(length(both), 200, 110)
+  m1o <- subset(m1o, SNP %in% both)
+  m2o <- subset(m2o, SNP %in% both)
   # Wow, this tolerance is really terrible TODO
-  expect_equal(cor(m1o$Z, m2o$Z, use="complete.obs"), 1, tolerance=1.2)
+  expect_equal(cor(m1o$Z, m2o$Z), 1, tolerance=1)
 }
 
 # ----- test continuous endogenous covariates
