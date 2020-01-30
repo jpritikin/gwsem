@@ -176,7 +176,7 @@ loadSuspicious <- function(path, focus, ..., extraColumns=c(),
 #' m1 <- buildItem(pheno, 'anxiety')
 #' GWAS(m1, file.path(dir,"example.pgen"),
 #'     file.path(tdir,"out.log"))
-#' got <- loadResults(file.path(tdir,"out.log"), "snp2anxiety")
+#' got <- loadResults(file.path(tdir,"out.log"), "snp_to_anxiety")
 #' plot(got)
 plot.gwsemResult <- function(x, y, ...) {
 	if (!missing(y)) stop("plot does not accept a y= argument")

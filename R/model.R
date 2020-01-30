@@ -259,7 +259,8 @@ setupExogenousCovariates <- function(model, covariates, itemNames)
 
   covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
   cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs",
-                      labels = paste(rep(covariates, each = length(itemNames)), itemNames, sep = "2"))
+                      labels = paste(rep(covariates, each = length(itemNames)), itemNames,
+                                     sep = "_to_"))
   model <- mxModel(model, covMean, cov2item)
   emean <- mxGetExpected(model, "means")
   exoFree <- matrix(FALSE, length(emean), length(covariates),
@@ -303,7 +304,7 @@ endogenousSNPpath <- function(depVar)
 {
 	paths <- list(mxPath(from = "one", to = "snp" , labels = "snpMean"),
 		      mxPath(from = "snp", to = depVar, values = 0,
-			     labels=paste("snp", depVar, sep = "2")),
+			     labels=paste("snp", depVar, sep = "_to_")),
 		      mxPath(from = "snp", arrows=2, values=1, labels = paste("snp", "res", sep = "_")))
 }
 
@@ -325,7 +326,7 @@ setupPaths <- function(phenoData, covariates, depVar)
 				mxPath(from=c1, arrows=2, values=1, labels=paste0(c1,"_var"))))
 		}
 		paths <- c(paths, list(
-			mxPath(from=c1, to=depVar, labels=paste0(c1,'2',depVar))))
+			mxPath(from=c1, to=depVar, labels=paste0(c1,'_to_',depVar))))
 	}
 	paths
 }

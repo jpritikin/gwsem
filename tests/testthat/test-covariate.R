@@ -39,22 +39,22 @@ GWAS(m1, file.path(dir,"example.pgen"),
 pgen <- read.table(file.path(tdir,"out.log"), stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 
-mask <- (pgen$catch1 == "" & pgen$statusCode=="OK" & !is.na(pgen$snp2FSE))
+mask <- (pgen$catch1 == "" & pgen$statusCode=="OK" & !is.na(pgen$snp_to_FSE))
 pgen <- pgen[mask,]
 
-mask <- (abs(pgen$snp2F) < 2.6*mad(pgen$snp2F) & (abs(pgen$snp2F / pgen$snp2FSE) > .5))
+mask <- (abs(pgen$snp_to_F) < 2.6*mad(pgen$snp_to_F) & (abs(pgen$snp_to_F / pgen$snp_to_FSE) > .5))
 pgen <- pgen[mask,]
 
 cvNames <- paste(rep(paste0("covar",1:numCovariate), each = numIndicators),
-      paste0("i", 1:numIndicators), sep = "2")
+      paste0("i", 1:numIndicators), sep = "_to_")
 expect_equivalent(colMeans(pgen[,cvNames]), rep(0, length(cvNames)), tolerance=.1)
 
-pgen <- loadResults(file.path(tdir,"out.log"), "snp2F", signAdj='lambda_i1')
+pgen <- loadResults(file.path(tdir,"out.log"), "snp_to_F", signAdj='lambda_i1')
 expect_equal(nrow(pgen), 197, 2)
 expect_error(plot(pgen, y=1),
              "plot does not accept a y= argument")
 
-bad <- loadSuspicious(file.path(tdir,"out.log"), "snp2F", signAdj='lambda_i1')
+bad <- loadSuspicious(file.path(tdir,"out.log"), "snp_to_F", signAdj='lambda_i1')
 expect_equal(nrow(bad), 2, 2)
 expect_true(any(grepl("observed variance less", bad$catch1, fixed=TRUE)))
 
@@ -67,7 +67,7 @@ GWAS(m2,
      file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 
-pgen2 <- loadResults(file.path(tdir,"out.log"), "snp2F", signAdj='lambda_i1')
+pgen2 <- loadResults(file.path(tdir,"out.log"), "snp_to_F", signAdj='lambda_i1')
 expect_equal(nrow(pgen2), 196)
 
 both <- intersect(pgen$SNP, pgen2$SNP)
@@ -91,7 +91,7 @@ expect_equivalent(m2$M$labels[1,'covar1'], 'covar1_mean')
 GWAS(m2, file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 
-for (ind in paste0("snp2i", 1:numIndicators)) {
+for (ind in paste0("snp_to_i", 1:numIndicators)) {
   m1o <- loadResults(file.path(tdir,"outx.log"), ind)
   m2o <- loadResults(file.path(tdir,"out.log"), ind)
   both <- intersect(m1o$SNP, m2o$SNP)
@@ -121,7 +121,7 @@ GWAS(m2, file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 
 for (fx in 1:2) {
-  ind <- paste0("snp2F", fx)
+  ind <- paste0("snp_to_F", fx)
   sa <- paste0('F',fx,'_lambda_i2')
   m1o <- loadResults(file.path(tdir,"outx.log"), ind, signAdj=sa)
   m2o <- loadResults(file.path(tdir,"out.log"), ind, signAdj=sa)
@@ -142,7 +142,7 @@ lastFit <- GWAS(buildTwoFac(pheno,
      file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 
-expect_equal(lastFit$A$labels['F1','covar1'], "covar12F1")
+expect_equal(lastFit$A$labels['F1','covar1'], "covar1_to_F1")
 expect_equal(lastFit$A$labels['i2','F1'], "F1_lambda_i2")
 
 # ----- test ordinal endogenous covariates
@@ -154,7 +154,7 @@ lastFit <- GWAS(buildOneFac(pheno, paste0("i", 2:numIndicators),
 
 expect_true(!lastFit$M$free[,'i1'])
 expect_equal(lastFit$S$values['i1','i1'], 1)
-expect_equal(lastFit$A$labels['F','i1'], 'i12F')
+expect_equal(lastFit$A$labels['F','i1'], 'i1_to_F')
 expect_equal(lastFit$A$values['F','i1'], .67, tolerance=.01)
 
 # -----
