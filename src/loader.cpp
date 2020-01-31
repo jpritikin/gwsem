@@ -69,13 +69,13 @@ class LoadDataBGENProvider : public LoadDataProvider<LoadDataBGENProvider> {
 	virtual void addCheckpointColumns(std::vector< std::string > &cp)
 	{
 		cpIndex = cp.size();
-		cp.emplace_back("SNP");
-		cp.emplace_back("RSID");
-		cp.emplace_back("CHR");
-		cp.emplace_back("BP");
-		cp.emplace_back("A1");
-		cp.emplace_back("A2");
-		cp.emplace_back("MAF");
+		cp.push_back("SNP");
+		cp.push_back("RSID");
+		cp.push_back("CHR");
+		cp.push_back("BP");
+		cp.push_back("A1");
+		cp.push_back("A2");
+		cp.push_back("MAF");
 	}
 	virtual int getNumVariants();
 };
@@ -179,7 +179,7 @@ class LoadDataPGENProvider : public LoadDataProvider<LoadDataPGENProvider> {
 	virtual void addCheckpointColumns(std::vector< std::string > &cp)
 	{
 		cpIndex = cp.size();
-		cp.emplace_back("MAF");
+		cp.push_back("MAF");
 	}
 	virtual void loadRowImpl(int index);
 	virtual int getNumVariants();
