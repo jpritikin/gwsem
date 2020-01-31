@@ -54,10 +54,13 @@ rx <- which(min(pgen$P) == pgen$P)
 expect_equal(rx, 3)
 expect_equal(pgen$P[rx], .155, tolerance=1e-2)
 
-expect_error(GWAS(oi,
-                  file.path(dir,"example.pgen"),
-                  file.path(tdir, "out.log"), SNP=c(250)),
-             "out of data")
+test_that("out of data", {
+  skip_on_os('mac') # exceptions are broken
+  expect_error(GWAS(oi,
+                    file.path(dir,"example.pgen"),
+                    file.path(tdir, "out.log"), SNP=c(250)),
+               "out of data")
+})
 
 oi <- expect_warning(buildItem(pheno, paste0("i", 3), fitfun = "ML",
                    minMAF=.1),
