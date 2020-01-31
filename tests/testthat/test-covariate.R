@@ -58,6 +58,10 @@ bad <- loadSuspicious(file.path(tdir,"out.log"), "snp_to_F", signAdj='lambda_i1'
 expect_equal(nrow(bad), 2, 2)
 expect_true(any(grepl("observed variance less", bad$catch1, fixed=TRUE)))
 
+# Should be possible to select some rows from bad and
+# rbind them to pgen.
+expect_true(all(!is.na(match(colnames(pgen), colnames(bad)))))
+
 # -----
 
 m2 <- buildOneFac(pheno, paste0("i", 1:numIndicators),

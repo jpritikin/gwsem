@@ -153,6 +153,8 @@ loadSuspicious <- function(path, focus, ..., extraColumns=c(),
     }
     got <- rbind(got, d1)
   }
+  got$Z <- got[[focus]] / got[[paste0(focus,'SE')]]
+  got$P <- 2*pnorm(-abs(got$Z))
   attr(got, 'focus') <- focus
   got
 }
