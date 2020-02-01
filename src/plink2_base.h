@@ -1816,7 +1816,7 @@ BoolErr fwrite_checked(const void* buf, uintptr_t len, FILE* outfile);
 BoolErr fread_checked(void* buf, uintptr_t len, FILE* infile);
 
 HEADER_INLINE BoolErr fclose_null(FILE** fptr_ptr) {
-  int32_t ii = ferror_unlocked(*fptr_ptr);
+  int32_t ii = ferror(*fptr_ptr);
   int32_t jj = fclose(*fptr_ptr);
   *fptr_ptr = nullptr;
   return ii || jj;
