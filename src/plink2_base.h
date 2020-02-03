@@ -468,38 +468,18 @@ typedef uint32_t BoolErr;
 #  define FOPEN_RB "rb"
 #  define FOPEN_WB "wb"
 #  define FOPEN_AB "ab"
-#  define ferror_unlocked ferror
-#  define feof_unlocked feof
-#  ifdef __LP64__
-#    define getc_unlocked _fgetc_nolock
-#    define putc_unlocked _fputc_nolock
-    // todo: find mingw-w64 build which properly links _fread_nolock, and
-    // conditional-compile
-#    define fread_unlocked fread
-#    define fwrite_unlocked fwrite
-#  else
-#    define getc_unlocked getc
-#    define putc_unlocked putc
-#    define fread_unlocked fread
-#    define fwrite_unlocked fwrite
-#  endif
-#  if __cplusplus < 201103L
-#    define uint64_t unsigned long long
-#    define int64_t long long
-#  endif
 #else  // Linux or OS X
 #  define FOPEN_RB "r"
 #  define FOPEN_WB "w"
 #  define FOPEN_AB "a"
-#  if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__)
+#endif
+
+#    define getc_unlocked getc
+#    define putc_unlocked putc
 #    define fread_unlocked fread
 #    define fwrite_unlocked fwrite
-#  endif
-#  if defined(__NetBSD__)
 #    define ferror_unlocked ferror
 #    define feof_unlocked feof
-#  endif
-#endif
 
 #ifdef _WIN32
 #  undef PRId64
