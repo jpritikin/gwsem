@@ -286,7 +286,7 @@ setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
 	  aname <- c(aname, paste0('snp_',v1,"Alg"))
   }
   c(mxData(observed=phenoData, type="raw", minVariance=minVar, warnNPDacov=FALSE,
-	   algebra=aname), result)
+	   algebra=aname, naAction='omit'), result)
 }
 
 #' @importFrom stats rbinom
