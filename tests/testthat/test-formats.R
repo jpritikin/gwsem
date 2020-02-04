@@ -96,14 +96,14 @@ expect_equal(pgen$A2, bgen$A2)
 expect_equal(pgen$A2, bed$A2)
 
 # should not match exactly because bed can't store dosages
-expect_equal(sum(abs(pgen$MAF - bed$MAF)), 1.447, .01)
+expect_equal(sum(abs(pgen$MAF - bed$MAF)), 1.447, .02)
 expect_equal(pgen$MAF, bed$MAF, .06)
 
 expect_equal(match(pgen$SNP, bed$SNP), 1:199)  # same order
 
 bgen <- bgen[match(pgen$SNP, sub("^SNP","RS",bgen[['SNP']])),]
 
-expect_equal(bgen$MAF, pgen$MAF, 1e-4)
+expect_equal(bgen$MAF, pgen$MAF, 1e-2)
 
 mask <- (bgen$catch1=="" & pgen$catch1 == "" &
            bgen$statusCode=="OK" & pgen$statusCode=="OK")
