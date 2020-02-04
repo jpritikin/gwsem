@@ -109,7 +109,7 @@ mask <- (bgen$catch1=="" & pgen$catch1 == "" &
            bgen$statusCode=="OK" & pgen$statusCode=="OK")
 bgen <- bgen[mask,]
 pgen <- pgen[mask,]
-expect_equal(sum(mask), 195)
+expect_equal(sum(mask), 197, 2)
 
 rmse <- function(x,y) sqrt(mean((x-y)^2))
 expect_equal(rmse(bgen$snp_to_F, pgen$snp_to_F), 0, tolerance=.4)
