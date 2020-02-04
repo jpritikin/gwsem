@@ -35,9 +35,12 @@ m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.bed"),
      file.path(tdir, "out.log"))
 # bed can't store dosages so we get ordinal values with some NAs
-mask <- rawSNP$FID %in% m1$data$observed$FID
-expect_equal(m1$data$observed$snp - rawSNP[mask,'snp'],
-             rep(0, sum(mask)), .1)
+test_that("bed SNP data", {
+  skip_if_not_installed("OpenMx", "2.16.0.1")
+  mask <- rawSNP$FID %in% m1$data$observed$FID
+  expect_equal(m1$data$observed$snp - rawSNP[mask,'snp'],
+               rep(0, sum(mask)), .1)
+})
 bed <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bed), 199)
