@@ -21,6 +21,7 @@ indicators <- pheno$phenotype %*% t(loadings) +
   mvrnorm(nrow(pheno), mu=rep(0, numIndicators), Sigma=diag(numIndicators))
 colnames(indicators) <- paste0("i", 1:numIndicators)
 pheno <- cbind(pheno, indicators)
+#pheno$sex <- pheno$sex - min(pheno$sex) # will blow up
 
 # -----
 
@@ -36,6 +37,13 @@ test_that("gxe data roundtrip", {
               file.path(dir,"example.pgen"),
               file.path(tdir, "out.log"), SNP=c(3))
   ob <- fit$data$observed
+  expect_true(all(ob$snp * ob$sex == ob$snp_sex))
+  expect_true(all(ob$snp * ob$i4 == ob$snp_i4))
+
+  pheno$snp <- runif(nrow(pheno), 0, 2)
+  oi <- buildItem(pheno, paste0("i", 3), gxe=c("sex","i4"))
+  fit2 <- mxRun(oi)
+  ob <- fit2$data$observed
   expect_true(all(ob$snp * ob$sex == ob$snp_sex))
   expect_true(all(ob$snp * ob$i4 == ob$snp_i4))
 })
