@@ -438,7 +438,14 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
 }
 
 #' @export
-buildOneItem <- buildItem
+#' @importFrom lifecycle deprecate_warn
+buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS","ML"),
+                         minMAF=0.01, gxe=NULL, exogenous=NA)
+{
+  deprecate_warn("0.1.14", "buildOneItem()", "buildItem()")
+  buildItem(phenoData, depVar, covariates, fitfun=fitfun,
+            minMAF=minMAF, gxe=gxe, exogenous=exogenous)
+}
 
 #' Build a model suitable for a single factor genome-wide association study
 #'
