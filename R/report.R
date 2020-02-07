@@ -1,5 +1,6 @@
 #' Determine which results are suspicious
 #'
+#' \lifecycle{maturing}
 #' The \link{GWAS} function writes all results, both valid and
 #' invalid, to a log file. This function uses heuristics to try to
 #' classify rows as suspicious or unsuspicious.  The
@@ -60,6 +61,7 @@ isSuspicious <- function(got, pars) {
 
 #' Load GWAS results into a single data.frame
 #'
+#' \lifecycle{maturing}
 #' The \code{signAdj} column is important and not optional for latent
 #' factor models.  Loadings to factor indicators can take any sign. If
 #' your focus is the regression from the SNP to the factor then this
@@ -120,6 +122,7 @@ loadResults <- function(path, focus, ..., extraColumns=c(),
 
 #' Load suspicious GWAS results into a single data.frame
 #'
+#' \lifecycle{maturing}
 #' These rows are excluded by \link{loadResults}.
 #'
 #' @param path vector of paths to result files created by \link{GWAS}

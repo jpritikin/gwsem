@@ -3,6 +3,6 @@
 .RData
 .Ruserdata
 /NAMESPACE
-/man
+/man/*.Rd
 /staging
 inst/doc

@@ -1,41 +1,75 @@
-Package: gwsem
 Type: Package
+Package: gwsem
 Title: Genome-Wide Structural Equation Modeling
 Version: 0.1.14
 Authors@R:
-  c(person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com", role=c("aut", 'cre')),
-    person("Bradley", "Verhulst", role="cph", email="brad.verhulst@gmail.com"),
-    person("Gavin", "Band", role="cph"),
-    person("Yann", "Collet", role="cph"),
-    person("Facebook, Inc.", role="cph"),
-    person("Yuta", "Mori", role="cph"),
-    person("Shaun", "Purcell", role="cph"),
-    person("Christopher", "Chang", role="cph"),
-    person("Wojciech", "Mula", role="cph"),
-    person("Kim", "Walisch", role="cph"))
+    c(person(given = c("Joshua", "N."),
+             family = "Pritikin",
+             role = c("aut", "cre"),
+             email = "jpritikin@pobox.com"),
+      person(given = "Bradley",
+             family = "Verhulst",
+             role = "cph",
+             email = "brad.verhulst@gmail.com"),
+      person(given = "Gavin",
+             family = "Band",
+             role = "cph"),
+      person(given = "Yann",
+             family = "Collet",
+             role = "cph"),
+      person(given = "Facebook, Inc.",
+             role = "cph"),
+      person(given = "Yuta",
+             family = "Mori",
+             role = "cph"),
+      person(given = "Shaun",
+             family = "Purcell",
+             role = "cph"),
+      person(given = "Christopher",
+             family = "Chang",
+             role = "cph"),
+      person(given = "Wojciech",
+             family = "Mula",
+             role = "cph"),
+      person(given = "Kim",
+             family = "Walisch",
+             role = "cph"))
 Description: Melds genome-wide association tests with structural
-    equation modeling (SEM) using 'OpenMx'. This package contains low-level
-    C/C++ code to rapidly read genetic data encoded in U.K. Biobank or 'plink'
-    formats. Prebuilt modeling options include one and two factor
-    models. Alternately, analyses may utilize arbitrary, user-provided SEMs.
-    See Verhulst, Maes, & Neale (2017) <doi:10.1007/s10519-017-9842-6> for
-    details. An updated manuscript is in preparation.
+    equation modeling (SEM) using 'OpenMx'. This package contains
+    low-level C/C++ code to rapidly read genetic data encoded in U.K.
+    Biobank or 'plink' formats. Prebuilt modeling options include one and
+    two factor models. Alternately, analyses may utilize arbitrary,
+    user-provided SEMs.  See Verhulst, Maes, & Neale (2017)
+    <doi:10.1007/s10519-017-9842-6> for details. An updated manuscript is
+    in preparation.
 License: GPL (>= 3)
-Encoding: UTF-8
-LazyData: true
-Language: en-US
-LinkingTo: BH (>= 1.69.0-1), Rcpp
-Depends: R (>= 3.5), OpenMx (>= 2.15.5)
-Imports: data.table, methods, qqman, Rcpp
+URL: https://github.com/jpritikin/gwsem
+BugReports: https://github.com/jpritikin/gwsem/issues
+Depends: 
+    R (>= 3.5),
+    OpenMx (>= 2.15.5)
+Imports: 
+    data.table,
+    methods,
+    qqman,
+    Rcpp,
+    lifecycle
 Suggests: 
     testthat (>= 2.1.0),
     MASS,
     covr,
     knitr,
     rmarkdown
+LinkingTo: 
+    BH (>= 1.69.0-1),
+    Rcpp
+VignetteBuilder: 
+    knitr
+RdMacros: 
+    lifecycle
+Encoding: UTF-8
+Language: en-US
+LazyData: true
+NeedsCompilation: yes
 RoxygenNote: 7.0.2
 SystemRequirements: GNU make
-URL: https://github.com/jpritikin/gwsem
-BugReports: https://github.com/jpritikin/gwsem/issues
-NeedsCompilation: yes
-VignetteBuilder: knitr

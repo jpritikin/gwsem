@@ -29,6 +29,7 @@
 #' @useDynLib gwsem, .registration = TRUE
 #' @import OpenMx
 #' @importFrom Rcpp evalCpp
+#' @importFrom lifecycle deprecate_soft
 #' 
 NULL
 
