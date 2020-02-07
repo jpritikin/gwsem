@@ -296,7 +296,7 @@ setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
 #' @importFrom stats rbinom
 addPlaceholderSNP <- function(phenoData) {
 	if (!is.null(phenoData[[ 'snp' ]])) {
-		warning("Data already contains placeholder data for the 'snp' column. This is unnecessary and not recommended")
+		warning("Data already contains placeholder data for the 'snp' column. This is okay for testing, but generally not recommended")
 	} else {
 		# We use as.numeric because we currently only support dosages.
 		phenoData$snp <- as.numeric(rbinom(dim(phenoData)[1], 2, .5))
