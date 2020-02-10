@@ -127,7 +127,8 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
   onesnp <- c(
     onesnp,
     TC=mxComputeTryCatch(mxComputeSequence(opt)),
-    CK=mxComputeCheckpoint(path=out, standardErrors = TRUE))
+    CK=mxComputeCheckpoint(path=out, standardErrors = TRUE,
+                           vcov = length(model$data$algebra) > 0))
 
   mxModel(model, mxComputeLoop(onesnp, i=SNP, startFrom=startFrom))
 }
