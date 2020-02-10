@@ -174,20 +174,21 @@ GWAS(m2, file.path(dir,"example.pgen"), file.path(tdir, "out.log"))
 got <- loadResults(file.path(tdir, "out.log"), 'snp__slope')
 ```
 
-Some of the models failed to fit. 
+Some of the models failed to fit. If we're interested to
+discover why then we can load these separately,
 
 ```{r}
-head(got[is.na(got$P),])
+susp <- loadSuspicious(file.path(tdir, "out.log"), 'snp__slope')
+head(susp)
 
 ```
 
-It looks like `r sum(is.na(got$P))` SNPs had a variance below
+It looks like these SNPs had a variance below
 the threshold we specified in `mxData` (`minVariance=0.1`).
-We can exclude these SNPs and present a manhattan plot.
+
+We can present a Manhattan plot consisting of the models
+that succeeded,
 
 ```{r, message=FALSE}
-got$P[is.na(got$P)] <- 1
-
-library(qqman)
-manhattan(got)
+plot(got)
 ```
