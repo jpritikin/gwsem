@@ -1,7 +1,7 @@
 Type: Package
 Package: gwsem
 Title: Genome-Wide Structural Equation Modeling
-Version: 0.1.14
+Version: 0.1.15
 Authors@R:
     c(person(given = c("Joshua", "N."),
              family = "Pritikin",
