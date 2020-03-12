@@ -83,6 +83,7 @@ isSuspicious <- function(got, pars) {
 #' @param extraColumns character vector of additional columns to load
 #' @param .retainSE logical. Keep a column for the SE of the focus parameter
 #' @param signAdj name of column. Value of focus parameter is multiplied by the sign of the named column
+#' @param moderatorLevel see details
 #' @template args-dots-barrier
 #' @family reporting
 #' @export
@@ -97,18 +98,43 @@ isSuspicious <- function(got, pars) {
 #'     file.path(tdir,"out.log"))
 #' loadResults(file.path(tdir,"out.log"), "snp2anxiety")
 loadResults <- function(path, focus, ..., extraColumns=c(),
-			.retainSE=FALSE, signAdj=NULL) {
+			.retainSE=FALSE, signAdj=NULL, moderatorLevel=NULL) {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   sel <- c('MxComputeLoop1', 'CHR','BP','SNP','A1','A2','statusCode','catch1',
 	   focus,paste0(focus,'SE'), extraColumns, signAdj)
+  mainEffect <- c()
+  if (!is.null(moderatorLevel)) {
+    got <- regexpr('^snp_(\\w+)_to_(\\w+)$', focus, perl=TRUE)
+    if (got == -1) {
+      stop(paste("When moderatorLevel requested, focus must be of the form",
+                 "snp_XXX_to_YYY not", focus))
+    } else {
+      cstart <- attr(got,"capture.start")
+      clen <- attr(got,"capture.length")
+      mod <- substr(focus, cstart[1], cstart[1]+clen[1]-1L)
+      outcome <- substr(focus, cstart[2], cstart[2]+clen[2]-1L)
+      mainEffect <- paste0('snp_to_', outcome)
+      sel <- c(sel, mainEffect, paste0(mainEffect, 'SE'), paste0('V', focus, ':', mainEffect))
+    }
+  }
   got <- list()
   for (p1 in path) {
     d1 <- fread(p1, stringsAsFactors = FALSE, header=TRUE,
                 sep="\t", check.names=FALSE, quote="", select = sel)
-    d1 <- d1[!isSuspicious(d1, c(focus, signAdj)),]
+    d1 <- d1[!isSuspicious(d1, c(focus, signAdj, mainEffect)),]
     if (!is.null(signAdj)) {
       d1[[focus]] <- d1[[focus]] * sign(d1[[signAdj]])
       if (!(signAdj %in% extraColumns)) d1[[signAdj]] <- NULL
+    }
+    if (!is.null(moderatorLevel)) {
+      d1[[focus]] <- d1[[mainEffect]] + moderatorLevel * d1[[focus]]
+      d1[[paste0(focus,'SE')]] <-
+        sqrt(d1[[paste0(mainEffect,'SE')]]^2 +
+               moderatorLevel^2 * d1[[paste0(focus,'SE')]]^2 +
+               2*moderatorLevel * d1[[paste0('V', focus, ':', mainEffect)]])
+      for (col in c(mainEffect, paste0(mainEffect, 'SE'), paste0('V', focus, ':', mainEffect))) {
+        d1[[col]] <- NULL
+      }
     }
     got <- rbind(got, d1)
   }
@@ -129,6 +155,7 @@ loadResults <- function(path, focus, ..., extraColumns=c(),
 #' @param focus parameter name on which to calculate a Z score and p-value
 #' @param extraColumns character vector of additional columns to load
 #' @param signAdj name of column. Value of focus parameter is multiplied by the sign of the named column
+#' @param moderatorLevel see details
 #' @template args-dots-barrier
 #' @family reporting
 #' @export
@@ -142,10 +169,25 @@ loadResults <- function(path, focus, ..., extraColumns=c(),
 #'     file.path(tdir,"out.log"))
 #' loadSuspicious(file.path(tdir,"out.log"), "snp2anxiety")
 loadSuspicious <- function(path, focus, ..., extraColumns=c(),
-			signAdj=NULL) {
+			signAdj=NULL, moderatorLevel=NULL) {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   sel <- c('MxComputeLoop1', 'CHR','BP','SNP','A1','A2','statusCode','catch1',
 	   focus,paste0(focus,'SE'), extraColumns, signAdj)
+  mainEffect <- c()
+  if (!is.null(moderatorLevel)) {
+    got <- regexpr('^snp_(\\w+)_to_(\\w+)$', focus, perl=TRUE)
+    if (got == -1) {
+      stop(paste("When moderatorLevel requested, focus must be of the form",
+                 "snp_XXX_to_YYY not", focus))
+    } else {
+      cstart <- attr(got,"capture.start")
+      clen <- attr(got,"capture.length")
+      mod <- substr(focus, cstart[1], cstart[1]+clen[1]-1L)
+      outcome <- substr(focus, cstart[2], cstart[2]+clen[2]-1L)
+      mainEffect <- paste0('snp_to_', outcome)
+      sel <- c(sel, mainEffect, paste0(mainEffect, 'SE'), paste0('V', focus, ':', mainEffect))
+    }
+  }
   got <- list()
   for (p1 in path) {
     d1 <- fread(p1, stringsAsFactors = FALSE, header=TRUE,
@@ -153,6 +195,13 @@ loadSuspicious <- function(path, focus, ..., extraColumns=c(),
     d1 <- d1[isSuspicious(d1, c(focus, signAdj)),]
     if (!is.null(signAdj)) {
       d1[[focus]] <- d1[[focus]] * sign(d1[[signAdj]])
+    }
+    if (!is.null(moderatorLevel)) {
+      d1[[focus]] <- d1[[mainEffect]] + moderatorLevel * d1[[focus]]
+      d1[[paste0(focus,'SE')]] <-
+        sqrt(d1[[paste0(mainEffect,'SE')]]^2 +
+               moderatorLevel^2 * d1[[paste0(focus,'SE')]]^2 +
+               2*moderatorLevel * d1[[paste0('V', focus, ':', mainEffect)]])
     }
     got <- rbind(got, d1)
   }

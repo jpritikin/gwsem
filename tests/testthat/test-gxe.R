@@ -47,3 +47,16 @@ test_that("gxe data roundtrip", {
   expect_true(all(ob$snp * ob$sex == ob$snp_sex))
   expect_true(all(ob$snp * ob$i4 == ob$snp_i4))
 })
+
+test_that("moderator level", {
+  oi <- buildItem(pheno, paste0("i", 3), covariates='snp_i4',
+                  gxe=c("i4"))
+  fit <- GWAS(oi,
+              file.path(dir,"example.pgen"),
+              file.path(tdir, "out.log"))
+  m1 <- loadResults(file.path(tdir, "out.log"), 'snp_i4_to_i3')
+  m2 <- loadResults(file.path(tdir, "out.log"), 'snp_i4_to_i3',
+                    moderatorLevel = .5)
+  m3 <- loadSuspicious(file.path(tdir, "out.log"), 'snp_i4_to_i3',
+                 moderatorLevel = .5)
+})
