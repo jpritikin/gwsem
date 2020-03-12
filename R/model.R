@@ -278,6 +278,7 @@ setupExogenousCovariates <- function(model, covariates, itemNames)
 # export? TODO
 setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
 {
+  phenoData <- as.data.frame(phenoData)
   if (customMinMAF && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
   minVar <- calcMinVar(minMAF)
   result <- list()
