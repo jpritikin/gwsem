@@ -72,7 +72,7 @@ GWAS(m2,
      file.path(tdir,"out.log"))
 
 pgen2 <- loadResults(file.path(tdir,"out.log"), "snp_to_F", signAdj='lambda_i1')
-expect_equal(nrow(pgen2), 196)
+expect_equal(nrow(pgen2), 196, 2)
 
 both <- intersect(pgen$SNP, pgen2$SNP)
 expect_equal(length(both), 196, 2)
@@ -102,7 +102,7 @@ for (ind in paste0("snp_to_i", 1:numIndicators)) {
   expect_equal(length(both), 200, 20)
   m1o <- subset(m1o, SNP %in% both)
   m2o <- subset(m2o, SNP %in% both)
-  expect_equal(cor(m1o$Z, m2o$Z), 1, tolerance=.05)
+  expect_equal(cor(m1o$Z, m2o$Z), 1, tolerance=.1)
 }
 
 # ----- compare TwoFac exo vs endo covariates
