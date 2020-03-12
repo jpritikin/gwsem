@@ -337,24 +337,33 @@ setupPaths <- function(phenoData, covariates, depVar)
 	paths
 }
 
+#' @importFrom OpenMx omxQuotes
 postprocessModel <- function(model, indicators, exogenous)
 {
 	model <- setupThresholds(model)
 
+  isInt <- sapply(model$data$observed, function(x) typeof(x) == 'integer')
+
 	if (length(exogenous) == 0 &&
 		    is.na(model$expectation$thresholds) &&
 		    is(model$fitfunction, 'MxFitFunctionWLS')) {
+    if (any(isInt)) {
+      warning(paste("Cumulants method prevented by integer observed columns:",
+                    omxQuotes(names(isInt)[isInt]),
+                    "; Remove these columns from your observed data for",
+                    "improved estimation accuracy"))
+    } else {
+      # cumulants is substantially more precise than marginals
+      model$fitfunction$continuousType <- 'cumulants'
 
-		# cumulants is substantially more precise than marginals
-		model$fitfunction$continuousType <- 'cumulants'
-
-		# discard model means
-		if (is(model$expectation, "MxExpectationRAM")) {
-			model$expectation$M <- as.character(NA)
-			model <- mxModel(model, 'M', remove = TRUE)
-		} else {
-      stop("Only RAM models are supported")
-		}
+      # discard model means
+      if (is(model$expectation, "MxExpectationRAM")) {
+        model$expectation$M <- as.character(NA)
+        model <- mxModel(model, 'M', remove = TRUE)
+      } else {
+        stop("Only RAM models are supported")
+      }
+    }
 	} else {
 		model <- setupExogenousCovariates(model, exogenous, indicators)
 	}
