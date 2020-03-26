@@ -65,7 +65,8 @@ expect_true(all(!is.na(match(colnames(pgen), colnames(bad)))))
 # -----
 
 m2 <- buildOneFac(pheno, paste0("i", 1:numIndicators),
-                  covariates = paste0("covar",1:numCovariate))
+                  covariates = paste0("covar",1:numCovariate),
+                  exogenous = FALSE)
 expect_equivalent(m2$M$labels[1,'covar1'], 'covar1_mean')
 GWAS(m2,
      file.path(dir,"example.pgen"),
@@ -90,7 +91,8 @@ GWAS(m1, file.path(dir,"example.pgen"),
      file.path(tdir,"outx.log"))
 
 m2 <- buildOneFacRes(pheno, paste0("i", 1:numIndicators),
-                     covariates = paste0("covar",1:numCovariate))
+                     covariates = paste0("covar",1:numCovariate),
+                     exogenous=FALSE)
 expect_equivalent(m2$M$labels[1,'covar1'], 'covar1_mean')
 GWAS(m2, file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
@@ -119,7 +121,8 @@ GWAS(m1, file.path(dir,"example.pgen"),
 m2 <- buildTwoFac(pheno,
                   paste0("i", 1:(numIndicators-1)),
                   paste0("i", 2:numIndicators),
-                  covariates = paste0("covar",1:numCovariate))
+                  covariates = paste0("covar",1:numCovariate),
+                  exogenous=FALSE)
 expect_equivalent(m2$M$labels[1,'covar1'], 'covar1_mean')
 GWAS(m2, file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
@@ -142,7 +145,8 @@ for (fx in 1:2) {
 lastFit <- GWAS(buildTwoFac(pheno,
                             paste0("i", 1:(numIndicators-1)),
                             paste0("i", 2:numIndicators),
-                 covariates = paste0("covar",1:numCovariate)), SNP=1,
+                 covariates = paste0("covar",1:numCovariate),
+                 exogenous = FALSE), SNP=1,
      file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 
@@ -152,7 +156,7 @@ expect_equal(lastFit$A$labels['i2','F1'], "F1_lambda_i2")
 # ----- test ordinal endogenous covariates
 
 lastFit <- GWAS(buildOneFac(pheno, paste0("i", 2:numIndicators),
-                 covariates = 'i1'), SNP=1,
+                 covariates = 'i1', exogenous = FALSE), SNP=1,
      file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 

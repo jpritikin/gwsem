@@ -1,3 +1,5 @@
+defaultExogenous <- TRUE
+
 makeFitFunction <- function(fitfun)
 {
   if(fitfun == "WLS")        mxFitFunctionWLS(allContinuousMethod= "marginals")
@@ -488,7 +490,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
   fitfun <- match.arg(fitfun)
 
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
-  if (is.na(exogenous)) exogenous <- FALSE
+  if (is.na(exogenous)) exogenous <- defaultExogenous
 
   phenoData <- addPlaceholderSNP(phenoData)
   manifest <- c("snp", itemNames)
@@ -561,7 +563,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   fitfun <- match.arg(fitfun)
   
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
-  if (is.na(exogenous)) exogenous <- FALSE
+  if (is.na(exogenous)) exogenous <- defaultExogenous
 
   phenoData <- addPlaceholderSNP(phenoData)
   manifest <- c("snp", itemNames)
@@ -635,7 +637,7 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
   itemNames <- union(F1itemNames, F2itemNames)
 
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
-  if (is.na(exogenous)) exogenous <- FALSE
+  if (is.na(exogenous)) exogenous <- defaultExogenous
 
   phenoData <- addPlaceholderSNP(phenoData)
   manifest <- c("snp", itemNames)
