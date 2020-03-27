@@ -8,7 +8,7 @@ dir <- system.file("extdata", package = "gwsem")
 tdir <- tempdir()
 
 pheno <- read.table(file.path(dir, "example.psam"),
-                    stringsAsFactors = FALSE,header=TRUE, comment.char="")
+                    as.is = TRUE,header=TRUE, comment.char="")
 colnames(pheno)[1] <- "FID"
 
 numIndicators <- 5
@@ -25,7 +25,7 @@ m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
            file.path(dir,"example.pgen"),
            file.path(tdir, "out.log"))
 rawSNP <- m1$data$observed
-pgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
+pgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                      sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(pgen), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
@@ -41,7 +41,7 @@ test_that("bed SNP data", {
   expect_equal(m1$data$observed$snp - rawSNP[mask,'snp'],
                rep(0, sum(mask)), .1)
 })
-bed <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
+bed <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bed), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
@@ -54,7 +54,7 @@ m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.bgen"),
      file.path(tdir, "out.log"))
 expect_equal(rawSNP$snp, m1$data$observed$snp, tolerance=5e-5)
-bgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
+bgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                   sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bgen), 199)
 expect_equal(m1$compute$steps$LD$debug$loadCounter, 1)
@@ -68,7 +68,7 @@ expect_equal(range(m1$data$observed$snp), c(0,2), .01)
 m2 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
            file.path(dir,"example.bgen"),
            file.path(tdir, "out.log"), startFrom=190)
-last <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
+last <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(last), 10)
 expect_equal(m2$compute$steps$LD$debug$loadCounter, 1)

@@ -10,7 +10,7 @@ dir <- system.file("extdata", package = "gwsem")
 tdir <- tempdir()
 
 pheno <- read.table(file.path(dir, "example.psam"),
-                    stringsAsFactors = FALSE,header=TRUE, comment.char="")
+                    as.is = TRUE,header=TRUE, comment.char="")
 colnames(pheno)[1] <- "FID"
 colnames(pheno)[3] <- "sex"
 

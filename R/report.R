@@ -23,7 +23,7 @@
 #' @param pars names of the parameters available in \code{got}
 #' @return
 #' a vector of logicals for each row of \code{got} indicating suspicion (if TRUE)
-#' 
+#'
 #' @family reporting
 #' @export
 #' @importFrom stats sd
@@ -68,9 +68,9 @@ isSuspicious <- function(got, pars) {
 #' regression estimate will need to be multiplied by the sign of one
 #' of the factor loadings. Pick a loading associated with a strong
 #' indicator of the factor.
-#' 
+#'
 #' A1 is the reference allele and A2 is the alternate allele.
-#' 
+#'
 #' Two columns are added, \code{Z} and \code{P}. \code{Z} is the
 #' focal parameter divded by its standard error. \code{P} is the
 #' unadjusted two-sided normal CDF corresponding to the absolute
@@ -119,7 +119,7 @@ loadResults <- function(path, focus, ..., extraColumns=c(),
   }
   got <- list()
   for (p1 in path) {
-    d1 <- fread(p1, stringsAsFactors = FALSE, header=TRUE,
+    d1 <- fread(p1, header=TRUE,
                 sep="\t", check.names=FALSE, quote="", select = sel)
     d1 <- d1[!isSuspicious(d1, c(focus, signAdj, mainEffect)),]
     if (!is.null(signAdj)) {
@@ -190,7 +190,7 @@ loadSuspicious <- function(path, focus, ..., extraColumns=c(),
   }
   got <- list()
   for (p1 in path) {
-    d1 <- fread(p1, stringsAsFactors = FALSE, header=TRUE,
+    d1 <- fread(p1, header=TRUE,
                 sep="\t", check.names=FALSE, quote="", select = sel)
     d1 <- d1[isSuspicious(d1, c(focus, signAdj)),]
     if (!is.null(signAdj)) {

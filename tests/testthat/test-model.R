@@ -13,7 +13,7 @@ dir <- system.file("extdata", package = "gwsem")
 tdir <- tempdir()
 
 pheno <- read.table(file.path(dir, "example.psam"),
-                    stringsAsFactors = FALSE,header=TRUE, comment.char="")
+                    as.is = TRUE,header=TRUE, comment.char="")
 colnames(pheno)[1] <- "FID"
 
 numIndicators <- 7
@@ -113,7 +113,7 @@ expect_equal(pgen$SNP, paste0("RSID_", 4:6))
 expect_equal(pgen2$SNP, rep(paste0("RSID_", 4:6), 2))
 expect_equal(pgen$snp_to_F, c(.188, .066, -.081), tolerance=.001)
 
-pgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
+pgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 
 l2 <- pgen[,paste0('lambda_i',1:7)]
@@ -135,7 +135,7 @@ m2 <- GWAS(m2,
      file.path(tdir, "out.log"), SNP=c(3:5))
 expect_false(m2$A$free['F','snp'])
 
-pgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
+pgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equivalent(pgen$i1_Thr_1, rep(quantile(origPheno$i1, 1/3),3), tolerance=.18)
 expect_equivalent(pgen$i2_Thr_1, rep(0,3), tolerance=0.15)
@@ -153,7 +153,7 @@ GWAS(buildTwoFac(pheno, F1itemNames = paste0("i",1:4),
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=3:5)
 
-pgen <- read.table(file.path(tdir, "out.log"), stringsAsFactors = FALSE, header=TRUE,
+pgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 l2 <- pgen[,c(paste0('F1_lambda_i',1:3), paste0('F2_lambda_i',5:7))]
 expect_equivalent((colMeans(l2) / loadings[-4]), rep(1, numIndicators-1),

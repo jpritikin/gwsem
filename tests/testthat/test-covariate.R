@@ -9,7 +9,7 @@ dir <- system.file("extdata", package = "gwsem")
 tdir <- tempdir()
 
 pheno <- read.table(file.path(dir, "example.psam"),
-                    stringsAsFactors = FALSE,header=TRUE, comment.char="")
+                    as.is = TRUE, header=TRUE, comment.char="")
 colnames(pheno)[1] <- "FID"
 
 numIndicators <- 7
@@ -36,7 +36,7 @@ expect_equivalent(m1$M$labels[1,'covar1'], 'data.covar1')
 GWAS(m1, file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 
-pgen <- read.table(file.path(tdir,"out.log"), stringsAsFactors = FALSE, header=TRUE,
+pgen <- read.table(file.path(tdir,"out.log"), as.is = TRUE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 
 mask <- (pgen$catch1 == "" & pgen$statusCode=="OK" & !is.na(pgen$snp_to_FSE))
