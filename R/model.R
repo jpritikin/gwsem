@@ -9,6 +9,18 @@ makeFitFunction <- function(fitfun)
 
 calcMinVar <- function(minMAF) 2*minMAF*(1-minMAF)
 
+forModels <- function(topModel, modelName, fn) {
+  ret <- c()
+  if (topModel$name %in% modelName) {
+    ret <- c(fn(topModel))
+    names(ret) <- topModel$name
+  }
+  if (length(modelName) > 1) {
+    ret <- c(ret, sapply(setdiff(modelName, topModel$name), function(x) fn(topModel[[x]])))
+  }
+  ret
+}
+
 #' Return a suitable compute plan for a genome-wide association study
 #'
 #' \lifecycle{maturing}
@@ -84,37 +96,52 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 			       SNP=NULL, startFrom=1L)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
-  modelName <- model$name
-  pieces <- strsplit(snpData, ".", fixed=TRUE)[[1]]
-  if (length(pieces) < 2) {
-    stop(paste("Please rename snpData",omxQuotes(snpData),
+
+  loc <- strsplit(snpData, ".", fixed=TRUE)
+  locLen <- sapply(loc, length)
+  if (any(locLen < 2)) {
+    stop(paste("Please rename snpData", omxQuotes(snpData[locLen < 2]),
                "to the form file.ext where ext reflects the format of the data"))
   }
-  snpFileExt <- pieces[length(pieces)]
-  stem <- paste(pieces[-length(pieces)], collapse=".")
-
-  if (snpFileExt == 'pgen' || snpFileExt == 'bed') method <- 'pgen'
-  else if (snpFileExt == 'bgen') method <- 'bgen'
-  else stop(paste("Unrecognized file extension", omxQuotes(snpFileExt),
-                  "inferred from snpData", omxQuotes(snpData)))
-
-  onesnp <- list(
-    ST=mxComputeSetOriginalStarts(),
-    LD=mxComputeLoadData(modelName, column='snp',
-                         path=snpData, method=method))
-
-  if (snpFileExt == "pgen") {
-    onesnp <- c(
-      onesnp,
-      LC=mxComputeLoadContext(path=paste(stem, "pvar", sep = "."), column=1:5, sep='\t',
-			      col.names=c("CHR", "BP", "SNP", "A1", "A2")))
-  } else if (snpFileExt == "bed") {
-    onesnp <- c(
-      onesnp,
-      LC=mxComputeLoadContext(path=paste(stem, "bim", sep = "."),
-                              column=c(1,2,4:6), sep='\t', header=FALSE,
-                              col.names=c("CHR", "SNP", "BP", "A2", "A1")))
+  snpFileExt <- mapply(function(pieces, l) pieces[l],
+                       loc, locLen)
+  stem <- mapply(function(pieces, l) paste(pieces[-l], collapse="."),
+                       loc, locLen)
+  method <- sapply(snpFileExt, function(ext1) {
+    if (snpFileExt == 'pgen' || snpFileExt == 'bed') 'pgen'
+    else if (snpFileExt == 'bgen') 'bgen'
+    else NA
+  })
+  if (any(is.na(method))) {
+    stop(paste("Unrecognized file extension", omxQuotes(snpFileExt[is.na(method)]),
+               "inferred from snpData", omxQuotes(snpData[is.na(method)])))
   }
+
+  if (length(snpData) > 1 && length(names(snpData)) == 0)
+    stop(paste("Must provide model names for snpData. For example,\n",
+               "c(",omxQuotes(model$name),"=",snpData[1],")"))
+  modelName <- model$name
+  if (length(names(snpData))) modelName <- names(snpData)
+
+  onesnp <- mapply(function (mn1, snpData1, ext1, method1, stem1) {
+    p1 <- list(LD=mxComputeLoadData(mn1, column='snp',
+                              path=snpData1, method=method1))
+
+    if (ext1 == "pgen") {
+      p1 <- c(
+        p1,
+        LC=mxComputeLoadContext(path=paste(stem1, "pvar", sep = "."), column=1:5, sep='\t',
+                                col.names=c("CHR", "BP", "SNP", "A1", "A2")))
+    } else if (ext1 == "bed") {
+      p1 <- c(
+        p1,
+        LC=mxComputeLoadContext(path=paste(stem1, "bim", sep = "."),
+                                column=c(1,2,4:6), sep='\t', header=FALSE,
+                                col.names=c("CHR", "SNP", "BP", "A2", "A1")))
+    } else {
+      p1 # built-in to BGEN already
+    }
+  }, modelName, snpData, snpFileExt, method, stem)
 
   opt <- list(GD=mxComputeGradientDescent())
   if (is(model$fitfunction, "MxFitFunctionWLS")) {
@@ -126,11 +153,21 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 		   HQ=mxComputeHessianQuality())
   }
 
+  wantVcov <- any(forModels(model, modelName, function(m) {
+    d1 <- m$data
+    if (is.null(d1)) stop(paste("Model",omxQuotes(m$name),"contains no MxData"))
+    obs <- d1$observed
+    if (!('snp' %in% colnames(obs))) {
+      stop(paste("No snp placeholder column in observed data of model", omxQuotes(m$name)))
+    }
+    length(d1$algebra) > 0
+  }))
+
   onesnp <- c(
+    ST=mxComputeSetOriginalStarts(),
     onesnp,
     TC=mxComputeTryCatch(mxComputeSequence(opt)),
-    CK=mxComputeCheckpoint(path=out, standardErrors = TRUE,
-                           vcov = length(model$data$algebra) > 0))
+    CK=mxComputeCheckpoint(path=out, standardErrors = TRUE, vcov = wantVcov))
 
   mxModel(model, mxComputeLoop(onesnp, i=SNP, startFrom=startFrom))
 }
