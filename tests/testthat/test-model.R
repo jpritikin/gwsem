@@ -158,7 +158,7 @@ pgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
 l2 <- pgen[,c(paste0('F1_lambda_i',1:3), paste0('F2_lambda_i',5:7))]
 expect_equivalent((colMeans(l2) / loadings[-4]), rep(1, numIndicators-1),
                   tolerance=.15)
-expect_equal(pgen[['TwoFac.S[9,10]']], rep(1.17,3), .02)
+expect_equal(pgen[['facCov']], rep(1.17,3), .02)
 
 # ------------
 
