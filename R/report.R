@@ -44,16 +44,6 @@ isSuspicious <- function(got, pars) {
       if (!is.null(got[[paste0(p1,'SE')]])) {
         mask <- mask | is.na(got[[paste0(p1,'SE')]])
       }
-      dat <- got[[p1]][!mask]
-      if (length(dat) > 2) {
-        mu <- mean(dat)
-        sigma <- sd(dat)
-        if (sigma > 1e-4) {
-          z <- abs(got[[p1]] - mu) > 10 * sigma  # is crazy?
-          z[is.na(z)] <- FALSE
-          mask <- mask | z
-        }
-      }
     }
   }
   mask
