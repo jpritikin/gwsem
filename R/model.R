@@ -81,6 +81,7 @@ forModels <- function(topModel, modelName, fn) {
 #' @template args-out
 #' @template args-dots-barrier
 #' @template args-startfrom
+#' @template args-rowFilter
 #' @return
 #' The given model with an appropriate compute plan.
 #'
@@ -93,7 +94,7 @@ forModels <- function(topModel, modelName, fn) {
 #' m1 <- prepareComputePlan(m1, file.path(dir,"example.pgen"))
 #' m1$compute
 prepareComputePlan <- function(model, snpData, out="out.log", ...,
-			       SNP=NULL, startFrom=1L)
+			       SNP=NULL, startFrom=1L, rowFilter=NULL)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
 
@@ -122,10 +123,18 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
                "c(",omxQuotes(model$name),"=",snpData[1],")"))
   modelName <- model$name
   if (length(names(snpData))) modelName <- names(snpData)
+  if (length(rowFilter)) {
+    noMatch <- is.na(match(names(rowFilter), modelName))
+    if (any(noMatch)) {
+      stop(paste("Cannot find model associated with rowFilter:",
+                 omxQuotes(names(rowFilter)[noMatch])))
+    }
+  }
 
   onesnp <- mapply(function (mn1, snpData1, ext1, method1, stem1) {
+    rf <- rowFilter[[mn1]]
     p1 <- list(LD=mxComputeLoadData(mn1, column='snp',
-                              path=snpData1, method=method1))
+                              path=snpData1, method=method1, rowFilter=rf))
 
     if (ext1 == "pgen") {
       p1 <- c(
@@ -187,6 +196,7 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 #' @template args-out
 #' @template args-dots-barrier
 #' @template args-startfrom
+#' @template args-rowFilter
 #' @export
 #' @return
 #' The results for each SNP are recorded in the specified log file (\code{out}).
@@ -200,12 +210,13 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 #' m1 <- buildItem(pheno, 'anxiety')
 #' GWAS(m1, file.path(dir,"example.pgen"),
 #'      file.path(tempdir(),"out.log"))
-GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
+GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L,
+                 rowFilter=NULL)
 {
 	# verify model has a continuous 'snp' data column TODO
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   model <- prepareComputePlan(model, snpData, out=out,
-			      SNP=SNP, startFrom=startFrom)
+			      SNP=SNP, startFrom=startFrom, rowFilter=rowFilter)
   model <- mxRun(model)
   message(paste("Done. See", omxQuotes(out), "for results"))
   invisible(model)

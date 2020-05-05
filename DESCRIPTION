@@ -59,7 +59,8 @@ Suggests:
     MASS,
     covr,
     knitr,
-    rmarkdown
+    rmarkdown,
+		digest
 LinkingTo: 
     BH (>= 1.69.0-1),
     Rcpp
