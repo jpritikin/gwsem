@@ -515,7 +515,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 #' @template detail-build
 #'
 #' @template args-phenoData
-#' @param itemNames A vector of phenotypic item names (from \code{phenoData}) that load on the latent factor.
+#' @param itemNames a character list of the names of the items that load onto the latent variable. These names must match variable names in the phenoData file.
 #' @template args-covariates
 #' @template args-exogenous
 #' @template args-dots-barrier
@@ -583,9 +583,9 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' 
 #' @template detail-build
 #' 
-#' @param itemNames A vector of phenotypic item names (from phenoData) that load on the latent factor.
 #' @param factor A logical expression (\code{FALSE} or \code{TRUE}) indicating whether to estimate a regression pathway from the SNP to the latent factor (default FALSE).
 #' @param res A character vector of phenotypic item names that indicate which specific items the user wishes to regress on the SNP. The default is to regress all of the items on the SNP.
+#' @template args-itemNames
 #' @template args-phenoData
 #' @template args-covariates
 #' @template args-exogenous
@@ -656,8 +656,13 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #'
 #' @template detail-build
 #' 
+<<<<<<< HEAD
 #' @param F1itemNames A vector of phenotypic item names (from phenoData) that load on the first latent factor.
 #' @param F2itemNames a vector of phenotypic item names (from phenoData) that load on the second latent factor.
+=======
+#' @template args-F1itemNames
+#' @template args-F2itemNames
+>>>>>>> 2f83d3c... Update model.R
 #' 
 #' @template args-phenoData
 #' @template args-covariates

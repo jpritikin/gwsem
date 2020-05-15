@@ -1,1 +1,2 @@
-#' @param startFrom the index to start from when \code{SNP=NULL}
+#' @param startFrom a numerical value indicating which SNP is the first SNP to be analyzed. The function will then run every SNP from the specified SNP to the end of the GWAS data file. This is very useful if the analysis stops for some reason (i.e. the cluster is restarted for maintenance) and you can start from the last SNP that you analyzed. Note, you will want to label the output file (specified in out) with a new file name so that you don't overwrite the existing results.
+

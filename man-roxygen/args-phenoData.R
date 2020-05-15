@@ -1,1 +1,7 @@
-#' @param phenoData A matrix or data.frame which provides all of the phenotype data to the model (both the items and the covariates). Data should be constructed so that variables are on the columns and individuals are on the rows.
+#' @param phenoData the file pathway for the phenotypic data (e.g. "myData.txt" or 
+#'         "phenotype/myData.txt"). This data file can include more variables than 
+#'         those included in the analysis, but GW-SEM will only use the items/covariates 
+#'         that are specified. (The dangers of very large dataset is that they can take 
+#'         a long time to load and can take up space in the R environment. This should 
+#'         not affect processing speed for the GWAS analysis, but can create headaches 
+#'         for pre-processing).
