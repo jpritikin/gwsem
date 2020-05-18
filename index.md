@@ -1,3 +1,15 @@
+---
+title: GW-SEM Tutorial
+navigation:
+  - section: Section
+  - document: 1.-Standard-GWAS
+    label: Standard GWAS
+  - document: 2.-One-Factor-Model
+    label: One Factor Model
+  - document: 3.-Residuals-Model.md
+    label: Residuals Model
+---
+
 # Welcome to the GW SEM wiki!
 
 ***
