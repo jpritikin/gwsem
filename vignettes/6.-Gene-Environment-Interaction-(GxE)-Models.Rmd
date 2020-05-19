@@ -1,4 +1,18 @@
-# Gene Environment Interaction (GxE) Models
+---
+title: "Gene Environment Interaction (GxE) Genome Wide Association Study"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{item}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
 
 Gene-environment interaction (GxE) studies are incredibly popular methods to explore the potential for varying levels of genetic sensitivity in different environments. On a broad level, understanding the antecedents and consequences that make specific genetic variants are differentially sensitive to environmental stimuli is the basis for numerous phenomena, such as evolutionary pressures and epigenetic effects.
 
@@ -6,28 +20,26 @@ Gene-environment interaction (GxE) studies are incredibly popular methods to exp
 
 Example
 
-To demonstrate how to conduct a GxE GWAS using GW-SEM, we use simulated data for a one factor GWAS model with 6,000 individuals consisting of 2,000 SNPs, three correlated items and 6 covariates (that are a proxy for age, sex, ancestry principle components or other confounds). We simulated similar data that we use in this demonstration. The data and scripts that we used in this demonstration can be found [here](https://github.com/bradverhulst/gwsem/tree/master/gwsemGxEexample).
-
-***
-
-***
+To demonstrate how to conduct a GxE GWAS using GW-SEM, we use simulated data for a one factor GWAS model with 6,000 individuals consisting of 2,000 SNPs, three correlated items and 6 covariates (that are a proxy for age, sex, ancestry principle components or other confounds). We simulated similar data that we use in this demonstration.
 
 ***
 
 The first step is opening R, and loading the GW-SEM package as well as the phenotypic data (including the dependent variable, the moderating/interacting variable and any covariates such as age, sex, or ancestry principle components) into the R computing environment. This can be achieved by using the command below:
 
-```ruby
-require(gwsem)
+```{r}
+library(gwsem)
+
+location <- 'https://jpritikin.github.io/gwsem/gwsemGxEexample'
 
 # Read the phenotype data into R and look at the data
-gxeData <- read.table("gxeData.txt", header=TRUE)
+gxeData <- read.table(file.path(location, "gxeData.txt"), header=TRUE)
 ```
 
 Once the data is loaded into R, you can recode the data, transform it, and tell R if we have ordinal or binary indicators using mxFactor(). The data for this example are simulated and continuous, and therefore, we will not be doing anything now, but if you would like to chop the indicators up into binary or ordinal variables, this would be when you would do it. It is possible to conduct GxE analyses on binary or ordinal variables. With GW-SEM we assume that the binary or ordinal variable follows the Liability-Threshold Model (where the observed categories reflect portions of the underlying liability distribution).
 
 Once you are satisfied the data is in the appropriate shape we can build a one factor GWAS model with the following command: 
 
-```ruby 
+```{r} 
 gxe <- buildItem(phenoData = gxeData, depVar  = "phe",
                   covariates = c("mod", "snp_mod" ,"pc1", "pc2", "pc3", "pc4","pc5"),
                   fitfun = "WLS", exogenous = T, gxe = "mod")
@@ -37,17 +49,23 @@ There are a few differences in how the GxE GWAS is specified relative to the sta
 
 After you have built the gxe model and put it into an object (named gxe), you can take this object which is technically an OpenMx model, and fit it using **_mxRun()_**
 
-```ruby
+```{r}
 gxeFit <- mxRun(gxe)
 summary(gxeFit)
 ```
 
 It is strongly advised to test out the model, as it is a great time to make sure that your model is being specified how you are expecting it to be specified. Now, provided that the model looks reasonable, you can plug the model that you have built into the GWAS function. To fit this function, you must tell GW-SEM:
 
-```ruby
+```{r}
+library(curl)
+curl_download(file.path(location, 'example.pgen'),
+              file.path(tempdir(),'example.pgen'))
+curl_download(file.path(location, 'example.pvar'),
+              file.path(tempdir(),'example.pvar'))
+
 GWAS(model = gxe,                            # the model object
-	snpData = 'example.pgen',            # the path to the snpData
-	out="gxe.log")                       # the results file name
+	snpData = file.path(tempdir(), 'example.pgen'),            # the path to the snpData
+	out=file.path(tempdir(), "gxe.log"))                       # the results file name
 
 ```
 
@@ -55,35 +73,37 @@ When you execute this command, you will begin running your GWAS.
 
 After you finish running the GWAS analysis, the next step is to read the results in to R so that you can examine them, plot them, prepare them to be used by other software packages, etc. While you are unlikely to want to read all of the output into R, it is useful to do this on a small test GWAS analysis to ensure that you are getting reasonable results. To do so, you can use the base R function **_read.delim_**.  This is didactically useful, but it contains much more information than most people want
 
-```ruby
-gxeResult <- read.delim("gxe.log")                            
+```{r}
+gxeResult <- read.delim(file.path(tempdir(), "gxe.log"))                            
 ```
 
 
 More reasonably, we will want to examine the results for a specific parameter using the _**loadResults**_ function. This function takes takes two arguments: the path to the data and the column in the results file for the parameter that you want to examine. Once the summary statistics have been read into R, it is possible to manipulate the results using standard R commands, such as sorting the results by Z-statistics or P-values, as shown below:
 
 
-```ruby
-succinctCond <- loadResults(path = "gxe.log", focus =  "snp_to_phe")
-succinctInt  <- loadResults(path = "gxe.log", focus =  "snp_mod_to_phe")
+```{r}
+succinctCond <- loadResults(path = file.path(tempdir(), "gxe.log"), focus =  "snp_to_phe")
+succinctInt  <- loadResults(path = file.path(tempdir(), "gxe.log"), focus =  "snp_mod_to_phe")
 
 head(succinctCond[order(succinctCond$Z, decreasing = T),])
 head(succinctInt[order(succinctInt$Z, decreasing = T),])
+
 ```
 
 We can also read in the marginal effects for a specific level of the environment, as well as their standard errors, z-statistics, and p-values. To do this, we can use the **_loadResults_** command and specify the **_moderatorLevel_** argument with a numerical value. In the current case the standard deviation of the moderator variable is 1, by using values of -2 and 2, we are asking GW-SEM to provide the marginal effects for 2 standard deviations below and above the means.  While any value of the moderator can be requested, we would suggest using reasonable values of the moderating variable.
 
-```ruby
-margLow  <- loadResults(path = "gxe.log", focus =  "snp_mod_to_phe", moderatorLevel= -2)
-margHigh <- loadResults(path = "gxe.log", focus =  "snp_mod_to_phe", moderatorLevel=  2)
+```{r}
+margLow  <- loadResults(path = file.path(tempdir(), "gxe.log"), focus =  "snp_mod_to_phe", moderatorLevel= -2)
+margHigh <- loadResults(path = file.path(tempdir(), "gxe.log"), focus =  "snp_mod_to_phe", moderatorLevel=  2)
+
 ```
 
 Now that we have the various components that contribute to our GxE GWAS model, we can begin constructing Manhattan plots for the relevant parameters. 
 
-```ruby
+```{r}
 # Manhattan Plots for directly estimated parameters
 plot(succinctCond)  # To plot p-values of the conditional effect
-plot(succinctInd)   # To plot the interaction coefficient
+plot(succinctInt)   # To plot the interaction coefficient
 
 # Manhattan Plots for marginal effects
 plot(margLow)    # To plot p-values for a low level (-2SD) of the moderator
@@ -97,39 +117,19 @@ An alternative, and preferable, interpretation of the GxE GWAS model is to calcu
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```ruby
+```{r}
 library(gwsem)
 
 # Read the phenotype data into R and look at the data
-gxeData <- read.table("gxeData.txt", header=TRUE)
-head(phenoData)
+gxeData <- read.table(file.path(location, "gxeData.txt"), header=TRUE)
+head(gxeData)
 
-table(gxeData$tobacco)
-table(phenoData$cannabis)
-table(phenoData$alcohol)
 ```
 
 As you can see, the tobacco variable is an categorical variable with 3 levels, cannabis is an categorical variable with 4 levels, and alcohol is an categorical variable with 5 levels. To tell R that you want to treat these variables as ordinal, you can use the following **_mxFactor()_** commands:
 
 
-```ruby
+```{r}
 phenoData$tobacco  <- mxFactor(phenoData$tobacco  , levels = 0:2)
 phenoData$cannabis <- mxFactor(phenoData$cannabis , levels = 0:3)
 phenoData$alcohol  <- mxFactor(phenoData$alcohol  , levels = 0:4)
@@ -137,7 +137,7 @@ phenoData$alcohol  <- mxFactor(phenoData$alcohol  , levels = 0:4)
 
 After you are confident that the variables are recoded in the optimal manner, you can begin building the GWAS model. To being with, let's look at how to do a standard GWAS with only one item. The first step in conducting the GWAS analysis is to to build a general model. This takes a series of arguments: 
 
-```ruby
+```{r}
 tob <- buildItem(phenoData = phenoData,                              # the phenotypic data object
                      depVar = c("tobacco"),                          # the outcome or dependent variable 
                      covariates=c('pc1','pc2','pc3','pc4','pc5'),    # the necessary covariates
@@ -146,24 +146,26 @@ tob <- buildItem(phenoData = phenoData,                              # the pheno
 
 After you have built the model and put it into an object (named tob), you can take this object which is technically an OpenMx model, and fit it using _**mxRun()**_"
 
-```ruby
+```{r}
 tobFit <- mxRun(tob)
 summary(tobFit)
 ```
 
 It is strongly advised to test out the model, as it is a great time to learn if your model is being specified in a way that you didn't expect or that the model is not giving you the answers that you are expecting. Now, provided that the model looks reasonable, you can plug the model that you have built into the GWAS function. To fit this function, you must tell GW-SEM :
 
-```ruby
+```{r}
+
+
 GWAS(model = tob,                       # where the model is
-	snpData = 'example.pgen',       # where the snpData 
-	out="tob.log")                  # where you want to save the results
+	snpData = file.path(tempdir(),'example.pgen'),       # where the snpData 
+	out=file.path(tempdir(), "tob.log"))                  # where you want to save the results
 ```
 
 When you execute this command, you will begin running your GWAS.  
 
 After you finish running the GWAS analysis, the next step is to read the results in to R so that you can examine them, plot them, prepare them to be used by other software packages, etc. While you are unlikely to want to read all of the output into R, it is useful to do this on a small test GWAS analysis to ensure that you are getting reasonable results. To do so, you can use the base R function **_read.delim_**.  This is didactically useful, but it contains much more information than most people want
 
-```ruby
+```{r}
 TobFullResult <- read.delim("tob.log")  
 ```
 Note that the results file is tab separated (with dates and times for each snp), so read.table will tell you that the the number of column names does not match the number of data columns.
@@ -172,7 +174,7 @@ Note that the results file is tab separated (with dates and times for each snp),
 More reasonably, we will want to examine the results for a specific parameter using the _**loadResults**_ function. This function takes takes two arguments: the path to the data and the column in the results 
 # file for the parameter that you want to examine.
 
-```ruby
+```{r}
 succinct <- loadResults(path = "tob.log", focus =  "snp_to_tobacco")
 ```
 
@@ -180,7 +182,7 @@ In the post analysis section, I will give you a way to read several files into a
 
 After you have read the results into R, you can manipulate them to your heart's content.  Here is a quick function to plot the p-values as a Manhattan plot:
 
-```ruby
+```{r}
 plot(succinct)
 ```
 
