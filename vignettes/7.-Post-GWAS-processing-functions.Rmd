@@ -24,7 +24,7 @@ Because we are working with several chromosomes, which we typically analyze inde
 
 To simplify things, we can construct a list of file names for each chr with the following code, and then read them all into R in one step, as shown below:
 
-```{r}
+```
 c1  <- paste0(paste0("fac1",  letters)[1:8], ".log")
 c2  <- paste0(paste0("fac2",  letters)[1:9], ".log")
 c3  <- paste0(paste0("fac3",  letters)[1:7], ".log")
@@ -51,7 +51,7 @@ c22 <- paste0(paste0("fac22", letters)[1:2], ".log")
 
 We can then use these object in the loadResults function so that all the data for each chromosome is loaded into a single object.
 
-```{r}
+```
 res <- loadResults(c(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10,
 	                 c11, c12, c13, c14, c15, c16, c17, c18, c19, c20,
 					 c21, c22), "snp_to_F")
@@ -64,7 +64,7 @@ At this point we can combine the data from each chromosome into a single object,
 
 Manhattan plots are one of the most common methods for presenting GWAS results.  While we have built a natural plotting function into GW-SEM the piggy-backs off of _**qqman**_, it is quite simple to construct a Manhattan plot in _**qqman**_ directly using the code below. Rather than plot the results into an graphics device, the code below constructs the plot in an external PDF document (which I find easier to work with when constructing figures for manuscripts).
 
-```{r}
+```
 # Plot the manhattan plot
 png("FacManhattan.pdf", width=1500, height=750)
 par(cex.lab = 2, mai = c(1, 1, .1, .1) + 0.1, bg="transparent")
@@ -83,7 +83,7 @@ This is the ordinal Manhattan plot from the Pritikin et al. paper for the associ
 
 A common post-analytical step in many GWAS is to estimate the SNP heritability (h<sup>2</sup><sub>snp</sub>) from the summary statistics or the genetic correlations (r<sub>g-snp</sub>) with other GWAS results.  GW-SEM simplifies this process such that when summary statistics are read into R with the _**loadResults**_ function, they are in the form that is required by [LD Hub](http://ldsc.broadinstitute.org), or a [local LD score regression analysis](https://github.com/bulik/ldsc).  All that users need to do is to write the results object to an external file.
 
-```{r}
+```
 
 myResults <- loadResults(c(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10,
 	                   c11, c12, c13, c14, c15, c16, c17, c18, c19, c20,
@@ -109,7 +109,7 @@ write.table(myResults, "myResults.txt", quote = F, row.names = F)
 Once a region of interest has been identified, it is often useful to plot the relevant SNPs in the region, along with the information about the extent of linkage disequilibrium (LD) between the lead SNP and other SNPs in the region, recombination rates in the region, and known genes that are proximate to the lead SNP. [LocusZoom](http://locuszoom.org) provides an outstanding resource to efficiently construct and annotate these plots.
 
 
-```{r}
+```
 # Read the results into R
 myResults <- loadResults(c(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10,
 	                   c11, c12, c13, c14, c15, c16, c17, c18, c19, c20,
