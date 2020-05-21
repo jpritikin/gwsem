@@ -115,7 +115,7 @@ As GxE GWAS methods are under-utilized in the literature, there is much less con
 
 An alternative, and preferable, interpretation of the GxE GWAS model is to calculate what we call Marginal Effects (or Simple Slopes).  This is done automatically by GW-SEM using the **_XXX _**functions.  Marginal effects can be interpreted as the GWAS coefficients as a particular level of the environment.  For example, if the moderator is binary as we would see for sex, we could calculate the GWAS results for either Males (sex = 0) or females (sex = 1). Alternatively, if the moderator is continuous, such as age, we might want to calculate the GWAS results for a low level of the moderator (2 SD below the moderator mean) and a high level of the moderator (2 SD above the moderator mean), or at some other particularly relevant value. Notably, while the calculation of marginal effects is an additional step in the analytical process (that GW-SEM does automatically), the interpretation of marginal effects are often more interpretable than either the conditional or interaction parameters, as well as being more closely related to the hypothesis that the analyst is trying to test.
 
-
+### probably delete from here to the end
 
 ```{r}
 library(gwsem)
