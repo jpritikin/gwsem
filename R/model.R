@@ -656,14 +656,8 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #'
 #' @template detail-build
 #' 
-<<<<<<< HEAD
-#' @param F1itemNames A vector of phenotypic item names (from phenoData) that load on the first latent factor.
-#' @param F2itemNames a vector of phenotypic item names (from phenoData) that load on the second latent factor.
-=======
 #' @template args-F1itemNames
 #' @template args-F2itemNames
->>>>>>> 2f83d3c... Update model.R
-#' 
 #' @template args-phenoData
 #' @template args-covariates
 #' @template args-exogenous
