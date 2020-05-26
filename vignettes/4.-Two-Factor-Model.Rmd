@@ -14,13 +14,13 @@ knitr::opts_chunk$set(
 )
 ```
 
-The Two Factor model is an extension of the One Factor Model. The obvious difference between the one and two factor models are the additional regression coefficient and the correlations between the two latent variables (and the additional factor of course).
+The Two Factor model is an extension of the One Factor Model. The difference between the one and two factor models are the additional regression coefficient, and the correlations between the two latent variables.
 
-Unlike the One Factor GWAS model, the Two Factor GWAS model does not have an analogue in the current GWAS literature but nevertheless plays an integral role the many genetic theories of comorbidity and pleiotropy. For example, multivariate twin models routinely detect genetic variation across a range of phenotypes, and interpret these findings in terms of genetic variants that are shared between the phenotypes.  LD score regression analyses take this one step further, testing for genetic overlap between phenotypes based on summary statistics from univariate GWAS.  The two factor GWAS model takes this theoretical hypothesis further than existing methods by allowing users to explicitly test for pleiotropy in a single model. This framework allows users to think about phenotypes from an explicitly multivariate perspective that cannot be fit with alternative GWAS software. A general schematic depiction of the two factor model is presented in the figure below, but users should keep in mind that the number of items in the analysis and the specific parameterization of the model can be adjusted to suit the a specific research question. 
+Unlike the One Factor GWAS model, the Two Factor GWAS model does not have an analogue in the current GWAS literature but nevertheless plays an integral role the many genetic theories of comorbidity and pleiotropy. For example, multivariate twin models routinely detect genetic variation across a range of phenotypes, and interpret these findings in terms of genetic variants that are shared between the phenotypes.  LD score regression analyses take this one step further, testing for genetic overlap between phenotypes based on summary statistics from univariate GWAS.  The two factor GWAS model takes this theoretical hypothesis further than existing methods by allowing users to explicitly test for pleiotropy in a single model. This framework allows users to think about phenotypes from an explicitly multivariate perspective that cannot be achieved with alternative GWAS software. A general schematic depiction of the two factor model is presented in the figure below, but users should keep in mind that the number of items in the analysis and the specific parameterization of the model can be adjusted to suit the specific research question. 
 
-In the Figure below , the latent factor (F<sub>1</sub>) is the underlying (unmeasured) cause the observed items (x<sub>k</sub>). The association between the latent factor and the observed indicators, (x<sub>1</sub>, x<sub>2</sub> \& x<sub>3</sub>), are estimated by the factor loadings (&lambda;<sub>1</sub>, &lambda;<sub>2</sub>, \& &lambda;<sub>3</sub>, respectively). The residual variances (&delta;<sub>1</sub>, &delta;<sub>2</sub>, \& &delta;<sub>3</sub>) indicate the remaining variance in (x<sub>k</sub>) that is not shared with the latent factor. The regression of the latent factor on the SNP (for all SNPs in the analysis) is depicted by (&beta;<sub>F1</sub>). The corresponding factor loadings for the second latent factor  (F<sub>1</sub>) and the y<sub>k</sub> variables can be interpreted similarly. The new parameter that is added to the two factor model that was absent from the one factor model is the covariance between the latent variables (&psi;). This parameter can be interpreted in conjunction with the &beta;<sub>F1</sub> and &beta;<sub>F2</sub> parameters to assess the impact of the genomic associations on comorbidity.
+In the Figure below, the latent factor (F<sub>1</sub>) is the underlying (unmeasured) cause the observed items (x<sub>k</sub>). The association between the latent factor and the observed indicators, (x<sub>1</sub>, x<sub>2</sub> \& x<sub>3</sub>), are estimated by the factor loadings (&lambda;<sub>1</sub>, &lambda;<sub>2</sub>, \& &lambda;<sub>3</sub>, respectively). The residual variances (&delta;<sub>1</sub>, &delta;<sub>2</sub>, \& &delta;<sub>3</sub>) indicate the remaining variance in (x<sub>k</sub>) that is not shared with the latent factor. The regression of the latent factor on the SNP (for all SNPs in the analysis) is depicted by (&beta;<sub>F1</sub>). The corresponding factor loadings for the second latent factor  (F<sub>1</sub>) and the y<sub>k</sub> variables can be interpreted similarly. The new parameter that is added to the two factor model that was absent from the one factor model is the covariance between the latent variables (&psi;). This parameter can be interpreted in conjunction with the &beta;<sub>F1</sub> and &beta;<sub>F2</sub> parameters to assess the impact of the genomic associations on comorbidity.
 
-For the two factor model to be identified, you will need at least three items for each factor (as was the case with the one factor model), but more items will improve the measurement of the latent variables. 
+For the two factor model to be identified, you will need at least three items for each factor (as was the case with the one factor model). It is a good idea to use more items than the minimum; more items will improve the measurement accuracy of the latent variables.
 
 ![A schematic depiction of the Two-Factor GWAS Model](https://jpritikin.github.io/gwsem/exampleFigs/twoFactor.jpg)
 
@@ -44,7 +44,7 @@ TwoDat <- read.table(file.path(location, "phenoTwoData.txt"), header=TRUE)
 head(TwoDat)
 ```
 
-Once the data is loaded into R, you can recode the data, transform it, and tell R if we have ordinal or binary indicators using mxFactor(). The data for this example are simulated and continuous, and therefore, we will not be doing anything now, but if you would like to chop the indicators up into binary or ordinal variables, this would be when you would do it.
+Once the data is loaded into R, you can recode the data, transform it, and tell R if we have ordinal or binary indicators using `mxFactor()`. The data for this example are simulated and continuous, and therefore, we will not be doing anything now, but if you would like to chop the indicators up into binary or ordinal variables, this would be when you would do it.
 
 
 After you are satisfied the data is in the appropriate shape we can build a two factor GWAS model with the following command: 
@@ -60,16 +60,16 @@ twoFac <- buildTwoFac(phenoData = TwoDat,                                       
 
 ```
 
-You can take this object (addFac) which is technically an OpenMx model, and simply fit it using mxRun() 
+You can take this object (addFac) which is technically an OpenMx model, and fit it using `mxRun()`
 
 ```{r}
 twoFacFit <- mxRun(twoFac)
 summary(twoFacFit)
 ```
 
-This is strongly advised, as it is a great time to test whether the model is being specified the way you want it to be and that you are not getting unrealistic estimates.
+This is strongly advised, as it is a great time to test whether the model is being specified the way you want it to be and that you are not getting unexpected estimates.
 
-Provided that the model looks reasonable, you can plug the model that you have built into the GWAS function using the command below:
+Provided that the model looks reasonable, you can plug the model that you have built into the `GWAS` function using the command below:
 
 ```{r}
 library(curl)
@@ -85,13 +85,13 @@ GWAS(model = twoFac,                                                            
 
 ```
 
-**Note about the snpData argument:** The path to your snpData will likely include switching to a different directory (as you will likely do your analysis in a different folder than your SNP data). All you need to do is point to the data using relative paths. Further, it is able to take plink bed/bim/fam or pgen/psam/pvar data or bgen data (oxford format)
+**Note about the snpData argument:** The path to your snpData will likely include switching to a different directory (as you will likely do your analysis in a different folder than your SNP data). All you need to do is point to the data using relative paths. Further, it will accept plink bed/bim/fam or pgen/psam/pvar data or bgen data (Oxford format)
 
 **Note about the SNP argument:** This can be used to run a limited number of SNP (i.e. not the whole snp file). This is particularly useful if you would like to run chop up a chr into several parts without cutting you actual genotype data into separate files.
 
-While GWAS function will take a while and frequently be done on a computing cluster, it is very useful to run a few SNPs (say 10 or 50) in an interactive mode to make sure that: all of your relative file paths to the genotypes are correct, the model is taking a reasonable amount of time (i.e. 1-2 seconds/snp), the SNPs are giving sensible estimates, etc., as the results from a few SNPs can often tell you if there is a problem and that you are running a nonsensical model. 
+While the `GWAS` function will take a while and frequently be done on a computing cluster, it is very useful to run a few SNPs (say 10 or 50) in an interactive session to ensure that: all of your relative file paths to the genotypes are correct, the model is taking a reasonable amount of time (i.e. 1-2 seconds/snp), the SNPs are giving sensible estimates, etc., as the results from a few SNPs can often tell you if there is a problem and that you are running a nonsensical model. 
 
-While most computing clusters have unique queue submission systems (and I would strongly advise you to run GWAS on a computing cluster), the R script that you provide will typically be similar to the one below:
+Refer to local documentation to learn how to submit jobs to your cluster queue submission systems. The R script that you provide will typically be similar to the one below:
 
 ```{r}
 library(gwsem)
@@ -113,15 +113,13 @@ GWAS(model = twoFac,
 
 ```
 
-The next step is to read the results into R. The output from the GWAS function contains all of the estimates and standard errors for all parameters in the model (for each SNP), as well as other general model fitting information.  While you are unlikely to want to read all of this output into R, it is useful to do this on a small test GWAS analysis to ensure that you are getting reasonable results and to familiarize yourself with what is information is available after the analyses, in case you need to explore a specific parameter or model in more detail. This can be done using the command below:  
+The next step is to read the results into R. The output from the `GWAS` function contains all of the estimates and standard errors for all parameters in the model (for each SNP), as well as other general model fitting information.  While you are unlikely to want to read all of this output into R, it is useful to do this on a small test GWAS analysis to ensure that you are getting reasonable results and to familiarize yourself with what information is available, in case you need to explore a specific parameter or model in more detail. This can be done using the command below:  
 
 ```{r}
 TwoResult <- read.delim(file.path(tempdir(), "twoFac.log"))
 ```
 
-More likely, you are going to want to read the results into R for specific coefficients that address a particular hypothesis. For the two factor model we might want to look at both regression paths from the SNP to each latent factor as well as the covariance between the latent factors for jointly significant SNPs. To read the data for all three parameters of interest into R we can use the _**loadResults**_ function. This function can be repeated for as many parameters that you want to read into R.  It takes takes two arguments: the path to the data and the column in the results file for the parameter that you want to examine.
-
-
+More likely, you are going to want to read the results into R for specific coefficients that inform a particular hypothesis. For the two factor model, we might want to look at both regression paths from the SNP to each latent factor as well as the covariance between the latent factors for jointly significant SNPs. To read the data for all three parameters of interest into R we can use the `loadResults` function. This function can be repeated for as many parameters that you want to read into R.  It takes takes two arguments: the path to the data and the column name from the results file for the parameter that you want to examine.
 
 
 ```{r}
@@ -138,7 +136,7 @@ plot(succinct2)
 
 For the Two Factor Model, we will likely want to examine pleiotropic genetic effects by looking at how the pattern of SNP regression affect the correlation between the latent factors.  We would expect that if a single SNP was associated with both factors, we would see a reduction in the correlation between the factors.  Accordingly, we can sort the SNP results that we read into R by the largest Z statistic to see whether there were any SNPs jointly predicted both latent factors.
 
-To demonstrate the intricacies of the Two Factor GWAS model, when simulating the data, we randomly chose snp141 to be associated with both factors, snp50 to be associated with F<sub>1<\sub> only, and snp719 to be associated with F<sub>2<\sub> only. 
+To demonstrate the intricacies of the Two Factor GWAS model, when simulating the data, we randomly chose snp141 to be associated with both factors, snp50 to be associated with F<sub>1</sub> only, and snp719 to be associated with F<sub>2</sub> only. 
 
  ```{r}
 head(succinct1[order(succinct1$Z, decreasing = T),])
@@ -149,7 +147,7 @@ head(succinct2[order(succinct2$Z, decreasing = T),])
 
 As can be seen, snp141 significantly predicts both latent factors.  Let's take a look at this correlation between the latent factors for this SNP.
 
-First, let's read in the factor correlation results, specifically asking to also load the standard errors, and treating the data object as a data frame (which makes it easier to use base R functions to search through the results). Then lets look at the factor correlation for snp141, as well as snp50 and snp719, and a few other snps (say the first 6 in the results file).
+First, let's read in the factor correlation results, specifically asking to also load the standard errors, and treating the data object as a data frame. This makes it easier to use base R functions to search through the results. Let us look at the factor correlation for snp141, as well as snp50 and snp719, and a few other snps (say the first 6 in the results file).
 
 ```{r}
 facCov <- loadResults(path = file.path(tempdir(), "twoFac.log"), focus =  "facCov", .retainSE = T)
