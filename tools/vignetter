@@ -9,4 +9,6 @@ fi
 
 export NOT_CRAN=true
 cd vignettes
-Rscript -e "library(rmarkdown); render('growth.Rmd', html_document())"
+for f in *.Rmd; do
+  Rscript -e "library(rmarkdown); render('$f', html_document())"
+done

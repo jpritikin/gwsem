@@ -64,7 +64,7 @@ You can take this object (addFacRes) which is technically an OpenMx model, and s
 
 ```{r}
 addFacResFit <- mxRun(addFacRes)
-summary(addFacFit)
+summary(addFacResFit)
 ```
 This is strongly advised, as it is a great time to test whether the model is being specified the way you want it to be and that you are not getting unrealistic estimates.
 
