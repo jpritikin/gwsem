@@ -426,19 +426,19 @@ summary(tobFit)
 #&gt; Summary of OneItem 
 #&gt;  
 #&gt; free parameters:
-#&gt;             name     matrix     row     col     Estimate  Std.Error
-#&gt; 1 snp_to_tobacco          A tobacco     snp -0.028076176 0.02040166
-#&gt; 2 pc1_to_tobacco          A tobacco     pc1 -0.002022148 0.01459730
-#&gt; 3 pc2_to_tobacco          A tobacco     pc2  0.001172450 0.01435713
-#&gt; 4 pc3_to_tobacco          A tobacco     pc3  0.008160020 0.01481677
-#&gt; 5 pc4_to_tobacco          A tobacco     pc4  0.023198627 0.01432891
-#&gt; 6 pc5_to_tobacco          A tobacco     pc5 -0.005480785 0.01462331
-#&gt; 7  tobacco_Thr_1 Thresholds       1 tobacco -0.487357729 0.04461592
-#&gt; 8  tobacco_Thr_2 Thresholds       2 tobacco  0.374558577 0.04450772
+#&gt;             name     matrix     row     col      Estimate  Std.Error
+#&gt; 1 snp_to_tobacco          A tobacco     snp -0.0164092605 0.02053366
+#&gt; 2 pc1_to_tobacco          A tobacco     pc1 -0.0022620680 0.01459666
+#&gt; 3 pc2_to_tobacco          A tobacco     pc2  0.0006389396 0.01435472
+#&gt; 4 pc3_to_tobacco          A tobacco     pc3  0.0081501809 0.01480865
+#&gt; 5 pc4_to_tobacco          A tobacco     pc4  0.0229905118 0.01433100
+#&gt; 6 pc5_to_tobacco          A tobacco     pc5 -0.0053254331 0.01462105
+#&gt; 7  tobacco_Thr_1 Thresholds       1 tobacco -0.4633766329 0.04432870
+#&gt; 8  tobacco_Thr_2 Thresholds       2 tobacco  0.3984228550 0.04425405
 #&gt; 
 #&gt; Model Statistics: 
 #&gt;                |  Parameters  |  Degrees of Freedom  |  Fit (r&#39;Wr units)
-#&gt;        Model:              8                   5992         7.411596e-30
+#&gt;        Model:              8                   5992         1.466253e-29
 #&gt;    Saturated:              2                   5998         0.000000e+00
 #&gt; Independence:              2                   5998                   NA
 #&gt; Number of observations/statistics: 6000/6000
@@ -449,8 +449,8 @@ summary(tobFit)
 #&gt; RMSEA:  0  [95% CI (NA, NA)]
 #&gt; Prob(RMSEA &lt;= 0.05): NA
 #&gt; To get additional fit indices, see help(mxRefModels)
-#&gt; timestamp: 2020-05-26 10:48:08 
-#&gt; Wall clock time: 0.4520435 secs 
+#&gt; timestamp: 2020-05-28 14:47:37 
+#&gt; Wall clock time: 0.4479966 secs 
 #&gt; optimizer:  SLSQP 
 #&gt; OpenMx version number: 2.17.3.65 
 #&gt; Need help?  See help(mxSummary)</code></pre>
@@ -465,7 +465,7 @@ GWAS(model = tob,                       # where the model is
     snpData = file.path(tempdir(),&#39;example.pgen&#39;),       # where the snpData 
     out=file.path(tempdir(),&quot;tob.log&quot;))   # where you want to save the results
 #&gt; Running OneItem with 8 parameters
-#&gt; Done. See &#39;/tmp/RtmpW7hAeB/tob.log&#39; for results</code></pre>
+#&gt; Done. See &#39;/tmp/RtmpDBw9oX/tob.log&#39; for results</code></pre>
 <p>When you execute this command, you will begin running your GWAS.</p>
 <p>After you finish running the GWAS analysis, the next step is to read the results in to R so that you can examine them, plot them, prepare them to be used by other software packages, etc. While you are unlikely to want to read all of the output into R, it is useful to do this on a small test GWAS analysis to ensure that you are getting reasonable results. To do so, you can use the base R function <strong><em>read.delim</em></strong>. This is didactically useful, but it contains much more information than most people want</p>
 <pre class="r"><code>TobFullResult &lt;- read.delim(file.path(tempdir(), &quot;tob.log&quot;))  </code></pre>
@@ -494,7 +494,7 @@ GWAS(model = tob,
      snpData = file.path(tempdir(), &#39;example.pgen&#39;),
      out= file.path(tempdir(), &quot;tob.log&quot;))
 #&gt; Running OneItem with 8 parameters
-#&gt; Done. See &#39;/tmp/RtmpW7hAeB/tob.log&#39; for results</code></pre>
+#&gt; Done. See &#39;/tmp/RtmpDBw9oX/tob.log&#39; for results</code></pre>
 </div>
 <div id="the-multivariate-gwas-model" class="section level1">
 <h1>The Multivariate GWAS Model</h1>
@@ -511,41 +511,41 @@ summary(multiFit)
 #&gt; Summary of OneItem 
 #&gt;  
 #&gt; free parameters:
-#&gt;               name     matrix      row      col     Estimate  Std.Error
-#&gt; 1   snp_to_tobacco          A  tobacco      snp -0.038764843 0.02065859
-#&gt; 2  snp_to_cannabis          A cannabis      snp -0.044297053 0.01980010
-#&gt; 3   snp_to_alcohol          A  alcohol      snp -0.010997570 0.01952757
-#&gt; 4   pc1_to_tobacco          A  tobacco      pc1 -0.002696870 0.01460102
-#&gt; 5  pc1_to_cannabis          A cannabis      pc1  0.010616088 0.01385506
-#&gt; 6   pc1_to_alcohol          A  alcohol      pc1 -0.032036906 0.01365227
-#&gt; 7   pc2_to_tobacco          A  tobacco      pc2  0.000494918 0.01435360
-#&gt; 8  pc2_to_cannabis          A cannabis      pc2 -0.009331312 0.01391197
-#&gt; 9   pc2_to_alcohol          A  alcohol      pc2 -0.012028425 0.01377586
-#&gt; 10  pc3_to_tobacco          A  tobacco      pc3  0.008460781 0.01482033
-#&gt; 11 pc3_to_cannabis          A cannabis      pc3  0.006365095 0.01419581
-#&gt; 12  pc3_to_alcohol          A  alcohol      pc3  0.002073626 0.01370668
-#&gt; 13  pc4_to_tobacco          A  tobacco      pc4  0.022596425 0.01434191
-#&gt; 14 pc4_to_cannabis          A cannabis      pc4 -0.009579543 0.01370544
-#&gt; 15  pc4_to_alcohol          A  alcohol      pc4  0.007183340 0.01342062
-#&gt; 16  pc5_to_tobacco          A  tobacco      pc5 -0.004413907 0.01464020
-#&gt; 17 pc5_to_cannabis          A cannabis      pc5  0.019911376 0.01383410
-#&gt; 18  pc5_to_alcohol          A  alcohol      pc5  0.005292111 0.01370857
-#&gt; 19  OneItem.S[1,2]          S  tobacco cannabis  0.295012964 0.01453636
-#&gt; 20  OneItem.S[1,3]          S  tobacco  alcohol  0.386865390 0.01342700
-#&gt; 21  OneItem.S[2,3]          S cannabis  alcohol  0.198212451 0.01408954
-#&gt; 22   tobacco_Thr_1 Thresholds        1  tobacco -0.510612147 0.04585430
-#&gt; 23   tobacco_Thr_2 Thresholds        2  tobacco  0.351453778 0.04570000
-#&gt; 24  cannabis_Thr_1 Thresholds        1 cannabis -0.766469406 0.04476370
-#&gt; 25  cannabis_Thr_2 Thresholds        2 cannabis -0.091146894 0.04408044
-#&gt; 26  cannabis_Thr_3 Thresholds        3 cannabis  0.583721632 0.04467969
-#&gt; 27   alcohol_Thr_1 Thresholds        1  alcohol -0.866305913 0.04454187
-#&gt; 28   alcohol_Thr_2 Thresholds        2  alcohol -0.277661001 0.04364662
-#&gt; 29   alcohol_Thr_3 Thresholds        3  alcohol  0.229315372 0.04362582
-#&gt; 30   alcohol_Thr_4 Thresholds        4  alcohol  0.817983565 0.04468699
+#&gt;               name     matrix      row      col      Estimate  Std.Error
+#&gt; 1   snp_to_tobacco          A  tobacco      snp  0.0198776927 0.02050739
+#&gt; 2  snp_to_cannabis          A cannabis      snp -0.0107178799 0.01996446
+#&gt; 3   snp_to_alcohol          A  alcohol      snp  0.0032594577 0.01917464
+#&gt; 4   pc1_to_tobacco          A  tobacco      pc1 -0.0025760949 0.01459848
+#&gt; 5  pc1_to_cannabis          A cannabis      pc1  0.0111077611 0.01384798
+#&gt; 6   pc1_to_alcohol          A  alcohol      pc1 -0.0319803979 0.01365025
+#&gt; 7   pc2_to_tobacco          A  tobacco      pc2  0.0006668005 0.01435625
+#&gt; 8  pc2_to_cannabis          A cannabis      pc2 -0.0089344715 0.01391250
+#&gt; 9   pc2_to_alcohol          A  alcohol      pc2 -0.0119713181 0.01377878
+#&gt; 10  pc3_to_tobacco          A  tobacco      pc3  0.0081835868 0.01481084
+#&gt; 11 pc3_to_cannabis          A cannabis      pc3  0.0061611976 0.01418166
+#&gt; 12  pc3_to_alcohol          A  alcohol      pc3  0.0020104438 0.01370785
+#&gt; 13  pc4_to_tobacco          A  tobacco      pc4  0.0230310635 0.01433134
+#&gt; 14 pc4_to_cannabis          A cannabis      pc4 -0.0088476576 0.01371989
+#&gt; 15  pc4_to_alcohol          A  alcohol      pc4  0.0073218067 0.01341903
+#&gt; 16  pc5_to_tobacco          A  tobacco      pc5 -0.0052316383 0.01461563
+#&gt; 17 pc5_to_cannabis          A cannabis      pc5  0.0189429102 0.01382044
+#&gt; 18  pc5_to_alcohol          A  alcohol      pc5  0.0050518793 0.01369553
+#&gt; 19  OneItem.S[1,2]          S  tobacco cannabis  0.2955350566 0.01453508
+#&gt; 20  OneItem.S[1,3]          S  tobacco  alcohol  0.3869103198 0.01342567
+#&gt; 21  OneItem.S[2,3]          S cannabis  alcohol  0.1984135406 0.01408411
+#&gt; 22   tobacco_Thr_1 Thresholds        1  tobacco -0.3904571510 0.04445841
+#&gt; 23   tobacco_Thr_2 Thresholds        2  tobacco  0.4713699900 0.04453898
+#&gt; 24  cannabis_Thr_1 Thresholds        1 cannabis -0.6964360536 0.04429321
+#&gt; 25  cannabis_Thr_2 Thresholds        2 cannabis -0.0216056642 0.04354399
+#&gt; 26  cannabis_Thr_3 Thresholds        3 cannabis  0.6529620209 0.04405212
+#&gt; 27   alcohol_Thr_1 Thresholds        1  alcohol -0.8370255090 0.04297543
+#&gt; 28   alcohol_Thr_2 Thresholds        2  alcohol -0.2484329242 0.04198732
+#&gt; 29   alcohol_Thr_3 Thresholds        3  alcohol  0.2585022982 0.04200003
+#&gt; 30   alcohol_Thr_4 Thresholds        4  alcohol  0.8471848967 0.04292064
 #&gt; 
 #&gt; Model Statistics: 
 #&gt;                |  Parameters  |  Degrees of Freedom  |  Fit (r&#39;Wr units)
-#&gt;        Model:             30                  17970         2.128455e-28
+#&gt;        Model:             30                  17970         1.628204e-25
 #&gt;    Saturated:              9                  17991         0.000000e+00
 #&gt; Independence:              6                  17994                   NA
 #&gt; Number of observations/statistics: 6000/18000
@@ -556,8 +556,8 @@ summary(multiFit)
 #&gt; RMSEA:  0  [95% CI (NA, NA)]
 #&gt; Prob(RMSEA &lt;= 0.05): NA
 #&gt; To get additional fit indices, see help(mxRefModels)
-#&gt; timestamp: 2020-05-26 10:48:34 
-#&gt; Wall clock time: 0.282764 secs 
+#&gt; timestamp: 2020-05-28 14:48:03 
+#&gt; Wall clock time: 0.301121 secs 
 #&gt; optimizer:  SLSQP 
 #&gt; OpenMx version number: 2.17.3.65 
 #&gt; Need help?  See help(mxSummary)</code></pre>
@@ -566,7 +566,7 @@ summary(multiFit)
      snpData = file.path(tempdir(), &#39;example.pgen&#39;),
      out=file.path(tempdir(), &quot;multi.log&quot;))
 #&gt; Running OneItem with 30 parameters
-#&gt; Done. See &#39;/tmp/RtmpW7hAeB/multi.log&#39; for results</code></pre>
+#&gt; Done. See &#39;/tmp/RtmpDBw9oX/multi.log&#39; for results</code></pre>
 <p>Now that we have run the residual’s model, we have multiple parameters that we want to load into R (three in this case). The function to do this is the same as for one parameter, but you need to do it several times (once for each parameter). This gives several R objects.</p>
 <pre class="r"><code>succinctTob &lt;- loadResults(path = file.path(tempdir(), &quot;multi.log&quot;),
                            focus =  &quot;snp_to_tobacco&quot;)
