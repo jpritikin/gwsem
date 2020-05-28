@@ -14,17 +14,17 @@ knitr::opts_chunk$set(
 )
 ```
 
-In some cases, user may want to specify custom models that diverge from the built-in functions to test hypotheses that we (as developers) may not have thought of. One of the easiest ways to build these models is by using Onyx, to literally draw the path model, export the script that constructs the model, and run the GWAS. Alternatively, users can simply write their own GWAS model using the mxPath specification in OpenMx.  In this tutorial we will walk you through building the model with Onyx.
+In some cases, a user may want to specify custom models  to test hypotheses that we (as developers) may not have thought of. One of the easiest ways to build these models is by using Onyx, to literally draw the path model, export the script that constructs the model, and run the GWAS. Alternatively, users can simply write their own GWAS model using the mxPath specification in OpenMx.  In this tutorial we will walk you through building the model with Onyx.
 
 
 # Installing the necessary software
 
-The first step is to download the Onyx software.  This software can be downloaded from the [Onyx](http://onyx.brandmaier.de) website. Onyx uses Java, which users will also need to install if it is not installed already.
+The first step is to download the Onyx software.  This software can be downloaded from the [Onyx](http://onyx.brandmaier.de) website. Onyx is written in Java, which users will also need to install if it is not installed already.
 
 
 ## Building a Custom GWAS Model
 
-In this example, we will build a latent growth curve (LGC) GWAS model.  The LGC model is a common phenotypic model for describing developmental processes.  For example, imagine that you have repeated (longitudinal) measures of a  phenotype at regular intervals (say annually), as well as GWAS data on the same individuals. In the initial version of GW-SEM, we constructed a built-in function for analyzing this type of model, but the current release does not offer a built in LGC function. Here we demonstrate how to build a LGC GWAS model from scratch and perform a genome-wide association test on the slope. As this is a reasonably complex model, it is an excellent example as simpler custom models can be easily extracted from the demonstration.
+In this example, we will build a latent growth curve (LGC) GWAS model.  The LGC model is a common phenotypic model for developmental processes.  For example, imagine that you have repeated (longitudinal) measures of a  phenotype at regular intervals (say annually), as well as GWAS data on the same individuals. In the initial version of GW-SEM, we constructed a built-in function for analyzing this type of model, but the current release does not offer a built in LGC function. Here we demonstrate how to build a LGC GWAS model from scratch and perform a genome-wide association test on the slope.
 
 
 # Designing the Model
@@ -44,7 +44,7 @@ This will produce the following figure:
 
 The next step is to add parameters to the model that we will need for the GWAS portion.  Specifically, we will add 1) a name to the model, 2) the SNP, 3) regressions from the latent intercept and latent slope variables onto the SNP, and 4) a covariance between the intercept and the slope.
 
-To name the model, right click on the with space and several options will appear. In the text box, change the name to LCG GWAS.
+To name the model, right click on the canvas white space and several options will appear. In the text box, change the name to LCG GWAS.
 
 To add the SNP, right click on the white space and click **_Create Variable > Observed_**. Then right click on the new box that appears and change the Variable name to _**SNP**_.
 
@@ -66,7 +66,7 @@ At this point you have drawn a path diagram for a basic LGC GWAS model.
 
 ## Building the GWAS model in R
 
-Once we have drawn the path model in Onyx we can export export the model syntax into a form that can be read by R, and customize it so that it can be read by GW-SEM. To export the model, right click on the white space and choose **_Show Script > OpenMx (Path)_**. This will bring up a window at the top of the path diagram with syntax that can be copied into an R script.
+Once we have drawn the path model in Onyx, we can export the model syntax into a form that can be read by R, and customize it so that it can be read by GW-SEM. To export the model, right click on the white space and choose **_Show Script > OpenMx (Path)_**. This will bring up a window at the top of the path diagram with syntax that can be copied into an R script.
 
 It is now necessary to edit the code to remove irrelevant syntax and make a few changes to accommodate covariates. To make these changes easier, we gather up all the mxPath statements into a list.
 
@@ -163,7 +163,7 @@ GWAS(lgcGWAS,
 
 ```
 
-The loadResults function calculates Z scores and P values for the snp__slope and snp__int parameters.
+The loadResults function calculates Z scores and P values for the `snp__slope` and `snp__int` parameters.
                                                                           
 ```{r}
 LGCresInt <- loadResults(file.path(tempdir(), 'lgc.log'), 'snp__intercept')
