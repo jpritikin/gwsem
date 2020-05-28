@@ -158,8 +158,7 @@ curl_download(file.path(location, 'example.pvar'),
 # Run the GWAS Model
 GWAS(lgcGWAS,
      file.path(tempdir(), "example.pgen"),
-     file.path(tempdir(), "lgc.log"),
-     SNP = 1:20)
+     file.path(tempdir(), "lgc.log"))
 
 ```
 
