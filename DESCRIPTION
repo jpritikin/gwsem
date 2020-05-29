@@ -1,7 +1,7 @@
 Type: Package
 Package: gwsem
 Title: Genome-Wide Structural Equation Modeling
-Version: 0.1.17
+Version: 2.0.0
 Authors@R:
     c(person(given = c("Joshua", "N."),
              family = "Pritikin",
@@ -72,5 +72,5 @@ Encoding: UTF-8
 Language: en-US
 LazyData: true
 NeedsCompilation: yes
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
 SystemRequirements: GNU make
