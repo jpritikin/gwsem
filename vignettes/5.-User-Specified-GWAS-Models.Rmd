@@ -2,7 +2,7 @@
 title: "User Specified Genome Wide Association Study"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{item}
+  %\VignetteIndexEntry{Custom GWAS}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

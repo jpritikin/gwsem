@@ -2,7 +2,7 @@
 title: "Single Factor Genome Wide Association Study"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{item}
+  %\VignetteIndexEntry{Single Factor GWAS}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
