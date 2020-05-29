@@ -2,7 +2,7 @@
 
 language: R
 cache: packages
-dist: xenial
+dist: bionic
 latex: true
 
 addons:
