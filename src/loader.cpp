@@ -54,8 +54,7 @@ struct BgenXfer {
 	}
 };
 
-struct LoadDataBGENProvider2 : public LoadDataProvider2<LoadDataBGENProvider2> {
-	friend class LoadDataBGENProvider;
+class LoadDataBGENProvider : public LoadDataProvider<LoadDataBGENProvider> {
 	int cpIndex;
 	genfile::bgen::View::UniquePtr bgenView;
 
@@ -81,13 +80,13 @@ struct LoadDataBGENProvider2 : public LoadDataProvider2<LoadDataBGENProvider2> {
 	virtual int getNumVariants();
 };
 
-int LoadDataBGENProvider2::getNumVariants()
+int LoadDataBGENProvider::getNumVariants()
 {
 	if (bgenView.get() == 0) return 0;
 	return bgenView->number_of_variants();
 }
 
-void LoadDataBGENProvider2::loadRowImpl(int index)
+void LoadDataBGENProvider::loadRowImpl(int index)
 {
 	// discard m_postheader_data? TODO
 	if (columns.size() != 1) mxThrow("%s: bgen only has 1 column, not %d",
@@ -107,9 +106,9 @@ void LoadDataBGENProvider2::loadRowImpl(int index)
 		query->initialise();
 		bgenView->set_query( query ) ;
 		curRecord = index;
-		if (destRows != int(bgenView->number_of_samples())) {
+		if (rows != int(bgenView->number_of_samples())) {
 			mxThrow("%s: %s has %d rows but %s has %d samples",
-				name, dataName, destRows, filePath.c_str(),
+				name, dataName, rows, filePath.c_str(),
 				int(bgenView->number_of_samples()));
 		}
 		loadCounter += 1;
@@ -141,8 +140,7 @@ void LoadDataBGENProvider2::loadRowImpl(int index)
 	}
 }
 
-struct LoadDataPGENProvider2 : public LoadDataProvider2<LoadDataPGENProvider2> {
-	friend class LoadDataPGENProvider;
+class LoadDataPGENProvider : public LoadDataProvider<LoadDataPGENProvider> {
 	int cpIndex;
 
 	struct PgenFileInfoDtor {
@@ -229,10 +227,10 @@ void Dosage16ToDoublesMinus9(const uintptr_t* genoarr, const uintptr_t* dosage_p
 	Dosage16ToDoubles(kGenoDoublePairs, genoarr, dosage_present, dosage_main, sample_ct, dosage_ct, geno_double);
 }
 
-int LoadDataPGENProvider2::getNumVariants()
+int LoadDataPGENProvider::getNumVariants()
 { return pgen_info->raw_variant_ct; }
 
-void LoadDataPGENProvider2::loadRowImpl(int index)
+void LoadDataPGENProvider::loadRowImpl(int index)
 {
 	if (columns.size() != 1) mxThrow("%s: pgen only has 1 column, not %d",
 					 name, int(columns.size()));
@@ -243,7 +241,7 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 		PreinitPgfi(pgen_info.get());
 		pgen_info->vrtypes = 0;
 		uint32_t cur_variant_ct = 0xffffffffU;
-		uint32_t cur_sample_ct = destRows;
+		uint32_t cur_sample_ct = rows;
 		PgenHeaderCtrl header_ctrl;
 		uintptr_t pgfi_alloc_cacheline_ct;
 		char errstr_buf[kPglErrstrBufBlen];
@@ -307,7 +305,7 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 		loadCounter += 1;
 	}
 
-	if (1+index > int(pgen_info->raw_variant_ct)) {
+        if (1+index > int(pgen_info->raw_variant_ct)) {
 	  mxThrow("%s: out of data (record %d requested but only %d in file)",
 		  name, 1+index, int(pgen_info->raw_variant_ct));
 	}
@@ -325,7 +323,7 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 
 		double *rd = stripeData[0].realData;
 		int nrows = 0;
-		for (int rx=0; rx < destRows; ++rx) {
+		for (int rx=0; rx < rows; ++rx) {
 			if (!std::isfinite(rd[rx])) continue;
 			maf += rd[rx];
 			nrows += 1;
@@ -344,7 +342,7 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 
 		int *rd = stripeData[0].intData;
 		int nrows = 0;
-		for (int rx=0; rx < destRows; ++rx) {
+		for (int rx=0; rx < rows; ++rx) {
 			if (rd[rx] == NA_INTEGER) continue;
 			maf += rd[rx];
 			nrows += 1;
@@ -363,7 +361,7 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 
 void setup2(AddLoadDataProviderType aldp)
 {
-	int sz2 = sizeof(LoadDataProviderBase2);
-	aldp(OPENMX_LOAD_DATA_API_VERSION, sz2, new LoadDataPGENProvider2());
-	aldp(OPENMX_LOAD_DATA_API_VERSION, sz2, new LoadDataBGENProvider2());
+	int sz = sizeof(LoadDataProviderBase);
+	aldp(OPENMX_LOAD_DATA_API_VERSION, sz, new LoadDataPGENProvider());
+	aldp(OPENMX_LOAD_DATA_API_VERSION, sz, new LoadDataBGENProvider());
 }
