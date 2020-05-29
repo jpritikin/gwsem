@@ -39,7 +39,7 @@ forModels <- function(topModel, modelName, fn) {
 #' process the 100th and 200th SNP. The first SNP in the
 #' \code{snpData} file is at offset 1. When \code{SNP} is omitted then
 #' all available SNPs are processed.
-#' 
+#'
 #' The suffix of \code{snpData} filename is interpreted to signal the
 #' format of how the SNP data is stored on disk. Suffixes
 #' \sQuote{pgen}, \sQuote{bed}, and \sQuote{bgen} are supported.
@@ -88,7 +88,9 @@ forModels <- function(topModel, modelName, fn) {
 #' @importFrom methods is
 #' @seealso \link{GWAS}
 #' @examples
-#' m1 <- mxModel("test", mxFitFunctionWLS())
+#' pheno <- data.frame(anxiety=cut(rnorm(500), c(-Inf, -.5, .5, Inf),
+#' ordered_result = TRUE))
+#' m1 <- buildItem(pheno, 'anxiety')
 #' dir <- system.file("extdata", package = "gwsem")
 #' m1 <- prepareComputePlan(m1, file.path(dir,"example.pgen"))
 #' m1$compute
@@ -176,10 +178,10 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 #'
 #' \lifecycle{maturing}
 #' The GWAS function is used to run a genome-wide association study based on the specified model. This function is design to take the output from \link{buildOneFac}, \link{buildOneFacRes}, and \link{buildTwoFac} as input, but can also take a similar user specified model. Users should be confident that the models they are running are statistically identified. It is advisable that the users empirically gauge time requirements by running a limited number of SNPs (e.g. 10) to ensure that all SNPs can be fit in a reasonable amount of time.
-#' 
+#'
 #' Adds a compute plan returned by \link{prepareComputePlan} to the
 #' provided \code{model} and runs it. Once analyses are complete,
-#' load your aggregated results with \link{loadResults}. 
+#' load your aggregated results with \link{loadResults}.
 #'
 #' @template args-model
 #' @template args-snpData
@@ -220,7 +222,7 @@ GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L)
 #' is returned without changes.
 #'
 #' @details
-#' 
+#'
 #' Thresholds are added using \link[OpenMx]{mxThreshold}. Starting
 #' values for thresholds use the defaults provided by this function
 #' which assumes a mean of zero and variance of the square root of
@@ -283,7 +285,7 @@ setupThresholds <- function(model)
 #' \link[OpenMx]{mxFitFunctionWLS}, only manifest indicators can be
 #' adjusted for exogenous covariates.
 #' This function always adjusts manifest indicators regardless of the fit function.
-#' 
+#'
 #' @template args-model
 #' @param covariates a character vector naming covariates available in the model data
 #' @param itemNames a character vector of item names
@@ -301,7 +303,7 @@ setupExogenousCovariates <- function(model, covariates, itemNames)
 {
   if (length(covariates)==0) return(model)
 
-  covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates)) 
+  covMean   <- mxPath(from = "one", to = covariates, free=FALSE, labels = paste0('data.',covariates))
   cov2item  <- mxPath(from = covariates, to = itemNames, connect = "all.pairs",
                       labels = paste(rep(covariates, each = length(itemNames)), itemNames,
                                      sep = "_to_"))
@@ -412,7 +414,7 @@ postprocessModel <- function(model, indicators, exogenous)
 #'
 #' \lifecycle{maturing}
 #' @template detail-build
-#' 
+#'
 #' @section WLS Technical Note:
 #' When the \code{depVar} item is/are continuous,
 #' covariates are endogenous (the default),
@@ -467,7 +469,7 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
   } else {
 	  latents <- c("snp", covariates)
   }
-  
+
   paths <- endogenousCovariatePaths(phenoData, endoCovariates, depVar)
   if (!exogenous) paths <- c(paths, endogenousSNPpath(depVar))
   paths <- c(paths,
@@ -569,9 +571,9 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' The \code{buildOneFacRes} function is used to specify a single factor latent variable model where a combination of items as well as the latent variable may be predicted by a genomic variant such as a single nucleotide polymorphism, as well as range of covariates. \figure{resid.jpg}{Single Factor Model with a Focus on Residuals}
 #'
 #' Be aware that a latent variable model is not identified if all of the residuals as well as the latent variable are simultaneously predicted by the SNP.  Specifically, if users wish to use the SNP to predict the latent variable, they much choose at least one (and preferably more that one) item to not be predicted by the SNP.
-#' 
+#'
 #' @template detail-build
-#' 
+#'
 #' @param factor A logical expression (\code{FALSE} or \code{TRUE}) indicating whether to estimate a regression pathway from the SNP to the latent factor (default FALSE).
 #' @param res A character vector of phenotypic item names that indicate which specific items the user wishes to regress on the SNP. The default is to regress all of the items on the SNP.
 #' @template args-itemNames
@@ -582,7 +584,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' @template args-minmaf
 #' @template args-dots-barrier
 #' @template args-gxe
-#' 
+#'
 #' @family model builder
 #' @export
 #' @return
@@ -598,7 +600,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
-  
+
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
   if (is.na(exogenous)) exogenous <- defaultExogenous
 
@@ -644,7 +646,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' The buildTwoFac function is used to specify a model with two latent variables where each latent variable is simultaneously predicted by a genomic variant such as a single nucleotide polymorphism, as well as range of covariates. The model allows the latent variables to correlate to accomodate comorbidity between latent traits. \figure{twoFactor.jpg}{Two Factor Model}
 #'
 #' @template detail-build
-#' 
+#'
 #' @template args-F1itemNames
 #' @template args-F2itemNames
 #' @template args-phenoData
