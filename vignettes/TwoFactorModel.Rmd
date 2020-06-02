@@ -1,6 +1,8 @@
 ---
 title: "Two Factor Genome Wide Association Study"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    self_contained: false
 vignette: >
   %\VignetteIndexEntry{Two Factor GWAS}
   %\VignetteEngine{knitr::rmarkdown}

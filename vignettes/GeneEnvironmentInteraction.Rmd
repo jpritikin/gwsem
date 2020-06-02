@@ -1,6 +1,8 @@
 ---
 title: "Gene Environment Interaction (GxE) Genome Wide Association Study"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    self_contained: false
 vignette: >
   %\VignetteIndexEntry{GxE GWAS}
   %\VignetteEngine{knitr::rmarkdown}

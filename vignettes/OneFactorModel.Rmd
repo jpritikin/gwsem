@@ -1,6 +1,8 @@
 ---
 title: "Single Factor Genome Wide Association Study"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    self_contained: false
 vignette: >
   %\VignetteIndexEntry{Single Factor GWAS}
   %\VignetteEngine{knitr::rmarkdown}

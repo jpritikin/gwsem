@@ -1,6 +1,8 @@
 ---
 title: "Post-GWAS processing functions"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    self_contained: false
 vignette: >
   %\VignetteIndexEntry{Post GWAS}
   %\VignetteEngine{knitr::rmarkdown}

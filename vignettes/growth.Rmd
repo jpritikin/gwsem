@@ -1,6 +1,8 @@
 ---
 title: "Latent Growth Curve, Genome-Wide Association Study"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    self_contained: false
 vignette: >
   %\VignetteIndexEntry{growth}
   %\VignetteEngine{knitr::rmarkdown}

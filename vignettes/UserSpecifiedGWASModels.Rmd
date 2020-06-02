@@ -1,6 +1,8 @@
 ---
 title: "User Specified Genome Wide Association Study"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    self_contained: false
 vignette: >
   %\VignetteIndexEntry{Custom GWAS}
   %\VignetteEngine{knitr::rmarkdown}
