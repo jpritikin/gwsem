@@ -14,6 +14,8 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+is_CRAN <- !identical(Sys.getenv("NOT_CRAN"), "true")
+if (is_CRAN) q()
 ```
 
 In a standard GWAS analyses, a single phenotype is repeatedly regressed on each single nucleotide polymorphism (SNP) in the users genomic data file (as well as a fixed set of covariates). While there are several software packages that allow users to conduct GWAS analyses, GW-SEM is the only routine that allows users to conduct GWAS analyses that model ordinal data as a probit response, relying on a liability-threshold model to link the observed ordinal variable to a continuous underlying liability. GW-SEM can also manage quantitative (continuous) or binary (case-control) variables in the same manner as other standard GWAS software packages.

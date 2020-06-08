@@ -15,5 +15,7 @@ mkdir staging
 git archive --format=tar HEAD | (cd staging; tar -xf -)
 cd staging
 
+export NOT_CRAN=true
+
 ./tools/rox
 R CMD build .

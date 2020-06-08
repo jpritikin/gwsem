@@ -14,6 +14,8 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+is_CRAN <- !identical(Sys.getenv("NOT_CRAN"), "true")
+if (is_CRAN) q()
 ```
 
 Gene-environment interaction (GxE) studies are incredibly popular methods to explore the potential for varying levels of genetic sensitivity in different environments. On a broad level, antecedents and consequences that make specific genetic variants differentially sensitive to environmental stimuli inform numerous phenomena, such as evolutionary pressures and epigenetic effects.

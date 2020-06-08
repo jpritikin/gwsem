@@ -14,6 +14,8 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+is_CRAN <- !identical(Sys.getenv("NOT_CRAN"), "true")
+if (is_CRAN) q()
 ```
 
 GWAS analyses produce an enormous amount of results, and it can be daunting to wade through them.  
