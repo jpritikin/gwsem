@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 is_CRAN <- !identical(Sys.getenv("NOT_CRAN"), "true")
-if (is_CRAN) q()
+knitr::opts_chunk$set(eval = !is_CRAN)
 ```
 
 In some cases, a user may want to specify custom models  to test hypotheses that we (as developers) may not have thought of. One of the easiest ways to build these models is by using Onyx, to literally draw the path model, export the script that constructs the model, and run the GWAS. Alternatively, users can simply write their own GWAS model using the mxPath specification in OpenMx.  In this tutorial we will walk you through building the model with Onyx.

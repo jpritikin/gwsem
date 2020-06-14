@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 is_CRAN <- !identical(Sys.getenv("NOT_CRAN"), "true")
-if (is_CRAN) q()
+knitr::opts_chunk$set(eval = !is_CRAN)
 ```
 
 The Residuals GWAS Model is a variant of the One Factor GWAS Model where the SNP directly predicts one or more of the item-specific residuals, after accounting for the latent variable.  The Figure below presents a schematic representation of the Residuals Model. The identification requirements are the same as for the one factor GW-SEM model. The notable difference is that the individual items are regressed on each SNP (&gamma;<sub>k</sub>). The residuals model allows researchers to regress a SNP on the residuals of the items that contribute to a latent factor. It is also possible to fit the residuals model so that the latent factor and a subset of the items are regressed on the SNPs. If you do this, in order to identify the SEM it is only possible to regress a subset of the items and the latent factor on the SNP or the model will not be identified. 

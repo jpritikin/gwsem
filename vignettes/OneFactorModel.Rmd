@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 is_CRAN <- !identical(Sys.getenv("NOT_CRAN"), "true")
-if (is_CRAN) q()
+knitr::opts_chunk$set(eval = !is_CRAN)
 ```
 
 The One Factor model is a natural extension of univariate genome-wide association study (GWAS).
