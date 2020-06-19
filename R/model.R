@@ -462,20 +462,19 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
   }
 
   manifest <- depVar
-  if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   latents <- c()
   endoCovariates <- c()
+  pred <- 'snp'
+  if (length(gxe)) pred <- c(pred, paste0('snp_', gxe))
   if (!exogenous) {
-	  manifest <- c(manifest, "snp", covariates)
+	  manifest <- c(manifest, pred, covariates)
 	  endoCovariates <- covariates
   } else {
-	  latents <- c("snp", covariates)
+	  latents <- c(pred, covariates)
   }
 
   paths <- endogenousCovariatePaths(phenoData, endoCovariates, depVar)
   if (!exogenous) {
-    pred <- 'snp'
-    if (length(gxe)) pred <- c(pred, paste0('snp_', gxe))
     paths <- c(paths, endogenousSNPpath(pred, depVar))
   }
   paths <- c(paths,
