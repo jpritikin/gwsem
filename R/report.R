@@ -104,7 +104,7 @@ loadResults <- function(path, focus, ..., extraColumns=c(),
       mod <- substr(focus, cstart[1], cstart[1]+clen[1]-1L)
       outcome <- substr(focus, cstart[2], cstart[2]+clen[2]-1L)
       mainEffect <- paste0('snp_to_', outcome)
-      sel <- c(sel, mainEffect, paste0(mainEffect, 'SE'), paste0('V', focus, ':', mainEffect))
+      sel <- c(sel, mainEffect, paste0(mainEffect, 'SE'), paste0('V', mainEffect, ':', focus))
     }
   }
   got <- list()
@@ -121,7 +121,7 @@ loadResults <- function(path, focus, ..., extraColumns=c(),
       d1[[paste0(focus,'SE')]] <-
         sqrt(d1[[paste0(mainEffect,'SE')]]^2 +
                moderatorLevel^2 * d1[[paste0(focus,'SE')]]^2 +
-               2*moderatorLevel * d1[[paste0('V', focus, ':', mainEffect)]])
+               2*moderatorLevel * d1[[paste0('V', mainEffect, ':', focus)]])
       for (col in c(mainEffect, paste0(mainEffect, 'SE'), paste0('V', focus, ':', mainEffect))) {
         d1[[col]] <- NULL
       }
@@ -175,7 +175,7 @@ loadSuspicious <- function(path, focus, ..., extraColumns=c(),
       mod <- substr(focus, cstart[1], cstart[1]+clen[1]-1L)
       outcome <- substr(focus, cstart[2], cstart[2]+clen[2]-1L)
       mainEffect <- paste0('snp_to_', outcome)
-      sel <- c(sel, mainEffect, paste0(mainEffect, 'SE'), paste0('V', focus, ':', mainEffect))
+      sel <- c(sel, mainEffect, paste0(mainEffect, 'SE'), paste0('V', mainEffect, ':', focus))
     }
   }
   got <- list()
@@ -191,7 +191,7 @@ loadSuspicious <- function(path, focus, ..., extraColumns=c(),
       d1[[paste0(focus,'SE')]] <-
         sqrt(d1[[paste0(mainEffect,'SE')]]^2 +
                moderatorLevel^2 * d1[[paste0(focus,'SE')]]^2 +
-               2*moderatorLevel * d1[[paste0('V', focus, ':', mainEffect)]])
+               2*moderatorLevel * d1[[paste0('V', mainEffect, ':', focus)]])
     }
     got <- rbind(got, d1)
   }

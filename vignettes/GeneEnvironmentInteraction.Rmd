@@ -45,11 +45,11 @@ Once you are satisfied the data are in the appropriate shape we can build a one 
 
 ```{r} 
 gxe <- buildItem(phenoData = gxeData, depVar  = "phe",
-                  covariates = c("mod", "snp_mod" ,"pc1", "pc2", "pc3", "pc4","pc5"),
+                  covariates = c("mod", "pc1", "pc2", "pc3", "pc4","pc5"),
                   fitfun = "WLS", exogenous = T, gxe = "mod")
 ```
 
-There are a few differences in how the GxE GWAS is specified relative to the standard GWAS even though both models use the _**buildItem**_ function.  First, we must add the **_gxe_** argument which tells GW-SEM that we want to conduct a GxE GWAS and which variable is the moderator.  By doing so, when GW-SEM reads in the GWAS data in the C++ backend, it will automatically create a multiplicative interaction variable. This newly created variable name will be named "snp" with your specific variable name appended to it, separated by an underscore. In the current example, our moderating variable is named "mod" and therefore the interaction term is named "snp_mod". If your variable name was "environment" then the interaction term would be labeled "snp_environment".  Second, we must add this newly created variable to the list of covariates by including the label for the newly created interaction variable.  Finally, it is strongly suggested that you use the **_exogenous = T_** argument. Otherwise, the standard errors of the interaction component tend to be substantially higher than those in comparable OLS regression models.
+There are a few differences in how the GxE GWAS is specified relative to the standard GWAS even though both models use the _**buildItem**_ function.  We must add the **_gxe_** argument which tells GW-SEM that we want to conduct a GxE GWAS and which variable is the moderator.  By doing so, when GW-SEM reads in the GWAS data in the C++ backend, it will automatically create a multiplicative interaction variable. This newly created variable name will be named "snp" with your specific variable name appended to it, separated by an underscore. In the current example, our moderating variable is named "mod" and therefore the interaction term is named "snp_mod". If your variable name was "environment" then the interaction term would be labeled "snp_environment".  It is strongly suggested that you use the **_exogenous = T_** argument. Otherwise, the standard errors of the interaction component tend to be substantially higher than those in comparable OLS regression models.
 
 After you have built the gxe model and put it into an object (named gxe), you can take this object which is technically an OpenMx model, and fit it using **_mxRun()_**
 

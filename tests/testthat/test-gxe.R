@@ -49,8 +49,7 @@ test_that("gxe data roundtrip", {
 })
 
 test_that("moderator level", {
-  oi <- buildItem(pheno, paste0("i", 3), covariates='snp_i4',
-                  gxe=c("i4"))
+  oi <- buildItem(pheno, paste0("i", 3), gxe=c("i4"))
   fit <- GWAS(oi,
               file.path(dir,"example.pgen"),
               file.path(tdir, "out.log"))

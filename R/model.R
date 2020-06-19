@@ -347,12 +347,13 @@ addPlaceholderSNP <- function(phenoData) {
 	phenoData
 }
 
-endogenousSNPpath <- function(depVar)
+endogenousSNPpath <- function(pred, depVar)
 {
-	paths <- list(mxPath(from = "one", to = "snp" , labels = "snpMean"),
-		      mxPath(from = "snp", to = depVar, values = 0,
-			     labels=paste("snp", depVar, sep = "_to_")),
-		      mxPath(from = "snp", arrows=2, values=1, labels = paste("snp", "res", sep = "_")))
+	paths <- list(mxPath(from = "one", to = pred, labels = paste0(pred, 'Mean')),
+                mxPath(from = pred, to = depVar, values = 0,
+                       labels=paste(pred, depVar, sep = "_to_")),
+                mxPath(from = pred, arrows=2, values=1,
+                       labels = paste(pred, "res", sep = "_")))
 }
 
 endogenousCovariatePaths <- function(phenoData, covariates, depVar)
@@ -461,6 +462,7 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
   }
 
   manifest <- depVar
+  if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   latents <- c()
   endoCovariates <- c()
   if (!exogenous) {
@@ -471,7 +473,11 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
   }
 
   paths <- endogenousCovariatePaths(phenoData, endoCovariates, depVar)
-  if (!exogenous) paths <- c(paths, endogenousSNPpath(depVar))
+  if (!exogenous) {
+    pred <- 'snp'
+    if (length(gxe)) pred <- c(pred, paste0('snp_', gxe))
+    paths <- c(paths, endogenousSNPpath(pred, depVar))
+  }
   paths <- c(paths,
 	     mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_")),
 	     mxPath(depVar, arrows=2, values=0, connect="unique.bivariate"),
@@ -533,6 +539,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 
   phenoData <- addPlaceholderSNP(phenoData)
   manifest <- c("snp", itemNames)
+  if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   depVar   <- c("F")
   latents  <- depVar
   exoPred <- c()
@@ -544,7 +551,10 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 	  manifest <- c(manifest, covariates)
 	  endoCovariates <- covariates
   }
-  paths <- c(endogenousSNPpath(depVar), endogenousCovariatePaths(phenoData, endoCovariates, depVar))
+  pred <- 'snp'
+  if (length(gxe)) pred <- c(pred, paste0('snp_', gxe))
+  paths <- c(endogenousSNPpath(pred, depVar),
+             endogenousCovariatePaths(phenoData, endoCovariates, depVar))
   paths <- c(paths,
 	     mxPath(from=depVar, to=itemNames,values=1, free = T,
 		    labels = paste("lambda", itemNames, sep = "_")  ),
@@ -606,6 +616,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 
   phenoData <- addPlaceholderSNP(phenoData)
   manifest <- c("snp", itemNames)
+  if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   latents   <- c("F")
   depVar <- res
   if (factor) depVar <- c(latents, res)
@@ -619,7 +630,10 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 	  endoCovariates <- covariates
   }
 
-  paths <- c(endogenousSNPpath(depVar), endogenousCovariatePaths(phenoData, endoCovariates, 'F'))
+  pred <- 'snp'
+  if (length(gxe)) pred <- c(pred, paste0('snp_', gxe))
+  paths <- c(endogenousSNPpath(pred, depVar),
+             endogenousCovariatePaths(phenoData, endoCovariates, 'F'))
   paths <- c(paths,
 	     mxPath(from="F", to=itemNames,values=1, free = T,
 		    labels = paste("lambda", itemNames, sep = "_")  ),
@@ -679,6 +693,7 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
 
   phenoData <- addPlaceholderSNP(phenoData)
   manifest <- c("snp", itemNames)
+  if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   depVar <- c("F1", "F2")
   latents   <- depVar
   exoPred <- c()
@@ -691,7 +706,10 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
 	  endoCovariates <- covariates
   }
 
-  paths <- c(endogenousSNPpath(depVar), endogenousCovariatePaths(phenoData, endoCovariates, depVar))
+  pred <- 'snp'
+  if (length(gxe)) pred <- c(pred, paste0('snp_', gxe))
+  paths <- c(endogenousSNPpath(pred, depVar),
+             endogenousCovariatePaths(phenoData, endoCovariates, depVar))
   paths <- c(paths,
 	     mxPath(from="F1", to=F1itemNames,values=1, labels = paste("F1_lambda", F1itemNames, sep = "_")  ),
 	     mxPath(from="F2", to=F2itemNames,values=1, labels = paste("F2_lambda", F2itemNames, sep = "_")  ),
