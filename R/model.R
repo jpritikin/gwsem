@@ -435,6 +435,7 @@ postprocessModel <- function(model, indicators, exogenous)
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-gxe
+#' @template args-pred
 #' @family model builder
 #' @export
 #' @return
@@ -445,7 +446,7 @@ postprocessModel <- function(model, indicators, exogenous)
 #'                     ordered_result = TRUE))
 #' m1 <- buildItem(pheno, 'anxiety')
 buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
-			 gxe=NULL, exogenous=NA)
+			 gxe=NULL, exogenous=NA, pred = 'snp')
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -464,7 +465,6 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
   manifest <- depVar
   latents <- c()
   endoCovariates <- c()
-  pred <- 'snp'
   if (length(gxe)) pred <- c(pred, paste0('snp_', gxe))
   if (!exogenous) {
 	  manifest <- c(manifest, pred, covariates)
@@ -518,6 +518,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 #' @template args-fitfun
 #' @template args-minmaf
 #' @template args-gxe
+#' @template args-pred
 #' @family model builder
 #' @export
 #' @return
@@ -528,7 +529,7 @@ buildOneItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WL
 #' pheno <- as.data.frame(pheno)
 #' buildOneFac(pheno, colnames(pheno))
 buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("WLS","ML"), minMAF=0.01,
-			gxe=NULL, exogenous=NA)
+			gxe=NULL, exogenous=NA, pred ='snp')
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -537,7 +538,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
   if (is.na(exogenous)) exogenous <- defaultExogenous
 
   phenoData <- addPlaceholderSNP(phenoData)
-  manifest <- c("snp", itemNames)
+  manifest <- c(pred, itemNames)
   if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   depVar   <- c("F")
   latents  <- depVar
@@ -550,7 +551,6 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 	  manifest <- c(manifest, covariates)
 	  endoCovariates <- covariates
   }
-  pred <- 'snp'
   if (length(gxe)) pred <- c(pred, paste0('snp_', gxe))
   paths <- c(endogenousSNPpath(pred, depVar),
              endogenousCovariatePaths(phenoData, endoCovariates, depVar))
@@ -593,6 +593,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' @template args-minmaf
 #' @template args-dots-barrier
 #' @template args-gxe
+#' @template args-pred
 #'
 #' @family model builder
 #' @export
@@ -605,7 +606,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
 #' buildOneFacRes(pheno, colnames(pheno))
 buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, covariates = NULL,
 			   ..., fitfun = c("WLS","ML"), minMAF = .01, gxe=NULL,
-			 exogenous=NA)
+			 exogenous=NA,   pred ='snp')
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -614,7 +615,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   if (is.na(exogenous)) exogenous <- defaultExogenous
 
   phenoData <- addPlaceholderSNP(phenoData)
-  manifest <- c("snp", itemNames)
+  manifest <- c(pred, itemNames)
   if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   latents   <- c("F")
   depVar <- res
@@ -629,7 +630,6 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 	  endoCovariates <- covariates
   }
 
-  pred <- 'snp'
   if (length(gxe)) pred <- c(pred, paste0('snp_', gxe))
   paths <- c(endogenousSNPpath(pred, depVar),
              endogenousCovariatePaths(phenoData, endoCovariates, 'F'))
@@ -669,6 +669,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' @template args-minmaf
 #' @template args-dots-barrier
 #' @template args-gxe
+#' @template args-pred
 #' @export
 #' @family model builder
 #' @return
@@ -680,7 +681,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
 #' buildTwoFac(pheno, paste0('i',1:6), paste0('i',5:10))
 buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, ...,
 			fitfun = c("WLS","ML"), minMAF = .01, gxe=NULL,
-			exogenous=NA)
+			exogenous=NA, pred= 'snp')
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
@@ -691,7 +692,7 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
   if (is.na(exogenous)) exogenous <- defaultExogenous
 
   phenoData <- addPlaceholderSNP(phenoData)
-  manifest <- c("snp", itemNames)
+  manifest <- c(pred, itemNames)
   if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   depVar <- c("F1", "F2")
   latents   <- depVar
@@ -705,7 +706,6 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
 	  endoCovariates <- covariates
   }
 
-  pred <- 'snp'
   if (length(gxe)) pred <- c(pred, paste0('snp_', gxe))
   paths <- c(endogenousSNPpath(pred, depVar),
              endogenousCovariatePaths(phenoData, endoCovariates, depVar))
