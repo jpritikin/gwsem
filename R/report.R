@@ -62,6 +62,7 @@ isSuspicious <- function(result, pars= attr(result, 'focus')) {
 #' @return a data.table with one row per SNP
 #' @family reporting
 #' @export
+#' @importFrom utils read.delim
 #' @importFrom data.table fread
 #' @importFrom stats pnorm
 #' @importFrom lifecycle deprecated deprecate_stop deprecate_soft
@@ -123,6 +124,7 @@ loadResults <- function(path, focus, ..., extraColumns=c(),
 #'
 #' @param path vector of paths to result files created by \link{GWAS}
 #' @template args-focus
+#' @template args-dots-barrier
 #' @param extraColumns character vector of additional columns to load
 #' @param signAdj name of column. Value of focus parameter is multiplied by the sign of the named column
 #' @param moderatorLevel see details
@@ -193,6 +195,7 @@ signif <- function(result, focus, signAdj = NULL) {
 #' 
 #' @template args-result
 #' @template args-focus
+#' @param level numeric level of the moderator
 #' @family reporting
 #' @return result with new Z and P columns
 #' @export

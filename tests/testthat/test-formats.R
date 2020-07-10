@@ -48,7 +48,7 @@ expect_equal(m1$compute$steps[[2]]$debug$loadCounter, 1)
 lr <- loadResults(file.path(tdir, "out.log"), focus = c("snp_to_F", "lambda_i1"))
 lr <- signif(lr, "snp_to_F", signAdj="lambda_i1")
 expect_equivalent(c(table(isSuspicious(lr))),
-                  c(173,26))
+                  c(173,26), 6)
 expect_equal(fivenum(lr[!isSuspicious(lr)]$Z),
              c(-2.15, -0.41, 0, 0.41, 2.15), .01)
 expect_equal(range(m1$data$observed$snp, na.rm = TRUE), c(0,2), .01)
