@@ -352,7 +352,7 @@ endogenousSNPpath <- function(pred, depVar)
 	paths <- list(mxPath(from = "one", to = pred, labels = paste0(pred, 'Mean')),
                 mxPath(from = pred, to = depVar, values = 0,
                        labels=paste(pred, depVar, sep = "_to_")),
-                mxPath(from = pred, arrows=2, values=1,
+                mxPath(from = pred, arrows=2, values=1, lbound=0.001,
                        labels = paste(pred, "res", sep = "_")))
 }
 
@@ -370,7 +370,7 @@ endogenousCovariatePaths <- function(phenoData, covariates, depVar)
 		} else {
 			paths <- c(paths, list(
 				mxPath(from='one',c1,labels=paste0(c1,"_mean")),
-				mxPath(from=c1, arrows=2, values=1, labels=paste0(c1,"_var"))))
+				mxPath(from=c1, arrows=2, values=1, lbound=0.001, labels=paste0(c1,"_var"))))
 		}
 		paths <- c(paths, list(
 			mxPath(from=c1, to=depVar, labels=paste0(c1,'_to_',depVar))))
@@ -478,9 +478,11 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
     paths <- c(paths, endogenousSNPpath(pred, depVar))
   }
   paths <- c(paths,
-	     mxPath(from = c(depVar), arrows=2, values=1, free = !fac, labels = paste(c(depVar), "res", sep = "_")),
-	     mxPath(depVar, arrows=2, values=0, connect="unique.bivariate"),
-	     mxPath(from = 'one', to = depVar, free= !fac, values = 0, labels = paste0(depVar, "Mean")))
+             mxPath(from = c(depVar), arrows=2, values=1, lbound=0.001,
+                    free = !fac, labels = paste(c(depVar), "res", sep = "_")),
+             mxPath(depVar, arrows=2, values=0, connect="unique.bivariate"),
+             mxPath(from = 'one', to = depVar, free= !fac, values = 0,
+                    labels = paste0(depVar, "Mean")))
 
   dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
 
@@ -557,7 +559,7 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
   paths <- c(paths,
 	     mxPath(from=depVar, to=itemNames,values=1, free = T,
 		    labels = paste("lambda", itemNames, sep = "_")  ),
-	     mxPath(from = c(itemNames), arrows=2, values=1, free = !fac,
+	     mxPath(from = c(itemNames), arrows=2, values=1, lbound=0.001, free = !fac,
 		    labels = paste(c(itemNames), "res", sep = "_")),
 	     mxPath(from=depVar, arrows=2,free=F, values=1.0, labels = "facRes"),
 	     mxPath(from = 'one', to = itemNames, free= !fac, values = 0,
@@ -636,7 +638,7 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   paths <- c(paths,
 	     mxPath(from="F", to=itemNames,values=1, free = T,
 		    labels = paste("lambda", itemNames, sep = "_")  ),
-	     mxPath(from = c(itemNames), arrows=2, values=1, free = c(fac==0),
+	     mxPath(from = c(itemNames), arrows=2, values=1, lbound=0.001, free = c(fac==0),
 		    labels = paste(c(itemNames), "res", sep = "_")),
 	     mxPath(from="F", arrows=2,free=F, values=1.0, labels = "facRes"),
 	     mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0,
@@ -713,7 +715,7 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
 	     mxPath(from="F1", to=F1itemNames,values=1, labels = paste("F1_lambda", F1itemNames, sep = "_")  ),
 	     mxPath(from="F2", to=F2itemNames,values=1, labels = paste("F2_lambda", F2itemNames, sep = "_")  ),
 	     mxPath(from="F1", to= "F2", arrows=2,free=T, values=.3, labels="facCov"),
-	     mxPath(from = itemNames, arrows=2, values=1, free = c(fac==0),
+	     mxPath(from = itemNames, arrows=2, values=1, lbound=0.001, free = c(fac==0),
 		    labels = paste(c(itemNames), "res", sep = "_")),
 	     mxPath(from=depVar, arrows=2,free=F, values=1.0, labels = "facRes"),
 	     mxPath(from = 'one', to = itemNames, free= c(fac==0), values = 0, labels = paste0(itemNames, "Mean")))
