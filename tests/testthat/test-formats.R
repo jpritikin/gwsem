@@ -45,9 +45,12 @@ bed <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bed), 199)
 expect_equal(m1$compute$steps[[2]]$debug$loadCounter, 1)
-lr <- loadResults(file.path(tdir, "out.log"), focus = "snp_to_F", signAdj="lambda_i1")
-expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
-                             "statusCode", "catch1", "snp_to_F", "Z", "P"))
+lr <- loadResults(file.path(tdir, "out.log"), focus = c("snp_to_F", "lambda_i1"))
+lr <- signif(lr, "snp_to_F", signAdj="lambda_i1")
+expect_equivalent(c(table(isSuspicious(lr))),
+                  c(173,26))
+expect_equal(fivenum(lr[!isSuspicious(lr)]$Z),
+             c(-2.15, -0.41, 0, 0.41, 2.15), .01)
 expect_equal(range(m1$data$observed$snp, na.rm = TRUE), c(0,2), .01)
 
 m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
@@ -58,9 +61,10 @@ bgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                   sep="\t", check.names=FALSE, quote="", comment.char="")
 expect_equal(nrow(bgen), 199)
 expect_equal(m1$compute$steps[[2]]$debug$loadCounter, 1)
-lr <- loadResults(file.path(tdir, "out.log"), "snp_to_F", signAdj='lambda_i1')
+lr <- loadResults(file.path(tdir, "out.log"), "snp_to_F")
 expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
-                             "statusCode", "catch1", "snp_to_F", "Z", "P"))
+                             "statusCode", "catch1", "snp_to_F",
+                             "Vsnp_to_F:snp_to_F"))
 expect_equal(range(m1$data$observed$snp), c(0,2), .01)
 
 # -----
@@ -74,9 +78,9 @@ expect_equal(nrow(last), 10)
 expect_equal(m2$compute$steps[[2]]$debug$loadCounter, 1)
 expect_equal(last[['example.bgen:SNP']],
              bgen[['example.bgen:SNP']][190:199])
-lr <- loadResults(file.path(tdir, "out.log"), "snp_to_F", signAdj='lambda_i1')
+lr <- loadResults(file.path(tdir, "out.log"), "snp_to_F")
 expect_equal(colnames(lr), c("MxComputeLoop1", "CHR", "BP", "SNP", "A1", "A2",
-                             "statusCode", "catch1", "snp_to_F", "Z", "P"))
+                             "statusCode", "catch1", "snp_to_F", "Vsnp_to_F:snp_to_F"))
 
 # ------------------
 

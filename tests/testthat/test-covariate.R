@@ -36,31 +36,30 @@ expect_equivalent(m1$M$labels[1,'covar1'], 'data.covar1')
 GWAS(m1, file.path(dir,"example.pgen"),
      file.path(tdir,"out.log"))
 
-pgen <- read.table(file.path(tdir,"out.log"), as.is = TRUE, header=TRUE,
-                   sep="\t", check.names=FALSE, quote="", comment.char="")
+pgen <- read.delim(file.path(tdir,"out.log"), as.is = TRUE,
+                   check.names=FALSE, quote="", comment.char="")
 
-mask <- (pgen$catch1 == "" & pgen$statusCode=="OK" & !is.na(pgen$snp_to_FSE))
+mask <- (pgen$catch1 == "" & pgen$statusCode=="OK" & !is.na(pgen[['Vsnp_to_F:snp_to_F']]))
 pgen <- pgen[mask,]
 
-mask <- (abs(pgen$snp_to_F) < 2.6*mad(pgen$snp_to_F) & (abs(pgen$snp_to_F / pgen$snp_to_FSE) > .5))
+mask <- (abs(pgen$snp_to_F) < 2.6*mad(pgen$snp_to_F) & (abs(pgen$snp_to_F / sqrt(pgen[['Vsnp_to_F:snp_to_F']])) > .5))
 pgen <- pgen[mask,]
 
 cvNames <- paste(rep(paste0("covar",1:numCovariate), each = numIndicators),
       paste0("i", 1:numIndicators), sep = "_to_")
 expect_equivalent(colMeans(pgen[,cvNames]), rep(0, length(cvNames)), tolerance=.1)
 
-pgen <- loadResults(file.path(tdir,"out.log"), "snp_to_F", signAdj='lambda_i1')
+pgen <- loadResults(file.path(tdir,"out.log"), c("snp_to_F", 'lambda_i1'))
+pgen <- signif(pgen, "snp_to_F", signAdj='lambda_i1')
 expect_equal(nrow(pgen), 197, 2)
 expect_error(plot(pgen, y=1),
              "plot does not accept a y= argument")
 
-bad <- loadSuspicious(file.path(tdir,"out.log"), "snp_to_F", signAdj='lambda_i1')
-expect_equal(nrow(bad), 2, 2)
-expect_true(any(grepl("observed variance less", bad$catch1, fixed=TRUE)))
-
-# Should be possible to select some rows from bad and
-# rbind them to pgen.
-expect_true(all(!is.na(match(colnames(pgen), colnames(bad)))))
+bad <- sum(isSuspicious(pgen))
+expect_equal(bad, 2, 1)
+expect_true(any(grepl("observed variance less",
+                      pgen[isSuspicious(pgen),'catch1'], fixed=TRUE)))
+pgen <- pgen[!isSuspicious(pgen),]
 
 # -----
 
@@ -70,9 +69,11 @@ m2 <- buildOneFac(pheno, paste0("i", 1:numIndicators),
 expect_equivalent(m2$M$labels[1,'covar1'], 'covar1_mean')
 GWAS(m2,
      file.path(dir,"example.pgen"),
-     file.path(tdir,"out.log"))
+     file.path(tdir,"out2.log"))
 
-pgen2 <- loadResults(file.path(tdir,"out.log"), "snp_to_F", signAdj='lambda_i1')
+pgen2 <- loadResults(file.path(tdir,"out2.log"), c("snp_to_F", 'lambda_i1'))
+pgen2 <- signif(pgen2, "snp_to_F", signAdj='lambda_i1')
+pgen2 <- pgen2[!isSuspicious(pgen2),]
 expect_equal(nrow(pgen2), 196, 2)
 
 both <- intersect(pgen$SNP, pgen2$SNP)
@@ -80,7 +81,9 @@ expect_equal(length(both), 196, 2)
 pgen <- subset(pgen, SNP %in% both)
 pgen2 <- subset(pgen2, SNP %in% both)
 
-expect_equal(cor(pgen$Z, pgen2$Z), 1, tolerance=.05)
+mask <- abs(pgen$Z) < 4 & abs(pgen2$Z) < 4
+
+expect_equivalent(cor(pgen[mask,'Z'], pgen2[mask,'Z']), 1, tolerance=.05)
 
 # ----- compare OneFacRes exo vs endo covariates
 
@@ -99,12 +102,17 @@ GWAS(m2, file.path(dir,"example.pgen"),
 
 for (ind in paste0("snp_to_i", 1:numIndicators)) {
   m1o <- loadResults(file.path(tdir,"outx.log"), ind)
+  m1o <- signif(m1o, ind)
+  m1o <- m1o[!isSuspicious(m1o),]
   m2o <- loadResults(file.path(tdir,"out.log"), ind)
+  m2o <- signif(m2o, ind)
+  m2o <- m2o[!isSuspicious(m2o),]
   both <- intersect(m1o$SNP, m2o$SNP)
   expect_equal(length(both), 200, 20)
   m1o <- subset(m1o, SNP %in% both)
   m2o <- subset(m2o, SNP %in% both)
-  expect_equal(cor(m1o$Z, m2o$Z), 1, tolerance=1)
+  mask <- abs(m1o$Z) < 4 & abs(m2o$Z) < 4
+  expect_equivalent(cor(m1o[mask,'Z'], m2o[mask,'Z']), 1, tolerance=.1)
 }
 
 # ----- compare TwoFac exo vs endo covariates
@@ -130,14 +138,19 @@ GWAS(m2, file.path(dir,"example.pgen"),
 for (fx in 1:2) {
   ind <- paste0("snp_to_F", fx)
   sa <- paste0('F',fx,'_lambda_i2')
-  m1o <- loadResults(file.path(tdir,"outx.log"), ind, signAdj=sa)
-  m2o <- loadResults(file.path(tdir,"out.log"), ind, signAdj=sa)
+  m1o <- loadResults(file.path(tdir,"outx.log"), c(ind, sa))
+  m1o <- signif(m1o, ind, signAdj=sa)
+  m1o <- m1o[!isSuspicious(m1o),]
+  m2o <- loadResults(file.path(tdir,"out.log"), c(ind, sa))
+  m2o <- signif(m2o, ind, signAdj=sa)
+  m2o <- m2o[!isSuspicious(m2o),]
   both <- intersect(m1o$SNP, m2o$SNP)
   expect_equal(length(both), 200, 110)
   m1o <- subset(m1o, SNP %in% both)
   m2o <- subset(m2o, SNP %in% both)
+  mask <- abs(m1o$Z) < 4 & abs(m2o$Z) < 4
   # Wow, this tolerance is really terrible TODO
-  expect_equal(cor(m1o$Z, m2o$Z), 1, tolerance=1)
+  expect_equivalent(cor(m1o[mask,'Z'], m2o[mask,'Z']), 1, tolerance=.9)
 }
 
 # ----- test continuous endogenous covariates

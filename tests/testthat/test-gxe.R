@@ -54,8 +54,10 @@ test_that("moderator level", {
               file.path(dir,"example.pgen"),
               file.path(tdir, "out.log"))
   m1 <- loadResults(file.path(tdir, "out.log"), 'snp_i4_to_i3')
-  m2 <- loadResults(file.path(tdir, "out.log"), 'snp_i4_to_i3',
-                    moderatorLevel = .5)
-  m3 <- loadSuspicious(file.path(tdir, "out.log"), 'snp_i4_to_i3',
-                 moderatorLevel = .5)
+  m1.5 <- signifGxE(m1, 'snp_i4_to_i3', level = .5)
+  m1.7 <- signifGxE(m1, 'snp_i4_to_i3', level = .7)
+  expect_equal(fivenum(m1.5$Z - m1.7$Z),
+               c(-0.55, -0.34, -0.27, -0.19, 0.04), .01)
+  expect_equivalent(c(table(isSuspicious(m1, c('snp_to_i3', 'snp_i4_to_i3')))),
+               c(197, 2))
 })

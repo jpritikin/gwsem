@@ -155,21 +155,11 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 		   HQ=mxComputeHessianQuality())
   }
 
-  wantVcov <- any(forModels(model, modelName, function(m) {
-    d1 <- m$data
-    if (is.null(d1)) stop(paste("Model",omxQuotes(m$name),"contains no MxData"))
-    obs <- d1$observed
-    if (!('snp' %in% colnames(obs))) {
-      stop(paste("No snp placeholder column in observed data of model", omxQuotes(m$name)))
-    }
-    length(d1$algebra) > 0
-  }))
-
   onesnp <- c(
     ST=mxComputeSetOriginalStarts(),
     onesnp,
     TC=mxComputeTryCatch(mxComputeSequence(opt)),
-    CK=mxComputeCheckpoint(path=out, standardErrors = TRUE, vcov = wantVcov))
+    CK=mxComputeCheckpoint(path=out, standardErrors = FALSE, vcov = TRUE))
 
   mxModel(model, mxComputeLoop(onesnp, i=SNP, startFrom=startFrom))
 }
