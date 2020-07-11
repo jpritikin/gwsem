@@ -128,11 +128,20 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <hr />
 <p>The first step is opening R, and loading the GW-SEM package as well as the phenotypic data (including the dependent variable, the moderating/interacting variable and any covariates such as age, sex, or ancestry principle components) into the R computing environment. This can be achieved by using the command below:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">library</span>(gwsem)</a>
-<a class="sourceLine" id="cb1-2" title="2"></a>
-<a class="sourceLine" id="cb1-3" title="3">location &lt;-<span class="st"> &#39;https://jpritikin.github.io/gwsem/gwsemGxEexample&#39;</span></a>
-<a class="sourceLine" id="cb1-4" title="4"></a>
-<a class="sourceLine" id="cb1-5" title="5"><span class="co"># Read the phenotype data into R and look at the data</span></a>
-<a class="sourceLine" id="cb1-6" title="6">gxeData &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(location, <span class="st">&quot;gxeData.txt&quot;</span>), <span class="dt">header=</span><span class="ot">TRUE</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb1-2" title="2"><span class="co">#&gt; Loading required package: OpenMx</span></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="co">#&gt; To take full advantage of multiple cores, use:</span></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="co">#&gt;   mxOption(key=&#39;Number of Threads&#39;, value=parallel::detectCores()) #now</span></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="co">#&gt;   Sys.setenv(OMP_NUM_THREADS=parallel::detectCores()) #before library(OpenMx)</span></a>
+<a class="sourceLine" id="cb1-6" title="6"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb1-7" title="7"><span class="co">#&gt; Attaching package: &#39;gwsem&#39;</span></a>
+<a class="sourceLine" id="cb1-8" title="8"><span class="co">#&gt; The following object is masked from &#39;package:base&#39;:</span></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb1-10" title="10"><span class="co">#&gt;     signif</span></a>
+<a class="sourceLine" id="cb1-11" title="11"></a>
+<a class="sourceLine" id="cb1-12" title="12">location &lt;-<span class="st"> &#39;https://jpritikin.github.io/gwsem/gwsemGxEexample&#39;</span></a>
+<a class="sourceLine" id="cb1-13" title="13"></a>
+<a class="sourceLine" id="cb1-14" title="14"><span class="co"># Read the phenotype data into R and look at the data</span></a>
+<a class="sourceLine" id="cb1-15" title="15">gxeData &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(location, <span class="st">&quot;gxeData.txt&quot;</span>), <span class="dt">header=</span><span class="ot">TRUE</span>)</a></code></pre></div>
 <p>Once the data are loaded into R, you can recode the data, transform it, and tell R if we have ordinal or binary indicators using <code>mxFactor()</code>. The data for this example are simulated and continuous, and therefore, we will not be doing anything now, but if you would like to chop the indicators up into binary or ordinal variables, this is when you would do it. It is possible to conduct GxE analyses on binary or ordinal variables. With GW-SEM we assume that the binary or ordinal variable follows the Liability-Threshold Model (where the observed categories reflect portions of the underlying liability distribution).</p>
 <p>Once you are satisfied the data are in the appropriate shape we can build a one factor GWAS model with the following command:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">gxe &lt;-<span class="st"> </span><span class="kw">buildItem</span>(<span class="dt">phenoData =</span> gxeData, <span class="dt">depVar  =</span> <span class="st">&quot;phe&quot;</span>,</a>
@@ -141,7 +150,41 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>There are a few differences in how the GxE GWAS is specified relative to the standard GWAS even though both models use the <em><strong>buildItem</strong></em> function. We must add the <strong><em>gxe</em></strong> argument which tells GW-SEM that we want to conduct a GxE GWAS and which variable is the moderator. By doing so, when GW-SEM reads in the GWAS data in the C++ backend, it will automatically create a multiplicative interaction variable. This newly created variable name will be named “snp” with your specific variable name appended to it, separated by an underscore. In the current example, our moderating variable is named “mod” and therefore the interaction term is named “snp_mod”. If your variable name was “environment” then the interaction term would be labeled “snp_environment”. It is strongly suggested that you use the <strong><em>exogenous = T</em></strong> argument. Otherwise, the standard errors of the interaction component tend to be substantially higher than those in comparable OLS regression models.</p>
 <p>After you have built the gxe model and put it into an object (named gxe), you can take this object which is technically an OpenMx model, and fit it using <strong><em>mxRun()</em></strong></p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1">gxeFit &lt;-<span class="st"> </span><span class="kw">mxRun</span>(gxe)</a>
-<a class="sourceLine" id="cb3-2" title="2"><span class="kw">summary</span>(gxeFit)</a></code></pre></div>
+<a class="sourceLine" id="cb3-2" title="2"><span class="co">#&gt; Running OneItem with 10 parameters</span></a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="kw">summary</span>(gxeFit)</a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="co">#&gt; Summary of OneItem </span></a>
+<a class="sourceLine" id="cb3-5" title="5"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb3-6" title="6"><span class="co">#&gt; free parameters:</span></a>
+<a class="sourceLine" id="cb3-7" title="7"><span class="co">#&gt;              name matrix row     col     Estimate  Std.Error lbound ubound</span></a>
+<a class="sourceLine" id="cb3-8" title="8"><span class="co">#&gt; 1      snp_to_phe      A phe     snp -0.019316805 0.01904670              </span></a>
+<a class="sourceLine" id="cb3-9" title="9"><span class="co">#&gt; 2  snp_mod_to_phe      A phe snp_mod  0.005249091 0.01895707              </span></a>
+<a class="sourceLine" id="cb3-10" title="10"><span class="co">#&gt; 3      mod_to_phe      A phe     mod  0.594531938 0.02388917              </span></a>
+<a class="sourceLine" id="cb3-11" title="11"><span class="co">#&gt; 4      pc1_to_phe      A phe     pc1  0.003312367 0.01289688              </span></a>
+<a class="sourceLine" id="cb3-12" title="12"><span class="co">#&gt; 5      pc2_to_phe      A phe     pc2  0.011413006 0.01324115              </span></a>
+<a class="sourceLine" id="cb3-13" title="13"><span class="co">#&gt; 6      pc3_to_phe      A phe     pc3 -0.006008539 0.01279708              </span></a>
+<a class="sourceLine" id="cb3-14" title="14"><span class="co">#&gt; 7      pc4_to_phe      A phe     pc4 -0.001558988 0.01328073              </span></a>
+<a class="sourceLine" id="cb3-15" title="15"><span class="co">#&gt; 8      pc5_to_phe      A phe     pc5  0.004094683 0.01350114              </span></a>
+<a class="sourceLine" id="cb3-16" title="16"><span class="co">#&gt; 9         phe_res      S phe     phe  1.035354322 0.01898768  0.001       </span></a>
+<a class="sourceLine" id="cb3-17" title="17"><span class="co">#&gt; 10        pheMean      M   1     phe  0.549317812 0.04078261              </span></a>
+<a class="sourceLine" id="cb3-18" title="18"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb3-19" title="19"><span class="co">#&gt; Model Statistics: </span></a>
+<a class="sourceLine" id="cb3-20" title="20"><span class="co">#&gt;                |  Parameters  |  Degrees of Freedom  |  Fit (r&#39;Wr units)</span></a>
+<a class="sourceLine" id="cb3-21" title="21"><span class="co">#&gt;        Model:             10                   5990           1.4852e-27</span></a>
+<a class="sourceLine" id="cb3-22" title="22"><span class="co">#&gt;    Saturated:              2                   5998           0.0000e+00</span></a>
+<a class="sourceLine" id="cb3-23" title="23"><span class="co">#&gt; Independence:              2                   5998                   NA</span></a>
+<a class="sourceLine" id="cb3-24" title="24"><span class="co">#&gt; Number of observations/statistics: 6000/6000</span></a>
+<a class="sourceLine" id="cb3-25" title="25"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb3-26" title="26"><span class="co">#&gt; chi-square:  χ² ( df=0 ) = 0,  p = 1</span></a>
+<a class="sourceLine" id="cb3-27" title="27"><span class="co">#&gt; CFI: NA </span></a>
+<a class="sourceLine" id="cb3-28" title="28"><span class="co">#&gt; TLI: 1   (also known as NNFI) </span></a>
+<a class="sourceLine" id="cb3-29" title="29"><span class="co">#&gt; RMSEA:  0  [95% CI (NA, NA)]</span></a>
+<a class="sourceLine" id="cb3-30" title="30"><span class="co">#&gt; Prob(RMSEA &lt;= 0.05): NA</span></a>
+<a class="sourceLine" id="cb3-31" title="31"><span class="co">#&gt; To get additional fit indices, see help(mxRefModels)</span></a>
+<a class="sourceLine" id="cb3-32" title="32"><span class="co">#&gt; timestamp: 2020-07-11 12:24:17 </span></a>
+<a class="sourceLine" id="cb3-33" title="33"><span class="co">#&gt; Wall clock time: 0.515142 secs </span></a>
+<a class="sourceLine" id="cb3-34" title="34"><span class="co">#&gt; optimizer:  SLSQP </span></a>
+<a class="sourceLine" id="cb3-35" title="35"><span class="co">#&gt; OpenMx version number: 2.17.4 </span></a>
+<a class="sourceLine" id="cb3-36" title="36"><span class="co">#&gt; Need help?  See help(mxSummary)</span></a></code></pre></div>
 <p>It is strongly advised to test out the model, as it is a great time to make sure that your model is specified as expected. Provided that the model looks reasonable, you can pass the model into the <code>GWAS</code> function,</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">library</span>(curl)</a>
 <a class="sourceLine" id="cb4-2" title="2"><span class="kw">curl_download</span>(<span class="kw">file.path</span>(location, <span class="st">&#39;example.pgen&#39;</span>),</a>
@@ -151,7 +194,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <a class="sourceLine" id="cb4-6" title="6"></a>
 <a class="sourceLine" id="cb4-7" title="7"><span class="kw">GWAS</span>(<span class="dt">model =</span> gxe,                            <span class="co"># the model object</span></a>
 <a class="sourceLine" id="cb4-8" title="8">    <span class="dt">snpData =</span> <span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&#39;example.pgen&#39;</span>),            <span class="co"># the path to the snpData</span></a>
-<a class="sourceLine" id="cb4-9" title="9">    <span class="dt">out=</span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;gxe.log&quot;</span>))                       <span class="co"># the results file name</span></a></code></pre></div>
+<a class="sourceLine" id="cb4-9" title="9">    <span class="dt">out=</span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;gxe.log&quot;</span>))                       <span class="co"># the results file name</span></a>
+<a class="sourceLine" id="cb4-10" title="10"><span class="co">#&gt; Running OneItem with 10 parameters</span></a>
+<a class="sourceLine" id="cb4-11" title="11"><span class="co">#&gt; Done. See &#39;/tmp/RtmpHnQY2B/gxe.log&#39; for results</span></a></code></pre></div>
 <p>When you execute this command, you will begin running your GWAS.</p>
 <p>After you finish running the GWAS analysis, the next step is to read the results into R so that you can examine them, plot them, prepare them for used by other software packages, etc. While you are unlikely to want to read all of the output into R, it is useful to do this on a small test GWAS analysis to ensure that you are getting reasonable results. To do so, you can use the base R function <strong><em>read.delim</em></strong>. This is didactically useful, but it contains much more information than most people want</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">gxeResult &lt;-<span class="st"> </span><span class="kw">read.delim</span>(<span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;gxe.log&quot;</span>))                            </a></code></pre></div>
@@ -161,18 +206,64 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <a class="sourceLine" id="cb6-3" title="3">succinctInt  &lt;-<span class="st"> </span><span class="kw">signif</span>(lr, <span class="st">&quot;snp_mod_to_phe&quot;</span>)</a>
 <a class="sourceLine" id="cb6-4" title="4"></a>
 <a class="sourceLine" id="cb6-5" title="5"><span class="kw">head</span>(succinctCond[<span class="kw">order</span>(succinctCond<span class="op">$</span>Z, <span class="dt">decreasing =</span> T),])</a>
-<a class="sourceLine" id="cb6-6" title="6"><span class="kw">head</span>(succinctInt[<span class="kw">order</span>(succinctInt<span class="op">$</span>Z, <span class="dt">decreasing =</span> T),])</a></code></pre></div>
+<a class="sourceLine" id="cb6-6" title="6"><span class="co">#&gt;    MxComputeLoop1 CHR   BP     SNP A1 A2 statusCode catch1 snp_to_phe</span></a>
+<a class="sourceLine" id="cb6-7" title="7"><span class="co">#&gt; 1:           1884   1 1883 snp1883  B  A         OK     NA 0.18781103</span></a>
+<a class="sourceLine" id="cb6-8" title="8"><span class="co">#&gt; 2:           1762   1 1761 snp1761  A  B         OK     NA 0.14568878</span></a>
+<a class="sourceLine" id="cb6-9" title="9"><span class="co">#&gt; 3:           1868   1 1867 snp1867  A  B         OK     NA 0.12841686</span></a>
+<a class="sourceLine" id="cb6-10" title="10"><span class="co">#&gt; 4:             48   1   47   snp47  A  B         OK     NA 0.11862335</span></a>
+<a class="sourceLine" id="cb6-11" title="11"><span class="co">#&gt; 5:           1101   1 1100 snp1100  A  B         OK     NA 0.08049730</span></a>
+<a class="sourceLine" id="cb6-12" title="12"><span class="co">#&gt; 6:            319   1  318  snp318  A  B         OK     NA 0.07681582</span></a>
+<a class="sourceLine" id="cb6-13" title="13"><span class="co">#&gt;    snp_mod_to_phe Vsnp_to_phe:snp_to_phe Vsnp_mod_to_phe:snp_mod_to_phe</span></a>
+<a class="sourceLine" id="cb6-14" title="14"><span class="co">#&gt; 1:    0.131664012           0.0004968010                   0.0004906852</span></a>
+<a class="sourceLine" id="cb6-15" title="15"><span class="co">#&gt; 2:    0.090479042           0.0004853252                   0.0004858684</span></a>
+<a class="sourceLine" id="cb6-16" title="16"><span class="co">#&gt; 3:    0.004175710           0.0004595031                   0.0004469476</span></a>
+<a class="sourceLine" id="cb6-17" title="17"><span class="co">#&gt; 4:    0.029088623           0.0004997281                   0.0004998344</span></a>
+<a class="sourceLine" id="cb6-18" title="18"><span class="co">#&gt; 5:   -0.004278833           0.0005016595                   0.0004887322</span></a>
+<a class="sourceLine" id="cb6-19" title="19"><span class="co">#&gt; 6:   -0.025794073           0.0005022668                   0.0005077531</span></a>
+<a class="sourceLine" id="cb6-20" title="20"><span class="co">#&gt;    Vsnp_mod_to_phe:snp_to_phe        Z            P</span></a>
+<a class="sourceLine" id="cb6-21" title="21"><span class="co">#&gt; 1:               5.606327e-06 8.426164 3.571827e-17</span></a>
+<a class="sourceLine" id="cb6-22" title="22"><span class="co">#&gt; 2:              -8.634754e-06 6.613170 3.761772e-11</span></a>
+<a class="sourceLine" id="cb6-23" title="23"><span class="co">#&gt; 3:              -1.380366e-05 5.990703 2.089354e-09</span></a>
+<a class="sourceLine" id="cb6-24" title="24"><span class="co">#&gt; 4:              -1.980735e-05 5.306441 1.117866e-07</span></a>
+<a class="sourceLine" id="cb6-25" title="25"><span class="co">#&gt; 5:              -8.432265e-06 3.593989 3.256532e-04</span></a>
+<a class="sourceLine" id="cb6-26" title="26"><span class="co">#&gt; 6:              -9.825706e-06 3.427547 6.090603e-04</span></a>
+<a class="sourceLine" id="cb6-27" title="27"><span class="kw">head</span>(succinctInt[<span class="kw">order</span>(succinctInt<span class="op">$</span>Z, <span class="dt">decreasing =</span> T),])</a>
+<a class="sourceLine" id="cb6-28" title="28"><span class="co">#&gt;    MxComputeLoop1 CHR   BP     SNP A1 A2 statusCode catch1   snp_to_phe</span></a>
+<a class="sourceLine" id="cb6-29" title="29"><span class="co">#&gt; 1:           1193   1 1192 snp1192  B  A         OK     NA -0.048245290</span></a>
+<a class="sourceLine" id="cb6-30" title="30"><span class="co">#&gt; 2:           1543   1 1542 snp1542  A  B         OK     NA -0.005342773</span></a>
+<a class="sourceLine" id="cb6-31" title="31"><span class="co">#&gt; 3:           1884   1 1883 snp1883  B  A         OK     NA  0.187811032</span></a>
+<a class="sourceLine" id="cb6-32" title="32"><span class="co">#&gt; 4:           1762   1 1761 snp1761  A  B         OK     NA  0.145688775</span></a>
+<a class="sourceLine" id="cb6-33" title="33"><span class="co">#&gt; 5:           1740   1 1739 snp1739  B  A         OK     NA  0.010958018</span></a>
+<a class="sourceLine" id="cb6-34" title="34"><span class="co">#&gt; 6:            121   1  120  snp120  A  B         OK     NA -0.008776884</span></a>
+<a class="sourceLine" id="cb6-35" title="35"><span class="co">#&gt;    snp_mod_to_phe Vsnp_to_phe:snp_to_phe Vsnp_mod_to_phe:snp_mod_to_phe</span></a>
+<a class="sourceLine" id="cb6-36" title="36"><span class="co">#&gt; 1:     0.16725676           0.0004992567                   0.0005166096</span></a>
+<a class="sourceLine" id="cb6-37" title="37"><span class="co">#&gt; 2:     0.13308471           0.0004841774                   0.0004773395</span></a>
+<a class="sourceLine" id="cb6-38" title="38"><span class="co">#&gt; 3:     0.13166401           0.0004968010                   0.0004906852</span></a>
+<a class="sourceLine" id="cb6-39" title="39"><span class="co">#&gt; 4:     0.09047904           0.0004853252                   0.0004858684</span></a>
+<a class="sourceLine" id="cb6-40" title="40"><span class="co">#&gt; 5:     0.06612425           0.0004965692                   0.0004938025</span></a>
+<a class="sourceLine" id="cb6-41" title="41"><span class="co">#&gt; 6:     0.06610067           0.0004910111                   0.0005097482</span></a>
+<a class="sourceLine" id="cb6-42" title="42"><span class="co">#&gt;    Vsnp_mod_to_phe:snp_to_phe        Z            P</span></a>
+<a class="sourceLine" id="cb6-43" title="43"><span class="co">#&gt; 1:              -2.876329e-05 7.358723 1.856776e-13</span></a>
+<a class="sourceLine" id="cb6-44" title="44"><span class="co">#&gt; 2:              -8.768652e-06 6.091363 1.119537e-09</span></a>
+<a class="sourceLine" id="cb6-45" title="45"><span class="co">#&gt; 3:               5.606327e-06 5.943819 2.784567e-09</span></a>
+<a class="sourceLine" id="cb6-46" title="46"><span class="co">#&gt; 4:              -8.634754e-06 4.104768 4.047203e-05</span></a>
+<a class="sourceLine" id="cb6-47" title="47"><span class="co">#&gt; 5:              -1.862992e-05 2.975666 2.923534e-03</span></a>
+<a class="sourceLine" id="cb6-48" title="48"><span class="co">#&gt; 6:              -2.740316e-05 2.927710 3.414685e-03</span></a></code></pre></div>
 <p>We can also read in the marginal effects for a specific level of the environment, as well as their standard errors, z-statistics, and p-values. To do this, we can use the <strong><em>loadResults</em></strong> command and specify the <strong><em>moderatorLevel</em></strong> argument with a numerical value. In the current case, the standard deviation of the moderator variable is 1, by using values of -2 and 2, we are asking GW-SEM to provide the marginal effects for 2 standard deviations below and above the means. While any value of the moderator can be requested, we would suggest using reasonable values of the moderating variable.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">margLow  &lt;-<span class="st"> </span><span class="kw">signifGxE</span>(lr, <span class="dt">focus =</span>  <span class="st">&quot;snp_mod_to_phe&quot;</span>, <span class="dt">level=</span> <span class="dv">-2</span>)</a>
 <a class="sourceLine" id="cb7-2" title="2">margHigh &lt;-<span class="st"> </span><span class="kw">signifGxE</span>(lr, <span class="dt">focus =</span>  <span class="st">&quot;snp_mod_to_phe&quot;</span>, <span class="dt">level=</span> <span class="dv">2</span>)</a></code></pre></div>
 <p>Now that we have the various components that contribute to our GxE GWAS model, we can begin constructing Manhattan plots for the relevant parameters.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1"><span class="co"># Manhattan Plots for directly estimated parameters</span></a>
-<a class="sourceLine" id="cb8-2" title="2"><span class="kw">plot</span>(succinctCond)  <span class="co"># To plot p-values of the conditional effect</span></a>
-<a class="sourceLine" id="cb8-3" title="3"><span class="kw">plot</span>(succinctInt)   <span class="co"># To plot the interaction coefficient</span></a>
-<a class="sourceLine" id="cb8-4" title="4"></a>
-<a class="sourceLine" id="cb8-5" title="5"><span class="co"># Manhattan Plots for marginal effects</span></a>
-<a class="sourceLine" id="cb8-6" title="6"><span class="kw">plot</span>(margLow)    <span class="co"># To plot p-values for a low level (-2SD) of the moderator</span></a>
-<a class="sourceLine" id="cb8-7" title="7"><span class="kw">plot</span>(margHigh)   <span class="co"># To plot p-values for a high level (+2SD) of the moderator</span></a></code></pre></div>
+<a class="sourceLine" id="cb8-2" title="2"><span class="kw">plot</span>(succinctCond)  <span class="co"># To plot p-values of the conditional effect</span></a></code></pre></div>
+<p><img src="GeneEnvironmentInteraction_files/figure-html/unnamed-chunk-9-1.png" /><!-- --></p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">plot</span>(succinctInt)   <span class="co"># To plot the interaction coefficient</span></a></code></pre></div>
+<p><img src="GeneEnvironmentInteraction_files/figure-html/unnamed-chunk-9-2.png" /><!-- --></p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1"></a>
+<a class="sourceLine" id="cb10-2" title="2"><span class="co"># Manhattan Plots for marginal effects</span></a>
+<a class="sourceLine" id="cb10-3" title="3"><span class="kw">plot</span>(margLow)    <span class="co"># To plot p-values for a low level (-2SD) of the moderator</span></a></code></pre></div>
+<p><img src="GeneEnvironmentInteraction_files/figure-html/unnamed-chunk-9-3.png" /><!-- --></p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1"><span class="kw">plot</span>(margHigh)   <span class="co"># To plot p-values for a high level (+2SD) of the moderator</span></a></code></pre></div>
+<p><img src="GeneEnvironmentInteraction_files/figure-html/unnamed-chunk-9-4.png" /><!-- --></p>
 <p>As GxE GWAS methods are under-utilized in the literature, consensus about how these results should be presented is developing. When interpreting and presenting the results, therefore, it is imperative that the each specific parameter is interpreted correctly. For example, while most people call the parameter from the SNP to the phenotype the “Main Effect”, it is better thought of as a conditional effect as strictly speaking it is the association between the SNP and the phenotype under the specific condition where the environment is equal to zero and not the average effect of the SNP across all levels of the environment as would be implied by the term <em>main effect</em>. By contrast, the interaction parameter is the difference in the SNP association between when the environment is equal to zero and when the environment is equal to one.</p>
 <p>An alternative, and preferable, interpretation of the GxE GWAS model is to calculate what we call Marginal Effects (or Simple Slopes). This is done automatically by GW-SEM using the <strong><em>TODO</em></strong> functions. Marginal effects can be interpreted as the GWAS coefficients at a particular level of the environment. For example, if the moderator is binary (e.g., for sex) we could calculate the GWAS results for either Males (sex = 0) or females (sex = 1). Alternatively, if the moderator is continuous (e.g.,, age) we might want to calculate the GWAS results for a low level of the moderator (2 SD below the moderator mean) and a high level of the moderator (2 SD above the moderator mean), or at some other particularly relevant value. Notably, while the calculation of marginal effects is an additional step in the analytical process (that GW-SEM does automatically), marginal effects are often more interpretable than either the conditional or interaction parameters, as well as being more closely related to the hypothesis that the analyst is trying to test.</p>
 
