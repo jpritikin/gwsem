@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Post-GWAS processing functions</title>
+
+
+
+
+
+
+<link rel="stylesheet" href="/opt/R/x86_64-pc-linux-gnu-library/4.0/rmarkdown/rmarkdown/templates/html_vignette/resources/vignette.css" type="text/css" />
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Post-GWAS processing functions</h1>
+
+
+
+<p>GWAS analyses produce an enormous amount of results, and it can be daunting to wade through them.<br />
+Many post-processing functions that GWAS analysts frequently use after conducting a standard GWAS are excellent. Rather than re-invent the wheel, GW-SEM will format its output to make it trivially easy to integrate into several common Post-GWAS processing functions. To help simplify the post-analytical processing of the analyses, we present several useful tips for collating the results into objects that can be used by other common Post GWAS processing applications.</p>
+<hr />
+<div id="reading-summary-statistics-into-r" class="section level2">
+<h2>Reading Summary Statistics into R</h2>
+<p>Since we are working with several chromosomes, typically analyzed independently and perhaps further chopped into sub-sections of chromosomes, we have several log files for each chromosome. My preference is to index the results across chromosomes using numbers, and along chromosomes using letters. Specifically, by using the <em><strong>snp</strong></em> argument in the <em><strong>GWAS</strong></em> function, it is possible to run a subset of SNP from a chromosome. For example, if there were 275,321 SNPs on Chromosome 1, 294,693 SNPs on Chromosome 2, and 212,164 SNPs on Chromosome 3, you might want to run the analyses in batches of 100,000 SNPs plus a remainder. For chromosome 1, this would mean the results for SNPs 1 to 100000 would be in fac1a.log, SNPs 100001 to 200000 would be in fac1b.log, and SNPs 200001 to 275,321 would be in fac1b.log (with similar results for the other chromosomes).</p>
+<p>To simplify things, we can construct a list of file names for each chr with the following code, and then read them all into R in one step, as shown below:</p>
+<pre><code>c1  &lt;- paste0(paste0(&quot;fac1&quot;,  letters)[1:8], &quot;.log&quot;)
+c2  &lt;- paste0(paste0(&quot;fac2&quot;,  letters)[1:9], &quot;.log&quot;)
+c3  &lt;- paste0(paste0(&quot;fac3&quot;,  letters)[1:7], &quot;.log&quot;)
+c4  &lt;- paste0(paste0(&quot;fac4&quot;,  letters)[1:8], &quot;.log&quot;)
+c5  &lt;- paste0(paste0(&quot;fac5&quot;,  letters)[1:7], &quot;.log&quot;)
+c6  &lt;- paste0(paste0(&quot;fac6&quot;,  letters)[1:7], &quot;.log&quot;)
+c7  &lt;- paste0(paste0(&quot;fac7&quot;,  letters)[1:6], &quot;.log&quot;)
+c8  &lt;- paste0(paste0(&quot;fac8&quot;,  letters)[1:6], &quot;.log&quot;)
+c9  &lt;- paste0(paste0(&quot;fac9&quot;,  letters)[1:5], &quot;.log&quot;)
+c10 &lt;- paste0(paste0(&quot;fac10&quot;, letters)[1:5], &quot;.log&quot;) 
+c11 &lt;- paste0(paste0(&quot;fac11&quot;, letters)[1:5], &quot;.log&quot;)
+c12 &lt;- paste0(paste0(&quot;fac12&quot;, letters)[1:5], &quot;.log&quot;)
+c13 &lt;- paste0(paste0(&quot;fac13&quot;, letters)[1:4], &quot;.log&quot;)
+c14 &lt;- paste0(paste0(&quot;fac14&quot;, letters)[1:4], &quot;.log&quot;)
+c15 &lt;- paste0(paste0(&quot;fac15&quot;, letters)[1:3], &quot;.log&quot;)
+c16 &lt;- paste0(paste0(&quot;fac16&quot;, letters)[1:3], &quot;.log&quot;)
+c17 &lt;- paste0(paste0(&quot;fac17&quot;, letters)[1:3], &quot;.log&quot;)
+c18 &lt;- paste0(paste0(&quot;fac18&quot;, letters)[1:3], &quot;.log&quot;)
+c19 &lt;- paste0(paste0(&quot;fac19&quot;, letters)[1:3], &quot;.log&quot;)
+c20 &lt;- paste0(paste0(&quot;fac20&quot;, letters)[1:2], &quot;.log&quot;)
+c21 &lt;- paste0(paste0(&quot;fac21&quot;, letters)[1:2], &quot;.log&quot;)
+c22 &lt;- paste0(paste0(&quot;fac22&quot;, letters)[1:2], &quot;.log&quot;)</code></pre>
+<p>We can then use these object in the <code>loadResults</code> function so that all the data for each chromosome is loaded into a single object.</p>
+<pre><code>res &lt;- loadResults(c(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10,
+                     c11, c12, c13, c14, c15, c16, c17, c18, c19, c20,
+                     c21, c22), &quot;snp_to_F&quot;)</code></pre>
+<p>At this point, we can combine the data from each chromosome into a single object, plot the data, write it to an external file, or use it as input for other post analytical GWAS analyses.</p>
+<hr />
+</div>
+<div id="constructing-a-manhattan-plot" class="section level2">
+<h2>Constructing a Manhattan Plot</h2>
+<p>Manhattan plots are one of the most common methods for presenting GWAS results. While we have built a natural plotting function into GW-SEM that calls out to <em><strong>qqman</strong></em>, it is also simple to construct a Manhattan plot in <em><strong>qqman</strong></em> directly using the code below. Rather than plot the results into an graphics device, the code below constructs the plot in an external PDF document (which I find easier to work with when constructing figures for manuscripts).</p>
+<pre><code># Plot the manhattan plot
+png(&quot;FacManhattan.pdf&quot;, width=1500, height=750)
+par(cex.lab = 2, mai = c(1, 1, .1, .1) + 0.1, bg=&quot;transparent&quot;)
+manhattan(conFac, p = &quot;P&quot;, ylim = c(0,20))
+dev.off()</code></pre>
+<p>This function will produce a Manhattan plot similar to the one below:</p>
+<div class="figure">
+<img src="https://jpritikin.github.io/gwsem/exampleFigs/addFacOrdManhattan.png" alt="Manhattan Plot" />
+<p class="caption">Manhattan Plot</p>
+</div>
+<p>This is the ordinal Manhattan plot from the Pritikin et al. paper for the association tests from the latent substance use frequency variable and the residuals models of substance use frequency with ordinal items for an analysis of 378,130 subjects. The x-axis presents the genomic position (Chromosomes 1–22) and the y-axis presents statistical significance as -log10<sub>p-value</sub>. The threshold for statistical significance accounting for multiple testing is shown by the red horizontal line (p = 5 × 10<sup>-8</sup>), while the blue horizontal line shows the suggestive level of statistical significance (p = 1 × 10<sup>-5</sup>).</p>
+<hr />
+</div>
+<div id="ldhub" class="section level2">
+<h2>LDhub</h2>
+<p>A common post-analytical step in many GWAS is to estimate the SNP heritability (h<sup>2</sup><sub>snp</sub>) from the summary statistics or the genetic correlations (r<sub>g-snp</sub>) with other GWAS results. GW-SEM simplifies this process such that when summary statistics are read into R with the <em><strong>loadResults</strong></em> function, they are in the form that is required by <a href="http://ldsc.broadinstitute.org">LD Hub</a>, or a <a href="https://github.com/bulik/ldsc">local LD score regression analysis</a>. All that users need to do is to write the results object to an external file.</p>
+<pre><code>
+myResults &lt;- loadResults(c(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10,
+                       c11, c12, c13, c14, c15, c16, c17, c18, c19, c20,
+               c21, c22), &quot;snp_to_F&quot;)
+
+head(myResults)
+#   MxComputeLoop1 CHR    BP         SNP A1 A2 statusCode    snp_to_F  snp_to_FSE         Z         P
+# 1              1   1 10177 rs367896724 AC  A         OK 0.007537512 0.008575259 0.8789837 0.3794101
+# 2              2   1 10352 rs201106462 TA  T         OK 0.009997416 0.008779536 1.1387181 0.2548208
+# 3              3   1 11008 rs575272151  G  C         OK 0.006097807 0.014676039 0.4154941 0.6777803
+# 4              4   1 11012 rs544419019  G  C         OK 0.006097807 0.014676039 0.4154941 0.6777803
+# 5              5   1 13110 rs540538026  A  G         OK 0.015765205 0.019758590 0.7978912 0.4249336
+# 6              6   1 13116  rs62635286  G  T         OK 0.009840498 0.011528798 0.8535580 0.3933499
+             
+write.table(myResults, &quot;myResults.txt&quot;, quote = F, row.names = F)                    </code></pre>
+<hr />
+</div>
+<div id="locuszoom" class="section level2">
+<h2>LocusZoom</h2>
+<p>Once a region of interest has been identified, it is often useful to plot the relevant SNPs in the region, along with the information about the extent of linkage disequilibrium (LD) between the lead SNP and other SNPs in the region, recombination rates in the region, and known genes that are proximate to the lead SNP. <a href="http://locuszoom.org">LocusZoom</a> provides an outstanding resource to efficiently construct and annotate these plots.</p>
+<pre><code># Read the results into R
+myResults &lt;- loadResults(c(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10,
+                       c11, c12, c13, c14, c15, c16, c17, c18, c19, c20,
+               c21, c22), &quot;snp_to_F&quot;)
+
+# Subset the results by a specific chromosome
+res3 &lt;- myResults[myResults $CHR==3,]
+
+# Find the basepair for the SNP(s) of interest
+head(myResults[order(log10(myResults $P)),], 10)
+
+# Generate an object with the relevant SNP +/- a flanking region (600kb in this case)
+res3a &lt;- res3[res3$BP &gt; 85899045 - 600000 &amp; res3$BP &lt; 85899045 + 600000, ]  
+
+# Write the object to a file.
+write.table(res3a, &quot;res3a.txt&quot;, row.names = F, quote = F)
+</code></pre>
+<p>This will produce a file called <em><strong>res3a.txt</strong></em> in your working directory that can be directly uploaded to locusZoom to produce the desired plots.</p>
+<hr />
+<p>If you have suggestions or requests for software integration, please <a href="https://github.com/jpritikin/gwsem/issues">contact us</a> and we will see what we can do.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>User Specified Genome Wide Association Study</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<link rel="stylesheet" href="/opt/R/x86_64-pc-linux-gnu-library/4.0/rmarkdown/rmarkdown/templates/html_vignette/resources/vignette.css" type="text/css" />
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">User Specified Genome Wide Association Study</h1>
+
+
+
+<p>In some cases, a user may want to specify custom models to test hypotheses that we (as developers) may not have thought of. One of the easiest ways to build these models is by using Onyx, to literally draw the path model, export the script that constructs the model, and run the GWAS. Alternatively, users can simply write their own GWAS model using the mxPath specification in OpenMx. In this tutorial we will walk you through building the model with Onyx.</p>
+<div id="installing-the-necessary-software" class="section level1">
+<h1>Installing the necessary software</h1>
+<p>The first step is to download the Onyx software. This software can be downloaded from the <a href="http://onyx.brandmaier.de">Onyx</a> website. Onyx is written in Java, which users will also need to install if it is not installed already.</p>
+<div id="building-a-custom-gwas-model" class="section level2">
+<h2>Building a Custom GWAS Model</h2>
+<p>In this example, we will build a latent growth curve (LGC) GWAS model. The LGC model is a common phenotypic model for developmental processes. For example, imagine that you have repeated (longitudinal) measures of a phenotype at regular intervals (say annually), as well as GWAS data on the same individuals. In the initial version of GW-SEM, we constructed a built-in function for analyzing this type of model, but the current release does not offer a built in LGC function. Here we demonstrate how to build a LGC GWAS model from scratch and perform a genome-wide association test on the slope.</p>
+</div>
+</div>
+<div id="designing-the-model" class="section level1">
+<h1>Designing the Model</h1>
+<p>After opening the Onyx software, you will be greeted with a blank screen. To begin, right click on the screen and you will be prompted with a series of options. As we would like to create a new LGC model, choose <strong><em>Create new model &gt; Create new LGCM</em></strong>.</p>
+<div class="figure">
+<img src="https://jpritikin.github.io/gwsem/gwsemCustomExample/basicModel.jpg" alt="First Step in Specifying the Onyx LGC Model" />
+<p class="caption">First Step in Specifying the Onyx LGC Model</p>
+</div>
+<p>This will prompt you to set up some basic parameter of the latent growth model, such as the number of time points, where you would like to center the growth curve parameters, etc. In this example, we will use the following options:</p>
+<div class="figure">
+<img src="https://jpritikin.github.io/gwsem/gwsemCustomExample/options.png" alt="Specifying Options for the LGC Model" />
+<p class="caption">Specifying Options for the LGC Model</p>
+</div>
+<p>This will produce the following figure:</p>
+<div class="figure">
+<img src="https://jpritikin.github.io/gwsem/gwsemCustomExample/initialFig.jpg" alt="The initial Figure from Onyx" />
+<p class="caption">The initial Figure from Onyx</p>
+</div>
+<p>The next step is to add parameters to the model that we will need for the GWAS portion. Specifically, we will add 1) a name to the model, 2) the SNP, 3) regressions from the latent intercept and latent slope variables onto the SNP, and 4) a covariance between the intercept and the slope.</p>
+<p>To name the model, right click on the canvas white space and several options will appear. In the text box, change the name to LCG GWAS.</p>
+<p>To add the SNP, right click on the white space and click <strong><em>Create Variable &gt; Observed</em></strong>. Then right click on the new box that appears and change the Variable name to <em><strong>SNP</strong></em>.</p>
+<div class="figure">
+<img src="https://jpritikin.github.io/gwsem/gwsemCustomExample/addSNP.jpg" alt="Adding the SNP to the Path Diagram" />
+<p class="caption">Adding the SNP to the Path Diagram</p>
+</div>
+<p>To add regressions paths from the SNP to the intercept and slope variables, right click on the new SNP variable and choose <strong><em>Add Path &gt; Add Regression</em></strong>. You will want to do this for the intercept and the slope. Once the regression paths are in the diagram, right click on each and choose <strong><em>Free Parameter</em></strong>. This will tell the model to estimate values for these paths, which are the essential components for the GWAS.</p>
+<p>To further customize the model, it is possible to estimate a covariance between the intercept and slope by right clicking on the intercept, choosing <strong><em>Add Path &gt; Add Covariance</em></strong>, and then freeing the covariance path as was done for the SNP regressions.</p>
+<p>Finally, we want to give the model sensible starting values, which can be done by right clicking on the respective paths and changing the value from the default <em><strong>1.0</strong></em> to a more sensible value. Better, but not perfect, starting values can increase the optimization speed.</p>
+<p>Note that the loadings from the intercept to the manifests are all fixed to 1, and the loadings from slope to the manifests increase linearly, but are fixed at particular values (i.e. 0, 1, 2, 3). This is done as part of the LGC model.</p>
+<p>At this point you have drawn a path diagram for a basic LGC GWAS model.</p>
+<div class="figure">
+<img src="https://jpritikin.github.io/gwsem/gwsemCustomExample/finalPathDiagram.jpg" alt="The Final Path Diagram from Onyx" />
+<p class="caption">The Final Path Diagram from Onyx</p>
+</div>
+<div id="building-the-gwas-model-in-r" class="section level2">
+<h2>Building the GWAS model in R</h2>
+<p>Once we have drawn the path model in Onyx, we can export the model syntax into a form that can be read by R, and customize it so that it can be read by GW-SEM. To export the model, right click on the white space and choose <strong><em>Show Script &gt; OpenMx (Path)</em></strong>. This will bring up a window at the top of the path diagram with syntax that can be copied into an R script.</p>
+<p>It is now necessary to edit the code to remove irrelevant syntax and make a few changes to accommodate covariates. To make these changes easier, we gather up all the mxPath statements into a list.</p>
+<p>This is the R Script that was generated by Onyx with the modifications highlighted.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1">location &lt;-<span class="st"> &#39;https://jpritikin.github.io/gwsem/gwsemCustomExample&#39;</span></a>
+<a class="sourceLine" id="cb1-2" title="2"></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="co">#</span></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="co"># This model specification was automatically generated by Onyx</span></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="co"># </span></a>
+<a class="sourceLine" id="cb1-6" title="6"><span class="kw">library</span>(<span class="st">&quot;OpenMx&quot;</span>)                                                       <span class="co"># Edited</span></a>
+<a class="sourceLine" id="cb1-7" title="7"><span class="co">#&gt; To take full advantage of multiple cores, use:</span></a>
+<a class="sourceLine" id="cb1-8" title="8"><span class="co">#&gt;   mxOption(key=&#39;Number of Threads&#39;, value=parallel::detectCores()) #now</span></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="co">#&gt;   Sys.setenv(OMP_NUM_THREADS=parallel::detectCores()) #before library(OpenMx)</span></a>
+<a class="sourceLine" id="cb1-10" title="10">modelData &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(location, <span class="st">&quot;lgcData.txt&quot;</span>), <span class="dt">header =</span> <span class="ot">TRUE</span>)                     <span class="co"># Cut</span></a>
+<a class="sourceLine" id="cb1-11" title="11">manifests&lt;-<span class="kw">c</span>(<span class="st">&quot;time1&quot;</span>,<span class="st">&quot;time2&quot;</span>,<span class="st">&quot;time3&quot;</span>,<span class="st">&quot;time4&quot;</span>,<span class="st">&quot;snp&quot;</span>)                      <span class="co"># Kept</span></a>
+<a class="sourceLine" id="cb1-12" title="12">latents&lt;-<span class="kw">c</span>(<span class="st">&quot;intercept&quot;</span>,<span class="st">&quot;slope&quot;</span>)                                          <span class="co"># Kept</span></a>
+<a class="sourceLine" id="cb1-13" title="13">model &lt;-<span class="st"> </span><span class="kw">mxModel</span>(<span class="st">&quot;LGC_GWAS&quot;</span>,                                             <span class="co"># Edited</span></a>
+<a class="sourceLine" id="cb1-14" title="14"><span class="dt">type=</span><span class="st">&quot;RAM&quot;</span>,                                                              <span class="co"># Cut</span></a>
+<a class="sourceLine" id="cb1-15" title="15"><span class="dt">manifestVars =</span> manifests,                                                <span class="co"># Cut</span></a>
+<a class="sourceLine" id="cb1-16" title="16"><span class="dt">latentVars =</span> latents,                                                    <span class="co"># Cut</span></a>
+<a class="sourceLine" id="cb1-17" title="17"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;intercept&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time1&quot;</span>,<span class="st">&quot;time2&quot;</span>,<span class="st">&quot;time3&quot;</span>,<span class="st">&quot;time4&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">FALSE</span>,<span class="ot">FALSE</span>,<span class="ot">FALSE</span>,<span class="ot">FALSE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>,<span class="fl">1.0</span>,<span class="fl">1.0</span>,<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">1</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;intercept__time1&quot;</span>,<span class="st">&quot;intercept__time2&quot;</span>,<span class="st">&quot;intercept__time3&quot;</span>,<span class="st">&quot;intercept__time4&quot;</span>) ),   <span class="co"># Edited</span></a>
+<a class="sourceLine" id="cb1-18" title="18"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;slope&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time2&quot;</span>,<span class="st">&quot;time3&quot;</span>,<span class="st">&quot;time4&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">FALSE</span>,<span class="ot">FALSE</span>,<span class="ot">FALSE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>,<span class="fl">2.0</span>,<span class="fl">3.0</span>) , <span class="dt">arrows=</span><span class="dv">1</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;slope__time2&quot;</span>,<span class="st">&quot;slope__time3&quot;</span>,<span class="st">&quot;slope__time4&quot;</span>) ),                                  <span class="co"># Edited</span></a>
+<a class="sourceLine" id="cb1-19" title="19"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;one&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;intercept&quot;</span>,<span class="st">&quot;slope&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>,<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>,<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">1</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;const__intercept&quot;</span>,<span class="st">&quot;const__slope&quot;</span>) ),                                             <span class="co"># Edited</span></a>
+<a class="sourceLine" id="cb1-20" title="20"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;snp&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;intercept&quot;</span>,<span class="st">&quot;slope&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>,<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">0.5</span>,<span class="fl">0.1</span>) , <span class="dt">arrows=</span><span class="dv">1</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;snp__intercept&quot;</span>,<span class="st">&quot;snp__slope&quot;</span>) ),                                                 <span class="co"># Edited</span></a>
+<a class="sourceLine" id="cb1-21" title="21"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;intercept&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;intercept&quot;</span>,<span class="st">&quot;slope&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>,<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>,<span class="fl">0.1</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;sigma_i&quot;</span>,<span class="st">&quot;COV_intercept_slope&quot;</span>) ),                                               <span class="co"># Edited </span></a>
+<a class="sourceLine" id="cb1-22" title="22"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;slope&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;slope&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;sigma_s&quot;</span>) ),    <span class="co"># Edited</span></a>
+<a class="sourceLine" id="cb1-23" title="23"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;time1&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time1&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;res&quot;</span>) ),        <span class="co"># Edited </span></a>
+<a class="sourceLine" id="cb1-24" title="24"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;time2&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time2&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;res&quot;</span>) ),        <span class="co"># Edited  </span></a>
+<a class="sourceLine" id="cb1-25" title="25"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;time3&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time3&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;res&quot;</span>) ),        <span class="co"># Edited </span></a>
+<a class="sourceLine" id="cb1-26" title="26"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;time4&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time4&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;res&quot;</span>) ),        <span class="co"># Edited </span></a>
+<a class="sourceLine" id="cb1-27" title="27"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;snp&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;snp&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;VAR_snp&quot;</span>) ),        <span class="co"># Edited </span></a>
+<a class="sourceLine" id="cb1-28" title="28"><span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;one&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time1&quot;</span>,<span class="st">&quot;time2&quot;</span>,<span class="st">&quot;time3&quot;</span>,<span class="st">&quot;time4&quot;</span>,<span class="st">&quot;snp&quot;</span>), <span class="dt">free=</span>F, <span class="dt">value=</span><span class="dv">0</span>, <span class="dt">arrows=</span><span class="dv">1</span>),         <span class="co"># Edited </span></a>
+<a class="sourceLine" id="cb1-29" title="29"><span class="kw">mxData</span>(modelData, <span class="dt">type =</span> <span class="st">&quot;raw&quot;</span>)                     <span class="co"># Cut</span></a>
+<a class="sourceLine" id="cb1-30" title="30">);                                                  <span class="co"># Cut</span></a>
+<a class="sourceLine" id="cb1-31" title="31"></a>
+<a class="sourceLine" id="cb1-32" title="32">result &lt;-<span class="st"> </span><span class="kw">mxRun</span>(model)                              <span class="co"># Cut</span></a>
+<a class="sourceLine" id="cb1-33" title="33"><span class="co">#&gt; Running LGC_GWAS with 9 parameters</span></a>
+<a class="sourceLine" id="cb1-34" title="34"><span class="kw">summary</span>(result)                                     <span class="co"># Cut</span></a>
+<a class="sourceLine" id="cb1-35" title="35"><span class="co">#&gt; Summary of LGC_GWAS </span></a>
+<a class="sourceLine" id="cb1-36" title="36"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb1-37" title="37"><span class="co">#&gt; free parameters:</span></a>
+<a class="sourceLine" id="cb1-38" title="38"><span class="co">#&gt;                  name matrix       row       col    Estimate  Std.Error A</span></a>
+<a class="sourceLine" id="cb1-39" title="39"><span class="co">#&gt; 1      snp__intercept      A intercept       snp -0.50984657 0.01754049  </span></a>
+<a class="sourceLine" id="cb1-40" title="40"><span class="co">#&gt; 2          snp__slope      A     slope       snp  0.09553418 0.01511185  </span></a>
+<a class="sourceLine" id="cb1-41" title="41"><span class="co">#&gt; 3                 res      S     time1     time1  1.00949655 0.01303252  </span></a>
+<a class="sourceLine" id="cb1-42" title="42"><span class="co">#&gt; 4             VAR_snp      S       snp       snp  0.98124812 0.01791512  </span></a>
+<a class="sourceLine" id="cb1-43" title="43"><span class="co">#&gt; 5             sigma_i      S intercept intercept  1.10473029 0.03430803  </span></a>
+<a class="sourceLine" id="cb1-44" title="44"><span class="co">#&gt; 6 COV_intercept_slope      S intercept     slope  0.05935154 0.02076271  </span></a>
+<a class="sourceLine" id="cb1-45" title="45"><span class="co">#&gt; 7             sigma_s      S     slope     slope  1.14262710 0.02468548 !</span></a>
+<a class="sourceLine" id="cb1-46" title="46"><span class="co">#&gt; 8    const__intercept      M         1 intercept  1.89730586 0.01737536  </span></a>
+<a class="sourceLine" id="cb1-47" title="47"><span class="co">#&gt; 9        const__slope      M         1     slope  0.57037791 0.01496974  </span></a>
+<a class="sourceLine" id="cb1-48" title="48"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb1-49" title="49"><span class="co">#&gt; Model Statistics: </span></a>
+<a class="sourceLine" id="cb1-50" title="50"><span class="co">#&gt;                |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)</span></a>
+<a class="sourceLine" id="cb1-51" title="51"><span class="co">#&gt;        Model:              9                  29991              108303.5</span></a>
+<a class="sourceLine" id="cb1-52" title="52"><span class="co">#&gt;    Saturated:             20                  29980                    NA</span></a>
+<a class="sourceLine" id="cb1-53" title="53"><span class="co">#&gt; Independence:             10                  29990                    NA</span></a>
+<a class="sourceLine" id="cb1-54" title="54"><span class="co">#&gt; Number of observations/statistics: 6000/30000</span></a>
+<a class="sourceLine" id="cb1-55" title="55"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb1-56" title="56"><span class="co">#&gt; Information Criteria: </span></a>
+<a class="sourceLine" id="cb1-57" title="57"><span class="co">#&gt;       |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted</span></a>
+<a class="sourceLine" id="cb1-58" title="58"><span class="co">#&gt; AIC:       48321.49               108321.5                 108321.5</span></a>
+<a class="sourceLine" id="cb1-59" title="59"><span class="co">#&gt; BIC:     -152603.66               108381.8                 108353.2</span></a>
+<a class="sourceLine" id="cb1-60" title="60"><span class="co">#&gt; To get additional fit indices, see help(mxRefModels)</span></a>
+<a class="sourceLine" id="cb1-61" title="61"><span class="co">#&gt; timestamp: 2020-07-10 20:23:04 </span></a>
+<a class="sourceLine" id="cb1-62" title="62"><span class="co">#&gt; Wall clock time: 0.5363045 secs </span></a>
+<a class="sourceLine" id="cb1-63" title="63"><span class="co">#&gt; optimizer:  SLSQP </span></a>
+<a class="sourceLine" id="cb1-64" title="64"><span class="co">#&gt; OpenMx version number: 2.17.4 </span></a>
+<a class="sourceLine" id="cb1-65" title="65"><span class="co">#&gt; Need help?  See help(mxSummary)</span></a></code></pre></div>
+<p>This is the edited R Script that we can modify for GW-SEM:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1"><span class="co"># This model that we will build on for GW-SEM</span></a>
+<a class="sourceLine" id="cb2-2" title="2"></a>
+<a class="sourceLine" id="cb2-3" title="3"><span class="kw">library</span>(gwsem)</a>
+<a class="sourceLine" id="cb2-4" title="4"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-5" title="5"><span class="co">#&gt; Attaching package: &#39;gwsem&#39;</span></a>
+<a class="sourceLine" id="cb2-6" title="6"><span class="co">#&gt; The following object is masked from &#39;package:base&#39;:</span></a>
+<a class="sourceLine" id="cb2-7" title="7"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-8" title="8"><span class="co">#&gt;     signif</span></a>
+<a class="sourceLine" id="cb2-9" title="9"></a>
+<a class="sourceLine" id="cb2-10" title="10"><span class="co"># load the LGC phenotypic data</span></a>
+<a class="sourceLine" id="cb2-11" title="11">lgcData &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(location, <span class="st">&quot;lgcData.txt&quot;</span>), <span class="dt">header =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb2-12" title="12"></a>
+<a class="sourceLine" id="cb2-13" title="13"><span class="co"># Use the Onyx Mode to edit the necessary components for the GWAS model</span></a>
+<a class="sourceLine" id="cb2-14" title="14">manifests&lt;-<span class="kw">c</span>(<span class="st">&quot;time1&quot;</span>,<span class="st">&quot;time2&quot;</span>,<span class="st">&quot;time3&quot;</span>,<span class="st">&quot;time4&quot;</span>,<span class="st">&quot;snp&quot;</span>)</a>
+<a class="sourceLine" id="cb2-15" title="15">latents&lt;-<span class="kw">c</span>(<span class="st">&quot;intercept&quot;</span>,<span class="st">&quot;slope&quot;</span>)</a>
+<a class="sourceLine" id="cb2-16" title="16"></a>
+<a class="sourceLine" id="cb2-17" title="17">path &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;intercept&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time1&quot;</span>,<span class="st">&quot;time2&quot;</span>,<span class="st">&quot;time3&quot;</span>,<span class="st">&quot;time4&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">FALSE</span>,<span class="ot">FALSE</span>,<span class="ot">FALSE</span>,<span class="ot">FALSE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>,<span class="fl">1.0</span>,<span class="fl">1.0</span>,<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">1</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;intercept__time1&quot;</span>,<span class="st">&quot;intercept__time2&quot;</span>,<span class="st">&quot;intercept__time3&quot;</span>,<span class="st">&quot;intercept__time4&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-18" title="18">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;slope&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time2&quot;</span>,<span class="st">&quot;time3&quot;</span>,<span class="st">&quot;time4&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">FALSE</span>,<span class="ot">FALSE</span>,<span class="ot">FALSE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>,<span class="fl">2.0</span>,<span class="fl">3.0</span>) , <span class="dt">arrows=</span><span class="dv">1</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;slope__time2&quot;</span>,<span class="st">&quot;slope__time3&quot;</span>,<span class="st">&quot;slope__time4&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-19" title="19">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;one&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;intercept&quot;</span>,<span class="st">&quot;slope&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>,<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>,<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">1</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;const__intercept&quot;</span>,<span class="st">&quot;const__slope&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-20" title="20">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;snp&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;intercept&quot;</span>,<span class="st">&quot;slope&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>,<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">0.5</span>,<span class="fl">0.1</span>) , <span class="dt">arrows=</span><span class="dv">1</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;snp__intercept&quot;</span>,<span class="st">&quot;snp__slope&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-21" title="21">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;intercept&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;intercept&quot;</span>,<span class="st">&quot;slope&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>,<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>,<span class="fl">0.1</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;sigma_i&quot;</span>,<span class="st">&quot;COV_intercept_slope&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-22" title="22">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;slope&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;slope&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;sigma_s&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-23" title="23">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;time1&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time1&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;res&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-24" title="24">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;time2&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time2&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;res&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-25" title="25">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;time3&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time3&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;res&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-26" title="26">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;time4&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time4&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;res&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-27" title="27">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;snp&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;snp&quot;</span>), <span class="dt">free=</span><span class="kw">c</span>(<span class="ot">TRUE</span>), <span class="dt">value=</span><span class="kw">c</span>(<span class="fl">1.0</span>) , <span class="dt">arrows=</span><span class="dv">2</span>, <span class="dt">label=</span><span class="kw">c</span>(<span class="st">&quot;VAR_snp&quot;</span>) ),</a>
+<a class="sourceLine" id="cb2-28" title="28">             <span class="kw">mxPath</span>(<span class="dt">from=</span><span class="st">&quot;one&quot;</span>,<span class="dt">to=</span><span class="kw">c</span>(<span class="st">&quot;time1&quot;</span>,<span class="st">&quot;time2&quot;</span>,<span class="st">&quot;time3&quot;</span>,<span class="st">&quot;time4&quot;</span>,<span class="st">&quot;snp&quot;</span>), <span class="dt">free=</span>F, <span class="dt">value=</span><span class="dv">0</span>, <span class="dt">arrows=</span><span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb2-29" title="29"></a>
+<a class="sourceLine" id="cb2-30" title="30"><span class="co"># Package the components into a single GW-SEM Model</span></a>
+<a class="sourceLine" id="cb2-31" title="31"></a>
+<a class="sourceLine" id="cb2-32" title="32">lgcGWAS &lt;-<span class="st"> </span><span class="kw">mxModel</span>(<span class="st">&quot;lgc&quot;</span>, <span class="dt">type=</span><span class="st">&quot;RAM&quot;</span>,</a>
+<a class="sourceLine" id="cb2-33" title="33">        <span class="dt">manifestVars =</span> manifests,</a>
+<a class="sourceLine" id="cb2-34" title="34">        <span class="dt">latentVars =</span> <span class="kw">c</span>(latents, <span class="kw">paste0</span>(<span class="st">&#39;pc&#39;</span>, <span class="dv">1</span><span class="op">:</span><span class="dv">5</span>)),</a>
+<a class="sourceLine" id="cb2-35" title="35">        path,</a>
+<a class="sourceLine" id="cb2-36" title="36">        <span class="kw">mxExpectationRAM</span>(<span class="dt">M=</span><span class="st">&quot;M&quot;</span>),</a>
+<a class="sourceLine" id="cb2-37" title="37">        <span class="kw">mxFitFunctionWLS</span>(<span class="dt">allContinuousMethod=</span><span class="st">&quot;marginals&quot;</span>),</a>
+<a class="sourceLine" id="cb2-38" title="38">        <span class="kw">mxData</span>(<span class="dt">observed=</span>lgcData, <span class="dt">type=</span><span class="st">&quot;raw&quot;</span>, <span class="dt">minVariance=</span><span class="fl">0.1</span>, <span class="dt">warnNPDacov=</span><span class="ot">FALSE</span>))</a>
+<a class="sourceLine" id="cb2-39" title="39"></a>
+<a class="sourceLine" id="cb2-40" title="40"><span class="co"># Add the necessary covariates</span></a>
+<a class="sourceLine" id="cb2-41" title="41">lgcGWAS &lt;-<span class="st"> </span><span class="kw">setupExogenousCovariates</span>(lgcGWAS, <span class="kw">paste0</span>(<span class="st">&#39;pc&#39;</span>, <span class="dv">1</span><span class="op">:</span><span class="dv">5</span>), <span class="kw">paste0</span>(<span class="st">&#39;time&#39;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">4</span>))</a>
+<a class="sourceLine" id="cb2-42" title="42"></a>
+<a class="sourceLine" id="cb2-43" title="43"><span class="co"># Make sure that the model you specified runs properly and gives sensible parameter estimates</span></a>
+<a class="sourceLine" id="cb2-44" title="44">LGCtest &lt;-<span class="st"> </span><span class="kw">mxRun</span>(lgcGWAS)</a>
+<a class="sourceLine" id="cb2-45" title="45"><span class="co">#&gt; Running lgc with 29 parameters</span></a>
+<a class="sourceLine" id="cb2-46" title="46"><span class="kw">summary</span>(LGCtest)</a>
+<a class="sourceLine" id="cb2-47" title="47"><span class="co">#&gt; Summary of lgc </span></a>
+<a class="sourceLine" id="cb2-48" title="48"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb2-49" title="49"><span class="co">#&gt; free parameters:</span></a>
+<a class="sourceLine" id="cb2-50" title="50"><span class="co">#&gt;                   name matrix       row       col      Estimate  Std.Error</span></a>
+<a class="sourceLine" id="cb2-51" title="51"><span class="co">#&gt; 1       snp__intercept      A intercept       snp -0.4437830929 0.01830334</span></a>
+<a class="sourceLine" id="cb2-52" title="52"><span class="co">#&gt; 2           snp__slope      A     slope       snp  0.1040938171 0.01530232</span></a>
+<a class="sourceLine" id="cb2-53" title="53"><span class="co">#&gt; 3         pc1_to_time1      A     time1       pc1 -0.0133932530 0.01945328</span></a>
+<a class="sourceLine" id="cb2-54" title="54"><span class="co">#&gt; 4         pc1_to_time2      A     time2       pc1 -0.0219015410 0.02431640</span></a>
+<a class="sourceLine" id="cb2-55" title="55"><span class="co">#&gt; 5         pc1_to_time3      A     time3       pc1 -0.0347416791 0.03371482</span></a>
+<a class="sourceLine" id="cb2-56" title="56"><span class="co">#&gt; 6         pc1_to_time4      A     time4       pc1 -0.0988534696 0.04570363</span></a>
+<a class="sourceLine" id="cb2-57" title="57"><span class="co">#&gt; 7         pc2_to_time1      A     time1       pc2 -0.0039891552 0.01994979</span></a>
+<a class="sourceLine" id="cb2-58" title="58"><span class="co">#&gt; 8         pc2_to_time2      A     time2       pc2  0.0166468586 0.02494595</span></a>
+<a class="sourceLine" id="cb2-59" title="59"><span class="co">#&gt; 9         pc2_to_time3      A     time3       pc2 -0.0096845406 0.03450092</span></a>
+<a class="sourceLine" id="cb2-60" title="60"><span class="co">#&gt; 10        pc2_to_time4      A     time4       pc2  0.0035911673 0.04674882</span></a>
+<a class="sourceLine" id="cb2-61" title="61"><span class="co">#&gt; 11        pc3_to_time1      A     time1       pc3 -0.0257805372 0.01937684</span></a>
+<a class="sourceLine" id="cb2-62" title="62"><span class="co">#&gt; 12        pc3_to_time2      A     time2       pc3 -0.0145290663 0.02410139</span></a>
+<a class="sourceLine" id="cb2-63" title="63"><span class="co">#&gt; 13        pc3_to_time3      A     time3       pc3 -0.0343738802 0.03330934</span></a>
+<a class="sourceLine" id="cb2-64" title="64"><span class="co">#&gt; 14        pc3_to_time4      A     time4       pc3 -0.0487441923 0.04556712</span></a>
+<a class="sourceLine" id="cb2-65" title="65"><span class="co">#&gt; 15        pc4_to_time1      A     time1       pc4  0.0036696944 0.01978660</span></a>
+<a class="sourceLine" id="cb2-66" title="66"><span class="co">#&gt; 16        pc4_to_time2      A     time2       pc4 -0.0005290562 0.02394867</span></a>
+<a class="sourceLine" id="cb2-67" title="67"><span class="co">#&gt; 17        pc4_to_time3      A     time3       pc4 -0.0081206600 0.03343928</span></a>
+<a class="sourceLine" id="cb2-68" title="68"><span class="co">#&gt; 18        pc4_to_time4      A     time4       pc4 -0.0234750570 0.04558151</span></a>
+<a class="sourceLine" id="cb2-69" title="69"><span class="co">#&gt; 19        pc5_to_time1      A     time1       pc5 -0.0016405149 0.02020366</span></a>
+<a class="sourceLine" id="cb2-70" title="70"><span class="co">#&gt; 20        pc5_to_time2      A     time2       pc5  0.0026169823 0.02486972</span></a>
+<a class="sourceLine" id="cb2-71" title="71"><span class="co">#&gt; 21        pc5_to_time3      A     time3       pc5  0.0291196833 0.03433837</span></a>
+<a class="sourceLine" id="cb2-72" title="72"><span class="co">#&gt; 22        pc5_to_time4      A     time4       pc5  0.0019723528 0.04608303</span></a>
+<a class="sourceLine" id="cb2-73" title="73"><span class="co">#&gt; 23                 res      S     time1     time1  1.1190590789 0.01707673</span></a>
+<a class="sourceLine" id="cb2-74" title="74"><span class="co">#&gt; 24             VAR_snp      S       snp       snp  0.9679213498 0.01796294</span></a>
+<a class="sourceLine" id="cb2-75" title="75"><span class="co">#&gt; 25             sigma_i      S intercept intercept  1.1580268858 0.03650718</span></a>
+<a class="sourceLine" id="cb2-76" title="76"><span class="co">#&gt; 26 COV_intercept_slope      S intercept     slope -0.0395421989 0.02189775</span></a>
+<a class="sourceLine" id="cb2-77" title="77"><span class="co">#&gt; 27             sigma_s      S     slope     slope  1.1449532658 0.02594048</span></a>
+<a class="sourceLine" id="cb2-78" title="78"><span class="co">#&gt; 28    const__intercept      M         1 intercept  1.8962909374 0.01737385</span></a>
+<a class="sourceLine" id="cb2-79" title="79"><span class="co">#&gt; 29        const__slope      M         1     slope  0.5723508617 0.01498402</span></a>
+<a class="sourceLine" id="cb2-80" title="80"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-81" title="81"><span class="co">#&gt; Model Statistics: </span></a>
+<a class="sourceLine" id="cb2-82" title="82"><span class="co">#&gt;                |  Parameters  |  Degrees of Freedom  |  Fit (r&#39;Wr units)</span></a>
+<a class="sourceLine" id="cb2-83" title="83"><span class="co">#&gt;        Model:             29                  29971             211.9503</span></a>
+<a class="sourceLine" id="cb2-84" title="84"><span class="co">#&gt;    Saturated:             20                  29980               0.0000</span></a>
+<a class="sourceLine" id="cb2-85" title="85"><span class="co">#&gt; Independence:             10                  29990                   NA</span></a>
+<a class="sourceLine" id="cb2-86" title="86"><span class="co">#&gt; Number of observations/statistics: 6000/30000</span></a>
+<a class="sourceLine" id="cb2-87" title="87"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-88" title="88"><span class="co">#&gt; chi-square:  χ² ( df=16 ) = 211.9503,  p = 3.012665e-36</span></a>
+<a class="sourceLine" id="cb2-89" title="89"><span class="co">#&gt; CFI: NA </span></a>
+<a class="sourceLine" id="cb2-90" title="90"><span class="co">#&gt; TLI: NA   (also known as NNFI) </span></a>
+<a class="sourceLine" id="cb2-91" title="91"><span class="co">#&gt; RMSEA:  0.04517908  [95% CI (0.03883452, 0.05172783)]</span></a>
+<a class="sourceLine" id="cb2-92" title="92"><span class="co">#&gt; Prob(RMSEA &lt;= 0.05): 0.9240899</span></a>
+<a class="sourceLine" id="cb2-93" title="93"><span class="co">#&gt; To get additional fit indices, see help(mxRefModels)</span></a>
+<a class="sourceLine" id="cb2-94" title="94"><span class="co">#&gt; timestamp: 2020-07-10 20:23:06 </span></a>
+<a class="sourceLine" id="cb2-95" title="95"><span class="co">#&gt; Wall clock time: 0.8249547 secs </span></a>
+<a class="sourceLine" id="cb2-96" title="96"><span class="co">#&gt; optimizer:  SLSQP </span></a>
+<a class="sourceLine" id="cb2-97" title="97"><span class="co">#&gt; OpenMx version number: 2.17.4 </span></a>
+<a class="sourceLine" id="cb2-98" title="98"><span class="co">#&gt; Need help?  See help(mxSummary)</span></a>
+<a class="sourceLine" id="cb2-99" title="99"></a>
+<a class="sourceLine" id="cb2-100" title="100"><span class="kw">library</span>(curl)</a>
+<a class="sourceLine" id="cb2-101" title="101"><span class="kw">curl_download</span>(<span class="kw">file.path</span>(location, <span class="st">&#39;example.pgen&#39;</span>),</a>
+<a class="sourceLine" id="cb2-102" title="102">              <span class="kw">file.path</span>(<span class="kw">tempdir</span>(),<span class="st">&#39;example.pgen&#39;</span>))</a>
+<a class="sourceLine" id="cb2-103" title="103"><span class="kw">curl_download</span>(<span class="kw">file.path</span>(location, <span class="st">&#39;example.pvar&#39;</span>),</a>
+<a class="sourceLine" id="cb2-104" title="104">              <span class="kw">file.path</span>(<span class="kw">tempdir</span>(),<span class="st">&#39;example.pvar&#39;</span>))</a>
+<a class="sourceLine" id="cb2-105" title="105"></a>
+<a class="sourceLine" id="cb2-106" title="106"><span class="co"># Run the GWAS Model</span></a>
+<a class="sourceLine" id="cb2-107" title="107"><span class="kw">GWAS</span>(lgcGWAS,</a>
+<a class="sourceLine" id="cb2-108" title="108">     <span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;example.pgen&quot;</span>),</a>
+<a class="sourceLine" id="cb2-109" title="109">     <span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;lgc.log&quot;</span>))</a>
+<a class="sourceLine" id="cb2-110" title="110"><span class="co">#&gt; Running lgc with 29 parameters</span></a>
+<a class="sourceLine" id="cb2-111" title="111"><span class="co">#&gt; Done. See &#39;/tmp/RtmpnrCAuD/lgc.log&#39; for results</span></a></code></pre></div>
+<p>The loadResults function calculates Z scores and P values for the <code>snp__slope</code> and <code>snp__int</code> parameters.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1">lr &lt;-<span class="st"> </span><span class="kw">loadResults</span>(<span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&#39;lgc.log&#39;</span>), <span class="kw">paste0</span>(<span class="st">&#39;snp__&#39;</span>, <span class="kw">c</span>(<span class="st">&#39;intercept&#39;</span>,<span class="st">&#39;slope&#39;</span>)))</a>
+<a class="sourceLine" id="cb3-2" title="2">LGCresInt &lt;-<span class="st"> </span><span class="kw">signif</span>(lr, <span class="st">&#39;snp__intercept&#39;</span>)</a>
+<a class="sourceLine" id="cb3-3" title="3">LGCresSlo &lt;-<span class="st"> </span><span class="kw">signif</span>(lr, <span class="st">&#39;snp__slope&#39;</span>)</a></code></pre></div>
+<p>In this example, we simulated snp1491 and snp1945 to be related to the latent intercept, and snp1339 and snp1598 to be related to the latent slope, and snp1901 to be related to both the intercept and the slope. We can look at the top SNPs using the head and order function to see whether the simulated SNPs are the most predictive of the latent variables.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">head</span>(LGCresInt[<span class="kw">order</span>(LGCresInt<span class="op">$</span>Z, <span class="dt">decreasing =</span> T),])</a>
+<a class="sourceLine" id="cb4-2" title="2"><span class="co">#&gt;    MxComputeLoop1 CHR   BP     SNP A1 A2 statusCode catch1 snp__intercept</span></a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="co">#&gt; 1:           1492   1 1491 snp1491  A  B         OK     NA     0.20668715</span></a>
+<a class="sourceLine" id="cb4-4" title="4"><span class="co">#&gt; 2:           1946   1 1945 snp1945  B  A         OK     NA     0.18971924</span></a>
+<a class="sourceLine" id="cb4-5" title="5"><span class="co">#&gt; 3:           1902   1 1901 snp1901  A  B         OK     NA     0.16039674</span></a>
+<a class="sourceLine" id="cb4-6" title="6"><span class="co">#&gt; 4:           1625   1 1624 snp1624  A  B         OK     NA     0.10033048</span></a>
+<a class="sourceLine" id="cb4-7" title="7"><span class="co">#&gt; 5:           1817   1 1816 snp1816  B  A         OK     NA     0.07273853</span></a>
+<a class="sourceLine" id="cb4-8" title="8"><span class="co">#&gt; 6:            435   1  434  snp434  A  B         OK     NA     0.06541390</span></a>
+<a class="sourceLine" id="cb4-9" title="9"><span class="co">#&gt;      snp__slope Vsnp__intercept:snp__intercept Vsnp__slope:snp__slope        Z</span></a>
+<a class="sourceLine" id="cb4-10" title="10"><span class="co">#&gt; 1: -0.031280144                   0.0010574149           0.0006639955 6.356101</span></a>
+<a class="sourceLine" id="cb4-11" title="11"><span class="co">#&gt; 2: -0.019634091                   0.0011138125           0.0007148516 5.684671</span></a>
+<a class="sourceLine" id="cb4-12" title="12"><span class="co">#&gt; 3: -0.170852005                   0.0012745754           0.0007930931 4.492755</span></a>
+<a class="sourceLine" id="cb4-13" title="13"><span class="co">#&gt; 4: -0.021632013                   0.0010447427           0.0006999388 3.104047</span></a>
+<a class="sourceLine" id="cb4-14" title="14"><span class="co">#&gt; 5: -0.023473641                   0.0009348525           0.0006068575 2.378992</span></a>
+<a class="sourceLine" id="cb4-15" title="15"><span class="co">#&gt; 6: -0.001020391                   0.0008092684           0.0005440612 2.299449</span></a>
+<a class="sourceLine" id="cb4-16" title="16"><span class="co">#&gt;               P</span></a>
+<a class="sourceLine" id="cb4-17" title="17"><span class="co">#&gt; 1: 2.069392e-10</span></a>
+<a class="sourceLine" id="cb4-18" title="18"><span class="co">#&gt; 2: 1.310648e-08</span></a>
+<a class="sourceLine" id="cb4-19" title="19"><span class="co">#&gt; 3: 7.030753e-06</span></a>
+<a class="sourceLine" id="cb4-20" title="20"><span class="co">#&gt; 4: 1.908933e-03</span></a>
+<a class="sourceLine" id="cb4-21" title="21"><span class="co">#&gt; 5: 1.736005e-02</span></a>
+<a class="sourceLine" id="cb4-22" title="22"><span class="co">#&gt; 6: 2.147947e-02</span></a>
+<a class="sourceLine" id="cb4-23" title="23"></a>
+<a class="sourceLine" id="cb4-24" title="24"><span class="kw">head</span>(LGCresSlo[<span class="kw">order</span>(<span class="kw">abs</span>(LGCresSlo<span class="op">$</span>Z), <span class="dt">decreasing =</span> T),])</a>
+<a class="sourceLine" id="cb4-25" title="25"><span class="co">#&gt;    MxComputeLoop1 CHR   BP     SNP A1 A2 statusCode catch1 snp__intercept</span></a>
+<a class="sourceLine" id="cb4-26" title="26"><span class="co">#&gt; 1:           1902   1 1901 snp1901  A  B         OK     NA    0.160396742</span></a>
+<a class="sourceLine" id="cb4-27" title="27"><span class="co">#&gt; 2:           1340   1 1339 snp1339  A  B         OK     NA    0.014354303</span></a>
+<a class="sourceLine" id="cb4-28" title="28"><span class="co">#&gt; 3:           1599   1 1598 snp1598  A  B         OK     NA   -0.061215129</span></a>
+<a class="sourceLine" id="cb4-29" title="29"><span class="co">#&gt; 4:           1627   1 1626 snp1626  A  B         OK     NA   -0.062642773</span></a>
+<a class="sourceLine" id="cb4-30" title="30"><span class="co">#&gt; 5:            347   1  346  snp346  B  A         OK     NA   -0.005242869</span></a>
+<a class="sourceLine" id="cb4-31" title="31"><span class="co">#&gt; 6:           1488   1 1487 snp1487  A  B         OK     NA   -0.013391246</span></a>
+<a class="sourceLine" id="cb4-32" title="32"><span class="co">#&gt;     snp__slope Vsnp__intercept:snp__intercept Vsnp__slope:snp__slope         Z</span></a>
+<a class="sourceLine" id="cb4-33" title="33"><span class="co">#&gt; 1: -0.17085200                   0.0012745754           0.0007930931 -6.066777</span></a>
+<a class="sourceLine" id="cb4-34" title="34"><span class="co">#&gt; 2:  0.12980770                   0.0010761906           0.0007146684  4.855659</span></a>
+<a class="sourceLine" id="cb4-35" title="35"><span class="co">#&gt; 3: -0.10829204                   0.0008830164           0.0005687600 -4.540796</span></a>
+<a class="sourceLine" id="cb4-36" title="36"><span class="co">#&gt; 4:  0.03691133                   0.0009109517           0.0005948543  1.513402</span></a>
+<a class="sourceLine" id="cb4-37" title="37"><span class="co">#&gt; 5:  0.03927281                   0.0011835840           0.0007568720  1.427515</span></a>
+<a class="sourceLine" id="cb4-38" title="38"><span class="co">#&gt; 6:  0.03683034                   0.0010449434           0.0007029555  1.389127</span></a>
+<a class="sourceLine" id="cb4-39" title="39"><span class="co">#&gt;               P</span></a>
+<a class="sourceLine" id="cb4-40" title="40"><span class="co">#&gt; 1: 1.305030e-09</span></a>
+<a class="sourceLine" id="cb4-41" title="41"><span class="co">#&gt; 2: 1.199870e-06</span></a>
+<a class="sourceLine" id="cb4-42" title="42"><span class="co">#&gt; 3: 5.604224e-06</span></a>
+<a class="sourceLine" id="cb4-43" title="43"><span class="co">#&gt; 4: 1.301775e-01</span></a>
+<a class="sourceLine" id="cb4-44" title="44"><span class="co">#&gt; 5: 1.534314e-01</span></a>
+<a class="sourceLine" id="cb4-45" title="45"><span class="co">#&gt; 6: 1.647942e-01</span></a></code></pre></div>
+<p>We can also present a Manhattan plot for the latent variable associations, or explore the data in other ways.</p>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

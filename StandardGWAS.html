@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Standard Genome Wide Association Study</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<link rel="stylesheet" href="/opt/R/x86_64-pc-linux-gnu-library/4.0/rmarkdown/rmarkdown/templates/html_vignette/resources/vignette.css" type="text/css" />
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Standard Genome Wide Association Study</h1>
+
+
+
+<p>In a standard GWAS analyses, a single phenotype is repeatedly regressed on each single nucleotide polymorphism (SNP) in the users genomic data file (as well as a fixed set of covariates). While there are several software packages that allow users to conduct GWAS analyses, GW-SEM is the only routine that allows users to conduct GWAS analyses that model ordinal data as a probit response, relying on a liability-threshold model to link the observed ordinal variable to a continuous underlying liability. GW-SEM can also manage quantitative (continuous) or binary (case-control) variables in the same manner as other standard GWAS software packages.</p>
+<hr />
+<div id="example" class="section level2">
+<h2>Example</h2>
+<p>To demonstrate how to conduct a GWAS using GW-SEM, we use simulated data for three correlated phenotypes for 6,000 individuals with accompanying GWAS data consisting of 2,000 SNPs, as well as 6 covariates (that are a proxy for age, sex, ancestry principle components or other confounds). As we are not allowed to post the raw data online, we simulated similar data that we use in this demonstration. The first step in the analysis is to load the GW-SEM package in R. The command load the packages is:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">library</span>(gwsem)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="co">#&gt; Loading required package: OpenMx</span></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="co">#&gt; To take full advantage of multiple cores, use:</span></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="co">#&gt;   mxOption(key=&#39;Number of Threads&#39;, value=parallel::detectCores()) #now</span></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="co">#&gt;   Sys.setenv(OMP_NUM_THREADS=parallel::detectCores()) #before library(OpenMx)</span></a>
+<a class="sourceLine" id="cb1-6" title="6"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb1-7" title="7"><span class="co">#&gt; Attaching package: &#39;gwsem&#39;</span></a>
+<a class="sourceLine" id="cb1-8" title="8"><span class="co">#&gt; The following object is masked from &#39;package:base&#39;:</span></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb1-10" title="10"><span class="co">#&gt;     signif</span></a></code></pre></div>
+<p>After GW-SEM has been loaded into the R environment, you can read in the phenotypic data, examine it, and recode variables as necessary. For the current example, this can be done using the following commands:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">location &lt;-<span class="st"> &#39;https://jpritikin.github.io/gwsem/gwsemItemExample/&#39;</span></a>
+<a class="sourceLine" id="cb2-2" title="2"></a>
+<a class="sourceLine" id="cb2-3" title="3"><span class="co"># Read the phenotype data into R and look at the data</span></a>
+<a class="sourceLine" id="cb2-4" title="4">phenoData &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(location, <span class="st">&quot;itemPhenoData.txt&quot;</span>),</a>
+<a class="sourceLine" id="cb2-5" title="5">                        <span class="dt">header=</span><span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb2-6" title="6"><span class="kw">head</span>(phenoData)</a>
+<a class="sourceLine" id="cb2-7" title="7"><span class="co">#&gt;   tobacco cannabis alcohol        pc1         pc2        pc3         pc4</span></a>
+<a class="sourceLine" id="cb2-8" title="8"><span class="co">#&gt; 1       2        3       0 -0.6692077 -1.59248351 -0.6648463  0.09277401</span></a>
+<a class="sourceLine" id="cb2-9" title="9"><span class="co">#&gt; 2       1        1       0  1.8676228  0.24132599 -0.2799667  0.18483088</span></a>
+<a class="sourceLine" id="cb2-10" title="10"><span class="co">#&gt; 3       0        0       0  0.2991572 -0.29125218  0.4060377  1.24527580</span></a>
+<a class="sourceLine" id="cb2-11" title="11"><span class="co">#&gt; 4       0        0       1 -1.5104513  3.12487392  0.5867622 -0.76880776</span></a>
+<a class="sourceLine" id="cb2-12" title="12"><span class="co">#&gt; 5       2        3       2 -0.7101579 -0.17109929 -0.2001498 -0.19719950</span></a>
+<a class="sourceLine" id="cb2-13" title="13"><span class="co">#&gt; 6       2        3       4  0.7511404  0.05465809  1.0260702  2.19846930</span></a>
+<a class="sourceLine" id="cb2-14" title="14"><span class="co">#&gt;          pc5</span></a>
+<a class="sourceLine" id="cb2-15" title="15"><span class="co">#&gt; 1 -0.9351552</span></a>
+<a class="sourceLine" id="cb2-16" title="16"><span class="co">#&gt; 2 -0.9795520</span></a>
+<a class="sourceLine" id="cb2-17" title="17"><span class="co">#&gt; 3  0.2449974</span></a>
+<a class="sourceLine" id="cb2-18" title="18"><span class="co">#&gt; 4 -0.4592330</span></a>
+<a class="sourceLine" id="cb2-19" title="19"><span class="co">#&gt; 5 -0.4026468</span></a>
+<a class="sourceLine" id="cb2-20" title="20"><span class="co">#&gt; 6  0.2845062</span></a>
+<a class="sourceLine" id="cb2-21" title="21"></a>
+<a class="sourceLine" id="cb2-22" title="22"><span class="kw">table</span>(phenoData<span class="op">$</span>tobacco)</a>
+<a class="sourceLine" id="cb2-23" title="23"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-24" title="24"><span class="co">#&gt;    0    1    2 </span></a>
+<a class="sourceLine" id="cb2-25" title="25"><span class="co">#&gt; 2000 2000 2000</span></a>
+<a class="sourceLine" id="cb2-26" title="26"><span class="kw">table</span>(phenoData<span class="op">$</span>cannabis)</a>
+<a class="sourceLine" id="cb2-27" title="27"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-28" title="28"><span class="co">#&gt;    0    1    2    3 </span></a>
+<a class="sourceLine" id="cb2-29" title="29"><span class="co">#&gt; 1500 1500 1500 1500</span></a>
+<a class="sourceLine" id="cb2-30" title="30"><span class="kw">table</span>(phenoData<span class="op">$</span>alcohol)</a>
+<a class="sourceLine" id="cb2-31" title="31"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-32" title="32"><span class="co">#&gt;    0    1    2    3    4 </span></a>
+<a class="sourceLine" id="cb2-33" title="33"><span class="co">#&gt; 1200 1200 1200 1200 1200</span></a></code></pre></div>
+<p>As you can see, the tobacco variable is an categorical variable with 3 levels, cannabis is an categorical variable with 4 levels, and alcohol is an categorical variable with 5 levels. To tell R that you want to treat these variables as ordinal, you can use the following <strong><em>mxFactor()</em></strong> commands:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1">phenoData<span class="op">$</span>tobacco  &lt;-<span class="st"> </span><span class="kw">mxFactor</span>(phenoData<span class="op">$</span>tobacco  , <span class="dt">levels =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb3-2" title="2">phenoData<span class="op">$</span>cannabis &lt;-<span class="st"> </span><span class="kw">mxFactor</span>(phenoData<span class="op">$</span>cannabis , <span class="dt">levels =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">3</span>)</a>
+<a class="sourceLine" id="cb3-3" title="3">phenoData<span class="op">$</span>alcohol  &lt;-<span class="st"> </span><span class="kw">mxFactor</span>(phenoData<span class="op">$</span>alcohol  , <span class="dt">levels =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">4</span>)</a></code></pre></div>
+<p>After you are confident that the variables are recoded in the optimal manner, you can begin building the GWAS model. To being with, let’s look at how to do a standard GWAS with only one item. The first step in conducting the GWAS analysis is to to build a general model. This takes a series of arguments:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">tob &lt;-<span class="st"> </span><span class="kw">buildItem</span>(<span class="dt">phenoData =</span> phenoData,                              <span class="co"># the phenotypic data object</span></a>
+<a class="sourceLine" id="cb4-2" title="2">                     <span class="dt">depVar =</span> <span class="kw">c</span>(<span class="st">&quot;tobacco&quot;</span>),                          <span class="co"># the outcome or dependent variable </span></a>
+<a class="sourceLine" id="cb4-3" title="3">                     <span class="dt">covariates=</span><span class="kw">c</span>(<span class="st">&#39;pc1&#39;</span>,<span class="st">&#39;pc2&#39;</span>,<span class="st">&#39;pc3&#39;</span>,<span class="st">&#39;pc4&#39;</span>,<span class="st">&#39;pc5&#39;</span>),    <span class="co"># the necessary covariates</span></a>
+<a class="sourceLine" id="cb4-4" title="4">                     <span class="dt">fitfun =</span> <span class="st">&quot;WLS&quot;</span>)                                 <span class="co"># the fit function (WLS is much faster than ML)</span></a></code></pre></div>
+<p>After you have built the model and put it into an object (named tob), you can take this object which is technically an OpenMx model, and fit it using <em><strong>mxRun()</strong></em>"</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">tobFit &lt;-<span class="st"> </span><span class="kw">mxRun</span>(tob)</a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="co">#&gt; Running OneItem with 8 parameters</span></a>
+<a class="sourceLine" id="cb5-3" title="3"><span class="kw">summary</span>(tobFit)</a>
+<a class="sourceLine" id="cb5-4" title="4"><span class="co">#&gt; Summary of OneItem </span></a>
+<a class="sourceLine" id="cb5-5" title="5"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb5-6" title="6"><span class="co">#&gt; free parameters:</span></a>
+<a class="sourceLine" id="cb5-7" title="7"><span class="co">#&gt;             name     matrix     row     col      Estimate  Std.Error</span></a>
+<a class="sourceLine" id="cb5-8" title="8"><span class="co">#&gt; 1 snp_to_tobacco          A tobacco     snp  0.0079547736 0.02076189</span></a>
+<a class="sourceLine" id="cb5-9" title="9"><span class="co">#&gt; 2 pc1_to_tobacco          A tobacco     pc1 -0.0024232344 0.01459601</span></a>
+<a class="sourceLine" id="cb5-10" title="10"><span class="co">#&gt; 3 pc2_to_tobacco          A tobacco     pc2  0.0008759935 0.01435417</span></a>
+<a class="sourceLine" id="cb5-11" title="11"><span class="co">#&gt; 4 pc3_to_tobacco          A tobacco     pc3  0.0084324080 0.01480966</span></a>
+<a class="sourceLine" id="cb5-12" title="12"><span class="co">#&gt; 5 pc4_to_tobacco          A tobacco     pc4  0.0230969252 0.01433350</span></a>
+<a class="sourceLine" id="cb5-13" title="13"><span class="co">#&gt; 6 pc5_to_tobacco          A tobacco     pc5 -0.0053262676 0.01462257</span></a>
+<a class="sourceLine" id="cb5-14" title="14"><span class="co">#&gt; 7  tobacco_Thr_1 Thresholds       1 tobacco -0.4146929439 0.04460971</span></a>
+<a class="sourceLine" id="cb5-15" title="15"><span class="co">#&gt; 8  tobacco_Thr_2 Thresholds       2 tobacco  0.4470613537 0.04464401</span></a>
+<a class="sourceLine" id="cb5-16" title="16"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-17" title="17"><span class="co">#&gt; Model Statistics: </span></a>
+<a class="sourceLine" id="cb5-18" title="18"><span class="co">#&gt;                |  Parameters  |  Degrees of Freedom  |  Fit (r&#39;Wr units)</span></a>
+<a class="sourceLine" id="cb5-19" title="19"><span class="co">#&gt;        Model:              8                   5992          4.35677e-29</span></a>
+<a class="sourceLine" id="cb5-20" title="20"><span class="co">#&gt;    Saturated:              2                   5998          0.00000e+00</span></a>
+<a class="sourceLine" id="cb5-21" title="21"><span class="co">#&gt; Independence:              2                   5998                   NA</span></a>
+<a class="sourceLine" id="cb5-22" title="22"><span class="co">#&gt; Number of observations/statistics: 6000/6000</span></a>
+<a class="sourceLine" id="cb5-23" title="23"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-24" title="24"><span class="co">#&gt; chi-square:  χ² ( df=0 ) = 0,  p = 1</span></a>
+<a class="sourceLine" id="cb5-25" title="25"><span class="co">#&gt; CFI: NA </span></a>
+<a class="sourceLine" id="cb5-26" title="26"><span class="co">#&gt; TLI: 1   (also known as NNFI) </span></a>
+<a class="sourceLine" id="cb5-27" title="27"><span class="co">#&gt; RMSEA:  0  [95% CI (NA, NA)]</span></a>
+<a class="sourceLine" id="cb5-28" title="28"><span class="co">#&gt; Prob(RMSEA &lt;= 0.05): NA</span></a>
+<a class="sourceLine" id="cb5-29" title="29"><span class="co">#&gt; To get additional fit indices, see help(mxRefModels)</span></a>
+<a class="sourceLine" id="cb5-30" title="30"><span class="co">#&gt; timestamp: 2020-07-10 20:07:07 </span></a>
+<a class="sourceLine" id="cb5-31" title="31"><span class="co">#&gt; Wall clock time: 0.4480011 secs </span></a>
+<a class="sourceLine" id="cb5-32" title="32"><span class="co">#&gt; optimizer:  SLSQP </span></a>
+<a class="sourceLine" id="cb5-33" title="33"><span class="co">#&gt; OpenMx version number: 2.17.4 </span></a>
+<a class="sourceLine" id="cb5-34" title="34"><span class="co">#&gt; Need help?  See help(mxSummary)</span></a></code></pre></div>
+<p>It is strongly advised to test out the model, as it is a great time to learn if your model is being specified in a way that you didn’t expect or that the model is not giving you the answers that you are expecting. Now, provided that the model looks reasonable, you can plug the model that you have built into the GWAS function. To fit this function, you must tell GW-SEM :</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">library</span>(curl)</a>
+<a class="sourceLine" id="cb6-2" title="2"><span class="kw">curl_download</span>(<span class="kw">file.path</span>(location, <span class="st">&#39;example.pgen&#39;</span>),</a>
+<a class="sourceLine" id="cb6-3" title="3">              <span class="kw">file.path</span>(<span class="kw">tempdir</span>(),<span class="st">&#39;example.pgen&#39;</span>))</a>
+<a class="sourceLine" id="cb6-4" title="4"><span class="kw">curl_download</span>(<span class="kw">file.path</span>(location, <span class="st">&#39;example.pvar&#39;</span>),</a>
+<a class="sourceLine" id="cb6-5" title="5">              <span class="kw">file.path</span>(<span class="kw">tempdir</span>(),<span class="st">&#39;example.pvar&#39;</span>))</a>
+<a class="sourceLine" id="cb6-6" title="6"></a>
+<a class="sourceLine" id="cb6-7" title="7"><span class="kw">GWAS</span>(<span class="dt">model =</span> tob,                       <span class="co"># where the model is</span></a>
+<a class="sourceLine" id="cb6-8" title="8">    <span class="dt">snpData =</span> <span class="kw">file.path</span>(<span class="kw">tempdir</span>(),<span class="st">&#39;example.pgen&#39;</span>),       <span class="co"># where the snpData </span></a>
+<a class="sourceLine" id="cb6-9" title="9">    <span class="dt">out=</span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(),<span class="st">&quot;tob.log&quot;</span>))   <span class="co"># where you want to save the results</span></a>
+<a class="sourceLine" id="cb6-10" title="10"><span class="co">#&gt; Running OneItem with 8 parameters</span></a>
+<a class="sourceLine" id="cb6-11" title="11"><span class="co">#&gt; Done. See &#39;/tmp/RtmpdmiDTZ/tob.log&#39; for results</span></a></code></pre></div>
+<p>When you execute this command, you will begin running your GWAS.</p>
+<p>After you finish running the GWAS analysis, the next step is to read the results in to R so that you can examine them, plot them, prepare them to be used by other software packages, etc. While you are unlikely to want to read all of the output into R, it is useful to do this on a small test GWAS analysis to ensure that you are getting reasonable results. To do so, you can use the base R function <strong><em>read.delim</em></strong>. This is didactically useful, but it contains much more information than most people want</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">TobFullResult &lt;-<span class="st"> </span><span class="kw">read.delim</span>(<span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;tob.log&quot;</span>))  </a></code></pre></div>
+<p>Note that the results file is tab separated (with dates and times for each snp), so read.table will tell you that the the number of column names does not match the number of data columns.</p>
+<p>More reasonably, we will want to examine the results for a specific parameter using the <em><strong>loadResults</strong></em> function. This function takes takes two arguments: the path to the data and the column in the results # file for the parameter that you want to examine.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1">succinct &lt;-<span class="st"> </span><span class="kw">loadResults</span>(<span class="dt">path =</span> <span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;tob.log&quot;</span>),</a>
+<a class="sourceLine" id="cb8-2" title="2">                        <span class="dt">focus =</span>  <span class="st">&quot;snp_to_tobacco&quot;</span>)</a>
+<a class="sourceLine" id="cb8-3" title="3">succinct &lt;-<span class="st"> </span><span class="kw">signif</span>(succinct, <span class="dt">focus =</span>  <span class="st">&quot;snp_to_tobacco&quot;</span>)</a></code></pre></div>
+<p>In the post analysis section, I will give you a way to read several files into a single R object.</p>
+<p>After you have read the results into R, you can manipulate them to your heart’s content. Here is a quick function to plot the p-values as a Manhattan plot:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">plot</span>(succinct)</a></code></pre></div>
+<p><img src="StandardGWAS_files/figure-html/unnamed-chunk-10-1.png" /><!-- --></p>
+<p>As you will probably be conducting the GWAS analysis on a cluster, here are the essential components of the R script that you will need in your *.R file to run the GWAS.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1"><span class="kw">library</span>(gwsem)</a>
+<a class="sourceLine" id="cb10-2" title="2"></a>
+<a class="sourceLine" id="cb10-3" title="3"><span class="co"># Read the phenotype data into R and look at the data</span></a>
+<a class="sourceLine" id="cb10-4" title="4">phenoData &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(location, <span class="st">&quot;itemPhenoData.txt&quot;</span>), <span class="dt">header=</span><span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb10-5" title="5">phenoData<span class="op">$</span>tobacco  &lt;-<span class="st"> </span><span class="kw">mxFactor</span>(phenoData<span class="op">$</span>tobacco  , <span class="dt">levels =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb10-6" title="6">phenoData<span class="op">$</span>cannabis &lt;-<span class="st"> </span><span class="kw">mxFactor</span>(phenoData<span class="op">$</span>cannabis , <span class="dt">levels =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">3</span>)</a>
+<a class="sourceLine" id="cb10-7" title="7">phenoData<span class="op">$</span>alcohol  &lt;-<span class="st"> </span><span class="kw">mxFactor</span>(phenoData<span class="op">$</span>alcohol  , <span class="dt">levels =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">4</span>)</a>
+<a class="sourceLine" id="cb10-8" title="8"></a>
+<a class="sourceLine" id="cb10-9" title="9">tob &lt;-<span class="st"> </span><span class="kw">buildItem</span>(<span class="dt">phenoData =</span> phenoData, <span class="dt">depVar =</span> <span class="kw">c</span>(<span class="st">&quot;tobacco&quot;</span>), </a>
+<a class="sourceLine" id="cb10-10" title="10">                 <span class="dt">covariates=</span><span class="kw">c</span>(<span class="st">&#39;pc1&#39;</span>,<span class="st">&#39;pc2&#39;</span>,<span class="st">&#39;pc3&#39;</span>,<span class="st">&#39;pc4&#39;</span>,<span class="st">&#39;pc5&#39;</span>),</a>
+<a class="sourceLine" id="cb10-11" title="11">                 <span class="dt">fitfun =</span> <span class="st">&quot;WLS&quot;</span>) </a>
+<a class="sourceLine" id="cb10-12" title="12"></a>
+<a class="sourceLine" id="cb10-13" title="13"><span class="kw">GWAS</span>(<span class="dt">model =</span> tob,</a>
+<a class="sourceLine" id="cb10-14" title="14">     <span class="dt">snpData =</span> <span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&#39;example.pgen&#39;</span>),</a>
+<a class="sourceLine" id="cb10-15" title="15">     <span class="dt">out=</span> <span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;tob.log&quot;</span>))</a>
+<a class="sourceLine" id="cb10-16" title="16"><span class="co">#&gt; Running OneItem with 8 parameters</span></a>
+<a class="sourceLine" id="cb10-17" title="17"><span class="co">#&gt; Done. See &#39;/tmp/RtmpdmiDTZ/tob.log&#39; for results</span></a></code></pre></div>
+</div>
+<div id="the-multivariate-gwas-model" class="section level1">
+<h1>The Multivariate GWAS Model</h1>
+<p>The process for conducting a multiple dependent variable GWAS is very similar to that for conducting a standard GWAS. The only substantive difference is that instead of telling GW-SEM that you have a single dependent variable, as we did above, we provide a list of dependent variables. GW-SEM will then regress multiple items on each SNP.</p>
+<p>To conduct the multivariate GWAS model, the first thing that we would want to do is build a general model.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1">multi   &lt;-<span class="st"> </span><span class="kw">buildItem</span>(phenoData,                               <span class="co"># the data object</span></a>
+<a class="sourceLine" id="cb11-2" title="2">              <span class="dt">depVar =</span> <span class="kw">c</span>(<span class="st">&quot;tobacco&quot;</span>, <span class="st">&quot;cannabis&quot;</span>, <span class="st">&quot;alcohol&quot;</span>),   <span class="co"># the dependent variables</span></a>
+<a class="sourceLine" id="cb11-3" title="3">              <span class="dt">covariates=</span><span class="kw">c</span>(<span class="st">&#39;pc1&#39;</span>,<span class="st">&#39;pc2&#39;</span>,<span class="st">&#39;pc3&#39;</span>,<span class="st">&#39;pc4&#39;</span>,<span class="st">&#39;pc5&#39;</span>),    <span class="co"># the covariates</span></a>
+<a class="sourceLine" id="cb11-4" title="4">              <span class="dt">fitfun =</span> <span class="st">&quot;WLS&quot;</span>)                                 <span class="co"># the fit function</span></a></code></pre></div>
+<p>Again, You can take this object (multi) which is technically an OpenMx model, and simply fit it using mxRun()</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1">multiFit &lt;-<span class="st"> </span><span class="kw">mxRun</span>(multi)</a>
+<a class="sourceLine" id="cb12-2" title="2"><span class="co">#&gt; Running OneItem with 30 parameters</span></a>
+<a class="sourceLine" id="cb12-3" title="3"><span class="kw">summary</span>(multiFit)</a>
+<a class="sourceLine" id="cb12-4" title="4"><span class="co">#&gt; Summary of OneItem </span></a>
+<a class="sourceLine" id="cb12-5" title="5"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb12-6" title="6"><span class="co">#&gt; free parameters:</span></a>
+<a class="sourceLine" id="cb12-7" title="7"><span class="co">#&gt;               name     matrix      row      col      Estimate  Std.Error</span></a>
+<a class="sourceLine" id="cb12-8" title="8"><span class="co">#&gt; 1   snp_to_tobacco          A  tobacco      snp  0.0241817856 0.02034588</span></a>
+<a class="sourceLine" id="cb12-9" title="9"><span class="co">#&gt; 2  snp_to_cannabis          A cannabis      snp -0.0199913182 0.01949919</span></a>
+<a class="sourceLine" id="cb12-10" title="10"><span class="co">#&gt; 3   snp_to_alcohol          A  alcohol      snp -0.0179229310 0.01920985</span></a>
+<a class="sourceLine" id="cb12-11" title="11"><span class="co">#&gt; 4   pc1_to_tobacco          A  tobacco      pc1 -0.0020481841 0.01459091</span></a>
+<a class="sourceLine" id="cb12-12" title="12"><span class="co">#&gt; 5  pc1_to_cannabis          A cannabis      pc1  0.0107644457 0.01385181</span></a>
+<a class="sourceLine" id="cb12-13" title="13"><span class="co">#&gt; 6   pc1_to_alcohol          A  alcohol      pc1 -0.0321883302 0.01365170</span></a>
+<a class="sourceLine" id="cb12-14" title="14"><span class="co">#&gt; 7   pc2_to_tobacco          A  tobacco      pc2  0.0006536988 0.01435419</span></a>
+<a class="sourceLine" id="cb12-15" title="15"><span class="co">#&gt; 8  pc2_to_cannabis          A cannabis      pc2 -0.0089262391 0.01391543</span></a>
+<a class="sourceLine" id="cb12-16" title="16"><span class="co">#&gt; 9   pc2_to_alcohol          A  alcohol      pc2 -0.0118334213 0.01377511</span></a>
+<a class="sourceLine" id="cb12-17" title="17"><span class="co">#&gt; 10  pc3_to_tobacco          A  tobacco      pc3  0.0081378753 0.01480970</span></a>
+<a class="sourceLine" id="cb12-18" title="18"><span class="co">#&gt; 11 pc3_to_cannabis          A cannabis      pc3  0.0061562558 0.01419017</span></a>
+<a class="sourceLine" id="cb12-19" title="19"><span class="co">#&gt; 12  pc3_to_alcohol          A  alcohol      pc3  0.0021350947 0.01370878</span></a>
+<a class="sourceLine" id="cb12-20" title="20"><span class="co">#&gt; 13  pc4_to_tobacco          A  tobacco      pc4  0.0229953224 0.01434041</span></a>
+<a class="sourceLine" id="cb12-21" title="21"><span class="co">#&gt; 14 pc4_to_cannabis          A cannabis      pc4 -0.0088095194 0.01371192</span></a>
+<a class="sourceLine" id="cb12-22" title="22"><span class="co">#&gt; 15  pc4_to_alcohol          A  alcohol      pc4  0.0074305429 0.01341949</span></a>
+<a class="sourceLine" id="cb12-23" title="23"><span class="co">#&gt; 16  pc5_to_tobacco          A  tobacco      pc5 -0.0051558341 0.01462406</span></a>
+<a class="sourceLine" id="cb12-24" title="24"><span class="co">#&gt; 17 pc5_to_cannabis          A cannabis      pc5  0.0188448216 0.01382696</span></a>
+<a class="sourceLine" id="cb12-25" title="25"><span class="co">#&gt; 18  pc5_to_alcohol          A  alcohol      pc5  0.0049707697 0.01369573</span></a>
+<a class="sourceLine" id="cb12-26" title="26"><span class="co">#&gt; 19  OneItem.S[1,2]          S  tobacco cannabis  0.2956504143 0.01453116</span></a>
+<a class="sourceLine" id="cb12-27" title="27"><span class="co">#&gt; 20  OneItem.S[1,3]          S  tobacco  alcohol  0.3872856636 0.01343113</span></a>
+<a class="sourceLine" id="cb12-28" title="28"><span class="co">#&gt; 21  OneItem.S[2,3]          S cannabis  alcohol  0.1982073158 0.01407850</span></a>
+<a class="sourceLine" id="cb12-29" title="29"><span class="co">#&gt; 22   tobacco_Thr_1 Thresholds        1  tobacco -0.3823118343 0.04388997</span></a>
+<a class="sourceLine" id="cb12-30" title="30"><span class="co">#&gt; 23   tobacco_Thr_2 Thresholds        2  tobacco  0.4795575027 0.04399313</span></a>
+<a class="sourceLine" id="cb12-31" title="31"><span class="co">#&gt; 24  cannabis_Thr_1 Thresholds        1 cannabis -0.7148216790 0.04276513</span></a>
+<a class="sourceLine" id="cb12-32" title="32"><span class="co">#&gt; 25  cannabis_Thr_2 Thresholds        2 cannabis -0.0399459470 0.04217264</span></a>
+<a class="sourceLine" id="cb12-33" title="33"><span class="co">#&gt; 26  cannabis_Thr_3 Thresholds        3 cannabis  0.6347218574 0.04268052</span></a>
+<a class="sourceLine" id="cb12-34" title="34"><span class="co">#&gt; 27   alcohol_Thr_1 Thresholds        1  alcohol -0.8794415634 0.04302955</span></a>
+<a class="sourceLine" id="cb12-35" title="35"><span class="co">#&gt; 28   alcohol_Thr_2 Thresholds        2  alcohol -0.2907632337 0.04188706</span></a>
+<a class="sourceLine" id="cb12-36" title="36"><span class="co">#&gt; 29   alcohol_Thr_3 Thresholds        3  alcohol  0.2161716252 0.04185044</span></a>
+<a class="sourceLine" id="cb12-37" title="37"><span class="co">#&gt; 30   alcohol_Thr_4 Thresholds        4  alcohol  0.8048531068 0.04265984</span></a>
+<a class="sourceLine" id="cb12-38" title="38"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb12-39" title="39"><span class="co">#&gt; Model Statistics: </span></a>
+<a class="sourceLine" id="cb12-40" title="40"><span class="co">#&gt;                |  Parameters  |  Degrees of Freedom  |  Fit (r&#39;Wr units)</span></a>
+<a class="sourceLine" id="cb12-41" title="41"><span class="co">#&gt;        Model:             30                  17970         3.055613e-28</span></a>
+<a class="sourceLine" id="cb12-42" title="42"><span class="co">#&gt;    Saturated:              9                  17991         0.000000e+00</span></a>
+<a class="sourceLine" id="cb12-43" title="43"><span class="co">#&gt; Independence:              6                  17994                   NA</span></a>
+<a class="sourceLine" id="cb12-44" title="44"><span class="co">#&gt; Number of observations/statistics: 6000/18000</span></a>
+<a class="sourceLine" id="cb12-45" title="45"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb12-46" title="46"><span class="co">#&gt; chi-square:  χ² ( df=0 ) = 0,  p = 1</span></a>
+<a class="sourceLine" id="cb12-47" title="47"><span class="co">#&gt; CFI: NA </span></a>
+<a class="sourceLine" id="cb12-48" title="48"><span class="co">#&gt; TLI: 1   (also known as NNFI) </span></a>
+<a class="sourceLine" id="cb12-49" title="49"><span class="co">#&gt; RMSEA:  0  [95% CI (NA, NA)]</span></a>
+<a class="sourceLine" id="cb12-50" title="50"><span class="co">#&gt; Prob(RMSEA &lt;= 0.05): NA</span></a>
+<a class="sourceLine" id="cb12-51" title="51"><span class="co">#&gt; To get additional fit indices, see help(mxRefModels)</span></a>
+<a class="sourceLine" id="cb12-52" title="52"><span class="co">#&gt; timestamp: 2020-07-10 20:07:36 </span></a>
+<a class="sourceLine" id="cb12-53" title="53"><span class="co">#&gt; Wall clock time: 0.2870831 secs </span></a>
+<a class="sourceLine" id="cb12-54" title="54"><span class="co">#&gt; optimizer:  SLSQP </span></a>
+<a class="sourceLine" id="cb12-55" title="55"><span class="co">#&gt; OpenMx version number: 2.17.4 </span></a>
+<a class="sourceLine" id="cb12-56" title="56"><span class="co">#&gt; Need help?  See help(mxSummary)</span></a></code></pre></div>
+<p>Then you will use the same function that we used for the latent variable model, with a different model object</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1"><span class="kw">GWAS</span>(<span class="dt">model =</span> multi,</a>
+<a class="sourceLine" id="cb13-2" title="2">     <span class="dt">snpData =</span> <span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&#39;example.pgen&#39;</span>),</a>
+<a class="sourceLine" id="cb13-3" title="3">     <span class="dt">out=</span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;multi.log&quot;</span>))</a>
+<a class="sourceLine" id="cb13-4" title="4"><span class="co">#&gt; Running OneItem with 30 parameters</span></a>
+<a class="sourceLine" id="cb13-5" title="5"><span class="co">#&gt; Done. See &#39;/tmp/RtmpdmiDTZ/multi.log&#39; for results</span></a></code></pre></div>
+<p>Now that we have run the residual’s model, we have multiple parameters that we want to load into R (three in this case). The function to do this is the same as for one parameter, but you need to do it several times (once for each parameter). This gives several R objects.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" title="1">lr &lt;-<span class="st"> </span><span class="kw">loadResults</span>(<span class="dt">path =</span> <span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;multi.log&quot;</span>),</a>
+<a class="sourceLine" id="cb14-2" title="2">             <span class="dt">focus =</span>  <span class="kw">paste0</span>(<span class="st">&quot;snp_to_&quot;</span>, <span class="kw">c</span>(<span class="st">&quot;tobacco&quot;</span>, <span class="st">&quot;cannabis&quot;</span>, <span class="st">&quot;alcohol&quot;</span>)))</a>
+<a class="sourceLine" id="cb14-3" title="3"></a>
+<a class="sourceLine" id="cb14-4" title="4">succinctTob &lt;-<span class="st"> </span><span class="kw">signif</span>(lr, <span class="dt">focus =</span>  <span class="st">&quot;snp_to_tobacco&quot;</span>)</a>
+<a class="sourceLine" id="cb14-5" title="5">succinctCan &lt;-<span class="st"> </span><span class="kw">signif</span>(lr, <span class="dt">focus =</span>  <span class="st">&quot;snp_to_cannabis&quot;</span>)</a>
+<a class="sourceLine" id="cb14-6" title="6">succinctAlc &lt;-<span class="st"> </span><span class="kw">signif</span>(lr, <span class="dt">focus =</span>  <span class="st">&quot;snp_to_alcohol&quot;</span>)</a></code></pre></div>
+</div>
+<div id="now-we-can-plot-all-the-residual-manhattan-plots" class="section level1">
+<h1>Now we can plot all the residual manhattan plots</h1>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" title="1"><span class="kw">plot</span>(succinctTob)</a></code></pre></div>
+<p><img src="StandardGWAS_files/figure-html/unnamed-chunk-16-1.png" /><!-- --></p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" title="1"><span class="kw">plot</span>(succinctCan)</a></code></pre></div>
+<p><img src="StandardGWAS_files/figure-html/unnamed-chunk-16-2.png" /><!-- --></p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" title="1"><span class="kw">plot</span>(succinctAlc)</a></code></pre></div>
+<p><img src="StandardGWAS_files/figure-html/unnamed-chunk-16-3.png" /><!-- --></p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
