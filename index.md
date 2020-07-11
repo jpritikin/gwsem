@@ -53,6 +53,6 @@ Tutorials:
 - [One factor residuals model](ResidualsModel.html)
 - [Two factor model](TwoFactorModel.html)
 - [User specified custom GWAS](UserSpecifiedGWASModels.html)
-- [Gene environment interaction](GeneEnvironmentInteractionGxEModels.html)
+- [Gene environment interaction](GeneEnvironmentInteraction.html)
 - [Post GWAS processing functions](PostGWASprocessingfunctions.html)
 - [Latent growth curve](growth.html)

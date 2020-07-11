@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Gene Environment Interaction (GxE) Genome Wide Association Study</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<link rel="stylesheet" href="/opt/R/x86_64-pc-linux-gnu-library/4.0/rmarkdown/rmarkdown/templates/html_vignette/resources/vignette.css" type="text/css" />
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Gene Environment Interaction (GxE) Genome Wide Association Study</h1>
+
+
+
+<p>Gene-environment interaction (GxE) studies are incredibly popular methods to explore the potential for varying levels of genetic sensitivity in different environments. On a broad level, antecedents and consequences that make specific genetic variants differentially sensitive to environmental stimuli inform numerous phenomena, such as evolutionary pressures and epigenetic effects.</p>
+<hr />
+<p>Example</p>
+<p>To demonstrate how to conduct a GxE GWAS using GW-SEM, we use simulated data for a one factor GWAS model with 6,000 individuals consisting of 2,000 SNPs, three correlated items and 6 covariates (that are a proxy for age, sex, ancestry principle components or other confounds). We simulated similar data that we use in this demonstration.</p>
+<hr />
+<p>The first step is opening R, and loading the GW-SEM package as well as the phenotypic data (including the dependent variable, the moderating/interacting variable and any covariates such as age, sex, or ancestry principle components) into the R computing environment. This can be achieved by using the command below:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">library</span>(gwsem)</a>
+<a class="sourceLine" id="cb1-2" title="2"></a>
+<a class="sourceLine" id="cb1-3" title="3">location &lt;-<span class="st"> &#39;https://jpritikin.github.io/gwsem/gwsemGxEexample&#39;</span></a>
+<a class="sourceLine" id="cb1-4" title="4"></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="co"># Read the phenotype data into R and look at the data</span></a>
+<a class="sourceLine" id="cb1-6" title="6">gxeData &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(location, <span class="st">&quot;gxeData.txt&quot;</span>), <span class="dt">header=</span><span class="ot">TRUE</span>)</a></code></pre></div>
+<p>Once the data are loaded into R, you can recode the data, transform it, and tell R if we have ordinal or binary indicators using <code>mxFactor()</code>. The data for this example are simulated and continuous, and therefore, we will not be doing anything now, but if you would like to chop the indicators up into binary or ordinal variables, this is when you would do it. It is possible to conduct GxE analyses on binary or ordinal variables. With GW-SEM we assume that the binary or ordinal variable follows the Liability-Threshold Model (where the observed categories reflect portions of the underlying liability distribution).</p>
+<p>Once you are satisfied the data are in the appropriate shape we can build a one factor GWAS model with the following command:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">gxe &lt;-<span class="st"> </span><span class="kw">buildItem</span>(<span class="dt">phenoData =</span> gxeData, <span class="dt">depVar  =</span> <span class="st">&quot;phe&quot;</span>,</a>
+<a class="sourceLine" id="cb2-2" title="2">                  <span class="dt">covariates =</span> <span class="kw">c</span>(<span class="st">&quot;mod&quot;</span>, <span class="st">&quot;pc1&quot;</span>, <span class="st">&quot;pc2&quot;</span>, <span class="st">&quot;pc3&quot;</span>, <span class="st">&quot;pc4&quot;</span>,<span class="st">&quot;pc5&quot;</span>),</a>
+<a class="sourceLine" id="cb2-3" title="3">                  <span class="dt">fitfun =</span> <span class="st">&quot;WLS&quot;</span>, <span class="dt">exogenous =</span> T, <span class="dt">gxe =</span> <span class="st">&quot;mod&quot;</span>)</a></code></pre></div>
+<p>There are a few differences in how the GxE GWAS is specified relative to the standard GWAS even though both models use the <em><strong>buildItem</strong></em> function. We must add the <strong><em>gxe</em></strong> argument which tells GW-SEM that we want to conduct a GxE GWAS and which variable is the moderator. By doing so, when GW-SEM reads in the GWAS data in the C++ backend, it will automatically create a multiplicative interaction variable. This newly created variable name will be named “snp” with your specific variable name appended to it, separated by an underscore. In the current example, our moderating variable is named “mod” and therefore the interaction term is named “snp_mod”. If your variable name was “environment” then the interaction term would be labeled “snp_environment”. It is strongly suggested that you use the <strong><em>exogenous = T</em></strong> argument. Otherwise, the standard errors of the interaction component tend to be substantially higher than those in comparable OLS regression models.</p>
+<p>After you have built the gxe model and put it into an object (named gxe), you can take this object which is technically an OpenMx model, and fit it using <strong><em>mxRun()</em></strong></p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1">gxeFit &lt;-<span class="st"> </span><span class="kw">mxRun</span>(gxe)</a>
+<a class="sourceLine" id="cb3-2" title="2"><span class="kw">summary</span>(gxeFit)</a></code></pre></div>
+<p>It is strongly advised to test out the model, as it is a great time to make sure that your model is specified as expected. Provided that the model looks reasonable, you can pass the model into the <code>GWAS</code> function,</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">library</span>(curl)</a>
+<a class="sourceLine" id="cb4-2" title="2"><span class="kw">curl_download</span>(<span class="kw">file.path</span>(location, <span class="st">&#39;example.pgen&#39;</span>),</a>
+<a class="sourceLine" id="cb4-3" title="3">              <span class="kw">file.path</span>(<span class="kw">tempdir</span>(),<span class="st">&#39;example.pgen&#39;</span>))</a>
+<a class="sourceLine" id="cb4-4" title="4"><span class="kw">curl_download</span>(<span class="kw">file.path</span>(location, <span class="st">&#39;example.pvar&#39;</span>),</a>
+<a class="sourceLine" id="cb4-5" title="5">              <span class="kw">file.path</span>(<span class="kw">tempdir</span>(),<span class="st">&#39;example.pvar&#39;</span>))</a>
+<a class="sourceLine" id="cb4-6" title="6"></a>
+<a class="sourceLine" id="cb4-7" title="7"><span class="kw">GWAS</span>(<span class="dt">model =</span> gxe,                            <span class="co"># the model object</span></a>
+<a class="sourceLine" id="cb4-8" title="8">    <span class="dt">snpData =</span> <span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&#39;example.pgen&#39;</span>),            <span class="co"># the path to the snpData</span></a>
+<a class="sourceLine" id="cb4-9" title="9">    <span class="dt">out=</span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;gxe.log&quot;</span>))                       <span class="co"># the results file name</span></a></code></pre></div>
+<p>When you execute this command, you will begin running your GWAS.</p>
+<p>After you finish running the GWAS analysis, the next step is to read the results into R so that you can examine them, plot them, prepare them for used by other software packages, etc. While you are unlikely to want to read all of the output into R, it is useful to do this on a small test GWAS analysis to ensure that you are getting reasonable results. To do so, you can use the base R function <strong><em>read.delim</em></strong>. This is didactically useful, but it contains much more information than most people want</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">gxeResult &lt;-<span class="st"> </span><span class="kw">read.delim</span>(<span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;gxe.log&quot;</span>))                            </a></code></pre></div>
+<p>More reasonably, we will want to examine the results for a specific parameter using the <em><strong>loadResults</strong></em> function. This function takes takes two arguments: the path to the data and the column name from the results file for the parameter that you want to examine. Once the summary statistics have been read into R, it is possible to manipulate the results using standard R commands, such as sorting the results by Z-statistics or P-values, as shown below:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">lr &lt;-<span class="st"> </span><span class="kw">loadResults</span>(<span class="dt">path =</span> <span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;gxe.log&quot;</span>), <span class="dt">focus =</span>  <span class="kw">c</span>(<span class="st">&quot;snp_to_phe&quot;</span>, <span class="st">&quot;snp_mod_to_phe&quot;</span>))</a>
+<a class="sourceLine" id="cb6-2" title="2">succinctCond &lt;-<span class="st"> </span><span class="kw">signif</span>(lr, <span class="st">&quot;snp_to_phe&quot;</span>)</a>
+<a class="sourceLine" id="cb6-3" title="3">succinctInt  &lt;-<span class="st"> </span><span class="kw">signif</span>(lr, <span class="st">&quot;snp_mod_to_phe&quot;</span>)</a>
+<a class="sourceLine" id="cb6-4" title="4"></a>
+<a class="sourceLine" id="cb6-5" title="5"><span class="kw">head</span>(succinctCond[<span class="kw">order</span>(succinctCond<span class="op">$</span>Z, <span class="dt">decreasing =</span> T),])</a>
+<a class="sourceLine" id="cb6-6" title="6"><span class="kw">head</span>(succinctInt[<span class="kw">order</span>(succinctInt<span class="op">$</span>Z, <span class="dt">decreasing =</span> T),])</a></code></pre></div>
+<p>We can also read in the marginal effects for a specific level of the environment, as well as their standard errors, z-statistics, and p-values. To do this, we can use the <strong><em>loadResults</em></strong> command and specify the <strong><em>moderatorLevel</em></strong> argument with a numerical value. In the current case, the standard deviation of the moderator variable is 1, by using values of -2 and 2, we are asking GW-SEM to provide the marginal effects for 2 standard deviations below and above the means. While any value of the moderator can be requested, we would suggest using reasonable values of the moderating variable.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">margLow  &lt;-<span class="st"> </span><span class="kw">signifGxE</span>(lr, <span class="dt">focus =</span>  <span class="st">&quot;snp_mod_to_phe&quot;</span>, <span class="dt">level=</span> <span class="dv">-2</span>)</a>
+<a class="sourceLine" id="cb7-2" title="2">margHigh &lt;-<span class="st"> </span><span class="kw">signifGxE</span>(lr, <span class="dt">focus =</span>  <span class="st">&quot;snp_mod_to_phe&quot;</span>, <span class="dt">level=</span> <span class="dv">2</span>)</a></code></pre></div>
+<p>Now that we have the various components that contribute to our GxE GWAS model, we can begin constructing Manhattan plots for the relevant parameters.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1"><span class="co"># Manhattan Plots for directly estimated parameters</span></a>
+<a class="sourceLine" id="cb8-2" title="2"><span class="kw">plot</span>(succinctCond)  <span class="co"># To plot p-values of the conditional effect</span></a>
+<a class="sourceLine" id="cb8-3" title="3"><span class="kw">plot</span>(succinctInt)   <span class="co"># To plot the interaction coefficient</span></a>
+<a class="sourceLine" id="cb8-4" title="4"></a>
+<a class="sourceLine" id="cb8-5" title="5"><span class="co"># Manhattan Plots for marginal effects</span></a>
+<a class="sourceLine" id="cb8-6" title="6"><span class="kw">plot</span>(margLow)    <span class="co"># To plot p-values for a low level (-2SD) of the moderator</span></a>
+<a class="sourceLine" id="cb8-7" title="7"><span class="kw">plot</span>(margHigh)   <span class="co"># To plot p-values for a high level (+2SD) of the moderator</span></a></code></pre></div>
+<p>As GxE GWAS methods are under-utilized in the literature, consensus about how these results should be presented is developing. When interpreting and presenting the results, therefore, it is imperative that the each specific parameter is interpreted correctly. For example, while most people call the parameter from the SNP to the phenotype the “Main Effect”, it is better thought of as a conditional effect as strictly speaking it is the association between the SNP and the phenotype under the specific condition where the environment is equal to zero and not the average effect of the SNP across all levels of the environment as would be implied by the term <em>main effect</em>. By contrast, the interaction parameter is the difference in the SNP association between when the environment is equal to zero and when the environment is equal to one.</p>
+<p>An alternative, and preferable, interpretation of the GxE GWAS model is to calculate what we call Marginal Effects (or Simple Slopes). This is done automatically by GW-SEM using the <strong><em>TODO</em></strong> functions. Marginal effects can be interpreted as the GWAS coefficients at a particular level of the environment. For example, if the moderator is binary (e.g., for sex) we could calculate the GWAS results for either Males (sex = 0) or females (sex = 1). Alternatively, if the moderator is continuous (e.g.,, age) we might want to calculate the GWAS results for a low level of the moderator (2 SD below the moderator mean) and a high level of the moderator (2 SD above the moderator mean), or at some other particularly relevant value. Notably, while the calculation of marginal effects is an additional step in the analytical process (that GW-SEM does automatically), marginal effects are often more interpretable than either the conditional or interaction parameters, as well as being more closely related to the hypothesis that the analyst is trying to test.</p>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
