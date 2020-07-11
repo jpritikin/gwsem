@@ -121,6 +121,7 @@ More likely, you are going to want to read the results into R for SNP regression
 
 ```{r}
 succinct <- loadResults(path = file.path(tempdir(), "latFac.log"), focus =  "snp_to_F")
+succinct <- signif(succinct, focus="snp_to_F")
 ```
 
 We can then construct a Manhattan plot using the GW-SEM plot() function. 

@@ -98,6 +98,7 @@ More reasonably, we will want to examine the results for a specific parameter us
 ```{r}
 succinct <- loadResults(path = file.path(tempdir(), "tob.log"),
                         focus =  "snp_to_tobacco")
+succinct <- signif(succinct, focus =  "snp_to_tobacco")
 ```
 
 In the post analysis section, I will give you a way to read several files into a single R object.
@@ -163,12 +164,12 @@ GWAS(model = multi,
 Now that we have run the residual's model, we have multiple parameters that we want to load into R (three in this case). The function to do this is the same as for one parameter, but you need to do it several times (once for each parameter). This gives several R objects.
 
 ```{r}
-succinctTob <- loadResults(path = file.path(tempdir(), "multi.log"),
-                           focus =  "snp_to_tobacco")
-succinctCan <- loadResults(path = file.path(tempdir(), "multi.log"),
-                           focus =  "snp_to_cannabis")
-succinctAlc <- loadResults(path = file.path(tempdir(), "multi.log"),
-                           focus =  "snp_to_alcohol")
+lr <- loadResults(path = file.path(tempdir(), "multi.log"),
+	         focus =  paste0("snp_to_", c("tobacco", "cannabis", "alcohol")))
+
+succinctTob <- signif(lr, focus =  "snp_to_tobacco")
+succinctCan <- signif(lr, focus =  "snp_to_cannabis")
+succinctAlc <- signif(lr, focus =  "snp_to_alcohol")
 ```
 
 # Now we can plot all the residual manhattan plots

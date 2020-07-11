@@ -118,9 +118,10 @@ More likely, you are going to want to focus on only the SNP regression coefficie
 Now that we have run the residual's model, we have three parameters that we want to load into R. The function to do this is the same as for one parameter, but you need to do it three times. This obtains several R objects,
 
 ```{r}
-succinctTob <- loadResults(path = file.path(tempdir(), "facRes.log"), focus =  "snp_to_tobacco")
-succinctCan <- loadResults(path = file.path(tempdir(), "facRes.log"), focus =  "snp_to_cannabis")
-succinctAlc <- loadResults(path = file.path(tempdir(), "facRes.log"), focus =  "snp_to_alcohol")
+succinct <- loadResults(path = file.path(tempdir(), "facRes.log"), focus =  paste0("snp_to_", c("tobacco", "cannabis", "alcohol")))
+succinctTob <- signif(succinct, "snp_to_tobacco")
+succinctCan <- signif(succinct, "snp_to_cannabis")
+succinctAlc <- signif(succinct, "snp_to_alcohol")
 ```
 
 # Now we can plot all the residual manhattan plots

@@ -85,8 +85,9 @@ More reasonably, we will want to examine the results for a specific parameter us
 
 
 ```{r}
-succinctCond <- loadResults(path = file.path(tempdir(), "gxe.log"), focus =  "snp_to_phe")
-succinctInt  <- loadResults(path = file.path(tempdir(), "gxe.log"), focus =  "snp_mod_to_phe")
+lr <- loadResults(path = file.path(tempdir(), "gxe.log"), focus =  c("snp_to_phe", "snp_mod_to_phe"))
+succinctCond <- signif(lr, "snp_to_phe")
+succinctInt  <- signif(lr, "snp_mod_to_phe")
 
 head(succinctCond[order(succinctCond$Z, decreasing = T),])
 head(succinctInt[order(succinctInt$Z, decreasing = T),])
@@ -96,8 +97,8 @@ head(succinctInt[order(succinctInt$Z, decreasing = T),])
 We can also read in the marginal effects for a specific level of the environment, as well as their standard errors, z-statistics, and p-values. To do this, we can use the **_loadResults_** command and specify the **_moderatorLevel_** argument with a numerical value. In the current case, the standard deviation of the moderator variable is 1, by using values of -2 and 2, we are asking GW-SEM to provide the marginal effects for 2 standard deviations below and above the means.  While any value of the moderator can be requested, we would suggest using reasonable values of the moderating variable.
 
 ```{r}
-margLow  <- loadResults(path = file.path(tempdir(), "gxe.log"), focus =  "snp_mod_to_phe", moderatorLevel= -2)
-margHigh <- loadResults(path = file.path(tempdir(), "gxe.log"), focus =  "snp_mod_to_phe", moderatorLevel=  2)
+margLow  <- signifGxE(lr, focus =  "snp_mod_to_phe", level= -2)
+margHigh <- signifGxE(lr, focus =  "snp_mod_to_phe", level= 2)
 
 ```
 

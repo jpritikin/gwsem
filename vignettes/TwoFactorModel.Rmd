@@ -127,8 +127,9 @@ More likely, you are going to want to read the results into R for specific coeff
 
 
 ```{r}
-succinct1 <- loadResults(path = file.path(tempdir(), "twoFac.log"), focus =  "snp_to_F1")
-succinct2 <- loadResults(path = file.path(tempdir(), "twoFac.log"), focus =  "snp_to_F2")
+succinct <- loadResults(path = file.path(tempdir(), "twoFac.log"), focus = paste0("snp_to_F",1:2))
+succinct1 <- signif(succinct, "snp_to_F1")
+succinct2 <- signif(succinct, "snp_to_F2")
 ```
 
 We can then construct a Manhattan plot using the GW-SEM plot() function to visually inspect the general pattern of associations between the SNPs and each factor.
@@ -154,7 +155,7 @@ As can be seen, snp141 significantly predicts both latent factors.  Let's take a
 First, let's read in the factor correlation results, specifically asking to also load the standard errors, and treating the data object as a data frame. This makes it easier to use base R functions to search through the results. Let us look at the factor correlation for snp141, as well as snp50 and snp719, and a few other snps (say the first 6 in the results file).
 
 ```{r}
-facCov <- loadResults(path = file.path(tempdir(), "twoFac.log"), focus =  "facCov", .retainSE = T)
+facCov <- loadResults(path = file.path(tempdir(), "twoFac.log"), focus =  "facCov")
 
 subset(facCov, SNP == "snp141")
 

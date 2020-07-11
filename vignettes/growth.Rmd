@@ -177,13 +177,14 @@ parameter. We might also examine the `snp__int` parameter.
 ```{r}
 GWAS(m2, file.path(dir,"example.pgen"), file.path(tdir, "out.log"))
 got <- loadResults(file.path(tdir, "out.log"), 'snp__slope')
+got <- signif(got, 'snp__slope')
 ```
 
 Some of the models failed to fit. If we're interested to
 discover why then we can load these separately,
 
 ```{r}
-susp <- loadSuspicious(file.path(tdir, "out.log"), 'snp__slope')
+susp <- got[isSuspicious(got),]
 head(susp)
 
 ```
@@ -195,5 +196,5 @@ We can present a Manhattan plot consisting of the models
 that succeeded,
 
 ```{r, message=FALSE}
-plot(got)
+plot(got[!isSuspicious(got),])
 ```

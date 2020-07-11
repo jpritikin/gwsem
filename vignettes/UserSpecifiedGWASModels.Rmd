@@ -169,8 +169,9 @@ GWAS(lgcGWAS,
 The loadResults function calculates Z scores and P values for the `snp__slope` and `snp__int` parameters.
                                                                           
 ```{r}
-LGCresInt <- loadResults(file.path(tempdir(), 'lgc.log'), 'snp__intercept')
-LGCresSlo <- loadResults(file.path(tempdir(), 'lgc.log'), 'snp__slope')
+lr <- loadResults(file.path(tempdir(), 'lgc.log'), paste0('snp__', c('intercept','slope')))
+LGCresInt <- signif(lr, 'snp__intercept')
+LGCresSlo <- signif(lr, 'snp__slope')
 
 ```
 
