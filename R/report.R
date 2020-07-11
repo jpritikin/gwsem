@@ -91,8 +91,6 @@ loadResults <- function(path, focus, ..., extraColumns=c(),
   exampleRow <- read.delim(path[1], nrows = 1, check.names=FALSE)
   sel <- c('MxComputeLoop1', 'CHR','BP','SNP','A1','A2','statusCode','catch1',
 	   focus, paste0('V',focus,':',focus), extraColumns)
-  mainEffect <- c()
-  covName <- c()
   gxe <- regexpr('^snp_(\\w+)_to_(\\w+)$', focus, perl=TRUE)
   for (vx in 1:length(gxe)) {
     if (gxe[vx] == -1) next
@@ -101,11 +99,11 @@ loadResults <- function(path, focus, ..., extraColumns=c(),
     mod <- substr(focus[vx], cstart[1], cstart[1]+clen[1]-1L)
     outcome <- substr(focus[vx], cstart[2], cstart[2]+clen[2]-1L)
     mainEffect <- paste0('snp_to_', outcome)
-    covName <- c(paste0('V', focus, ':', mainEffect),
-                 paste0('V', mainEffect, ':', focus))
+    covName <- c(paste0('V', focus[vx], ':', mainEffect),
+                 paste0('V', mainEffect, ':', focus[vx]))
     covName <- covName[covName %in% colnames(exampleRow)]
     if (length(covName) != 1) stop(paste("Can't find parameter covariance between",
-                                         mainEffect, 'and', focus))
+                                         mainEffect, 'and', focus[vx]))
     sel <- union(sel, c(mainEffect, paste0('V',mainEffect,':',mainEffect), covName))
  }
  got <- list()
