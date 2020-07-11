@@ -48,11 +48,11 @@ GW-SEM analyses provide substantially deeper insights into the underlying genomi
 
 Tutorials:
 
-- [Standard GWAS](1.-Standard-GWAS.html)
-- [One factor model](2.-One-Factor-Model.html)
-- [One factor residuals model](3.-Residuals-Model.html)
-- [Two factor model](4.-Two-Factor-Model.html)
-- [User specified custom GWAS](5.-User-Specified-GWAS-Models.html)
-- [Gene environment interaction](6.-Gene-Environment-Interaction--GxE--Models.html)
-- [Post GWAS processing functions](7.-Post-GWAS-processing-functions.html)
+- [Standard GWAS](StandardGWAS.html)
+- [One factor model](OneFactorModel.html)
+- [One factor residuals model](ResidualsModel.html)
+- [Two factor model](TwoFactorModel.html)
+- [User specified custom GWAS](UserSpecifiedGWASModels.html)
+- [Gene environment interaction](GeneEnvironmentInteractionGxEModels.html)
+- [Post GWAS processing functions](PostGWASprocessingfunctions.html)
 - [Latent growth curve](growth.html)
