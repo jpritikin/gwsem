@@ -60,6 +60,7 @@ Suggests:
     covr,
     knitr,
     rmarkdown,
+		digest,
 		curl
 LinkingTo: 
     BH (>= 1.69.0-1),
