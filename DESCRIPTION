@@ -43,18 +43,18 @@ Description: Melds genome-wide association tests with structural
     <doi:10.1007/s10519-017-9842-6> for details. An updated manuscript is
     in preparation.
 License: GPL (>= 3)
-URL: https://github.com/jpritikin/gwsem
+URL: https://github.com/jpritikin/gwsem, https://jpritikin.github.io/gwsem/
 BugReports: https://github.com/jpritikin/gwsem/issues
-Depends: 
+Depends:
     R (>= 3.5),
     OpenMx (>= 2.15.5)
-Imports: 
+Imports:
     data.table,
     methods,
     qqman,
     Rcpp,
     lifecycle
-Suggests: 
+Suggests:
     testthat (>= 2.1.0),
     MASS,
     covr,
@@ -62,12 +62,12 @@ Suggests:
     rmarkdown,
 		digest,
 		curl
-LinkingTo: 
+LinkingTo:
     BH (>= 1.69.0-1),
     Rcpp
-VignetteBuilder: 
+VignetteBuilder:
     knitr
-RdMacros: 
+RdMacros:
     lifecycle
 Encoding: UTF-8
 Language: en-US
