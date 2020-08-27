@@ -6,3 +6,4 @@
 ^.covrignore$
 ^.dir-locals.el$
 ^_config\.yml$
+^tools/vignettes

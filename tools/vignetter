@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ ! -d vignettes ]; then
+if [ ! -d tools ]; then
     echo "Must be run from the top directory"
     exit 1
 fi
@@ -8,7 +8,7 @@ fi
 # Not sure why RStudio keeps changing the hashes in the knitr cache
 
 export NOT_CRAN=true
-cd vignettes
+cd tools/vignettes
 for f in *.Rmd; do
   Rscript -e "library(rmarkdown); render('$f')"
 done
