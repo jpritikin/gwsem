@@ -65,8 +65,6 @@ Suggests:
 LinkingTo:
     BH (>= 1.69.0-1),
     Rcpp
-VignetteBuilder:
-    knitr
 RdMacros:
     lifecycle
 Encoding: UTF-8

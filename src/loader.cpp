@@ -14,7 +14,7 @@ struct BgenXfer {
 	double total;
 	int nrows;
 	std::function<bool(int)> skipFn;
-	BgenXfer(dataPtr &_dp, std::function<bool(int)> _skipFn) : dp(_dp), skipFn(_skipFn), total(0), nrows(0) {};
+	BgenXfer(dataPtr &_dp, std::function<bool(int)> _skipFn) : dp(_dp), total(0), nrows(0), skipFn(_skipFn) {};
 	void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {}
 	void set_min_max_ploidy(genfile::bgen::uint32_t min_ploidy, genfile::bgen::uint32_t max_ploidy,
 				genfile::bgen::uint32_t min_entries, genfile::bgen::uint32_t max_entries)

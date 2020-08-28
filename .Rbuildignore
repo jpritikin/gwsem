@@ -3,6 +3,7 @@
 ^\.travis\.yml$
 ^man-roxygen
 ^.gdbinit$
+^.editorconfig$
 ^.covrignore$
 ^.dir-locals.el$
 ^_config\.yml$

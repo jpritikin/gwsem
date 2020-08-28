@@ -4,8 +4,8 @@
 [![Travis build status](https://travis-ci.org/jpritikin/gwsem.svg?branch=master)](https://travis-ci.org/jpritikin/gwsem)
 [![Codecov test coverage](https://codecov.io/gh/jpritikin/gwsem/branch/master/graph/badge.svg)](https://codecov.io/gh/jpritikin/gwsem?branch=master)
 [![cran version](http://www.r-pkg.org/badges/version/gwsem)](https://cran.r-project.org/package=gwsem)
-[![Monthly Downloads](http://cranlogs.r-pkg.org/badges/gwsem)](http://cranlogs.r-pkg.org/badges/gwsem)
-[![Total Downloads](http://cranlogs.r-pkg.org/badges/grand-total/gwsem)](http://cranlogs.r-pkg.org/badges/grand-total/gwsem)
+[![Monthly Downloads](https://cranlogs.r-pkg.org/badges/gwsem)](https://cranlogs.r-pkg.org/badges/gwsem)
+[![Total Downloads](https://cranlogs.r-pkg.org/badges/grand-total/gwsem)](https://cranlogs.r-pkg.org/badges/grand-total/gwsem)
 <!-- badges: end -->
 
 The goal of gwsem is to provide users with the opportunity to analyze the complex, interconnected array of risk factors, biomarkers, environmental antecedents, comorbid disorders, and other health outcomes on a genome-wide basis using structural equation modeling techniques.
@@ -34,7 +34,7 @@ If you want to use a development snapshot, clone the source code and do
 
 ```
 git clone https://github.com/jpritikin/gwsem
-cd gwsem 
+cd gwsem
 ./tools/rox
 R CMD INSTALL .
 Rscript tools/test.R
