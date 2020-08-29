@@ -91,14 +91,14 @@ m1 <- buildOneFacRes(pheno, paste0("i", 1:numIndicators),
                   covariates = paste0("covar",1:numCovariate), exogenous=TRUE)
 expect_equivalent(m1$M$labels[1,'covar1'], 'data.covar1')
 GWAS(m1, file.path(dir,"example.pgen"),
-     file.path(tdir,"outx.log"))
+     file.path(tdir,"outx.log"), SNP=1:100)
 
 m2 <- buildOneFacRes(pheno, paste0("i", 1:numIndicators),
                      covariates = paste0("covar",1:numCovariate),
                      exogenous=FALSE)
 expect_equivalent(m2$M$labels[1,'covar1'], 'covar1_mean')
 GWAS(m2, file.path(dir,"example.pgen"),
-     file.path(tdir,"out.log"))
+     file.path(tdir,"out.log"), SNP=1:100)
 
 for (ind in paste0("snp_to_i", 1:numIndicators)) {
   m1o <- loadResults(file.path(tdir,"outx.log"), ind)
@@ -124,7 +124,7 @@ m1 <- buildTwoFac(pheno,
                   exogenous=TRUE)
 expect_equivalent(m1$M$labels[1,'covar1'], 'data.covar1')
 GWAS(m1, file.path(dir,"example.pgen"),
-     file.path(tdir,"outx.log"))
+     file.path(tdir,"outx.log"), SNP=1:50)
 
 m2 <- buildTwoFac(pheno,
                   paste0("i", 1:(numIndicators-1)),
@@ -133,7 +133,7 @@ m2 <- buildTwoFac(pheno,
                   exogenous=FALSE)
 expect_equivalent(m2$M$labels[1,'covar1'], 'covar1_mean')
 GWAS(m2, file.path(dir,"example.pgen"),
-     file.path(tdir,"out.log"))
+     file.path(tdir,"out.log"), SNP=1:50)
 
 for (fx in 1:2) {
   ind <- paste0("snp_to_F", fx)
@@ -145,7 +145,7 @@ for (fx in 1:2) {
   m2o <- signif(m2o, ind, signAdj=sa)
   m2o <- m2o[!isSuspicious(m2o),]
   both <- intersect(m1o$SNP, m2o$SNP)
-  expect_equal(length(both), 200, 110)
+  expect_equal(length(both), 50, 5)
   m1o <- subset(m1o, SNP %in% both)
   m2o <- subset(m2o, SNP %in% both)
   mask <- abs(m1o$Z) < 4 & abs(m2o$Z) < 4
