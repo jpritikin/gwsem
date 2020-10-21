@@ -381,9 +381,25 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 	}
 }
 
+unsigned int DJBHash(const char *str, std::size_t len)
+{
+   unsigned int hash = 5381;
+
+   for(std::size_t i = 0; i < len; i++) {
+     hash = ((hash << 5) + hash) + str[i];
+   }
+
+   return hash;
+}
+
 void setup2(AddLoadDataProviderType aldp)
 {
-	int sz2 = sizeof(LoadDataProviderBase2);
-	aldp(OPENMX_LOAD_DATA_API_VERSION, sz2, new LoadDataPGENProvider2());
-	aldp(OPENMX_LOAD_DATA_API_VERSION, sz2, new LoadDataBGENProvider2());
+  std::size_t sz2[] = {
+               sizeof(dataPtr),
+               sizeof(LoadDataProviderBase2),
+               sizeof(ColumnData)
+  };
+  auto apiHash = DJBHash((char*)sz2, sizeof(sz2));
+	aldp(OPENMX_LOAD_DATA_API_VERSION, apiHash, new LoadDataPGENProvider2());
+	aldp(OPENMX_LOAD_DATA_API_VERSION, apiHash, new LoadDataBGENProvider2());
 }

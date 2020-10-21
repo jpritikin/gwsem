@@ -13,7 +13,7 @@ Rscript -e 'remove.packages("OpenMx")' || true
 #Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/calibrate_1.7.5.tar.gz")'
 #Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/qqman_0.1.4.tar.gz")'
 
-if false; then
+if true; then
 		# Need to grab from GIT
 		git clone --depth 10 https://github.com/OpenMx/OpenMx.git
 		pushd OpenMx

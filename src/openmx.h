@@ -9,6 +9,9 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
+void mxThrow(const char* msg, ...);
+#define OOPS mxThrow("%s at %d: oops", __FILE__, __LINE__)
+
 enum ColumnDataType {
 	COLUMNDATA_INVALID,
 	COLUMNDATA_ORDERED_FACTOR,
@@ -31,22 +34,30 @@ private:
 	dataPtr ptr;
   bool owner;
   int minValue; // for count/ordinal only
+  int maxValue; // for count/ordinal only
 public:
 	const char *name;
 	ColumnDataType type;
-	std::vector<std::string> levels;       // factors only
+	std::vector<std::string> levelNames;       // factors only
 
 	const char *typeName();
-  ColumnData(const char *_name) : owner(false), minValue(1), name(_name),
-                                  type(COLUMNDATA_INVALID) {}
+  ColumnData(const char *_name) : owner(false), minValue(1), maxValue(NA_INTEGER),
+                                  name(_name), type(COLUMNDATA_INVALID) {}
   ColumnData(const char *_name, ColumnDataType _type, int *col) :
-    ptr(col), owner(true), minValue(1), name(_name), type(_type) {}
+    ptr(col), owner(true), minValue(1), maxValue(NA_INTEGER),
+    name(_name), type(_type) {}
   ~ColumnData() { clear(); }
   void clear();
   ColumnData clone() const;
   void setMinValue(int mv) { minValue = mv; }
+  void verifyMinValue(int nrows);
   void setZeroMinValue(int rows);
   int getMinValue() const { return minValue; }
+  int getMaxValue() const { if (maxValue==NA_INTEGER) OOPS; return maxValue; }
+  void setMaxValueFromLevels() { maxValue = minValue + levelNames.size() - 1; }
+  void setMaxValueFromData(int nrows);
+  int getNumThresholds() const { if (maxValue==NA_INTEGER) OOPS; return maxValue - minValue; }
+  int getNumOutcomes() const { return 1 + getNumThresholds(); }
   int *i() { return ptr.intData; }
   double *d() { return ptr.realData; }
   void setOwn(double *_p) { clear(); ptr.realData = _p; owner=true; }
