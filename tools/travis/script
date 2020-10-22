@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -o errexit
+
+travis_wait() {
+    # https://github.com/travis-ci/travis-ci/issues/4190#issuecomment-169987525
+    local minutes=0
+    local limit=40
+    while kill -0 $! >/dev/null 2>&1; do
+	echo -n -e " \b" # never leave evidences!
+	if [ $minutes == $limit ]; then break; fi
+	local minutes=$((minutes+1))
+	sleep 60
+    done
+    wait $! || exit 1
+}
+
+if true; then
+  Rscript -e 'remove.packages("OpenMx")' || true
+
+	# Need to grab from GIT
+	git clone --depth 10 https://github.com/OpenMx/OpenMx.git
+	pushd OpenMx
+	make cran-install
+	popd
+	rm -rf OpenMx
+fi
+
+Rscript -e 'install.packages("roxygen2")'
+
+./tools/rox
+
+R CMD build --no-build-vignettes .
+
+export _R_CHECK_FORCE_SUGGESTS_=false
+
+travis_wait 59 R CMD check --ignore-vignettes gwsem*tar.gz

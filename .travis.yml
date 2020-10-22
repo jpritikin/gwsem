@@ -24,13 +24,7 @@ before_install:
   - echo "CXX14 = g++-8 -fPIC -flto=2" >> ~/.R/Makevars
   - echo "CXX14FLAGS = -mtune=native -march=native -Wno-unused-variable -Wno-unused-function -Wno-unused-local-typedefs -Wno-ignored-attributes -Wno-deprecated-declarations -Wno-attributes -O3" >> ~/.R/Makevars
 
-script: 
-  - |
-    Rscript -e 'install.packages("roxygen2")'
-    ./tools/rox
-    R CMD build --no-build-vignettes .
-    export _R_CHECK_FORCE_SUGGESTS_=false
-    travis_wait 59 R CMD check --ignore-vignettes gwsem*tar.gz
+script: ./tools/travis/script
 
 after_success:
   - travis_wait 40 Rscript -e 'covr::codecov()'
