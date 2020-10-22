@@ -34,4 +34,6 @@ R CMD build --no-build-vignettes .
 
 export _R_CHECK_FORCE_SUGGESTS_=false
 
-travis_wait 59 R CMD check --ignore-vignettes gwsem*tar.gz
+R CMD check --ignore-vignettes gwsem*.tar.gz &
+
+travis_wait
