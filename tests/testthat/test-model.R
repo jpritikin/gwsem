@@ -136,6 +136,7 @@ m1 <- buildOneFacRes(pheno, paste0("i", 1:numIndicators), factor=TRUE)
 expect_true(m1$A$free['F','snp'])
 
 m2 <- buildOneFacRes(pheno, paste0("i", 1:numIndicators))
+m2$A[paste0('i',1:7),'F']$lbound <- 0
 m2 <- GWAS(m2,
      file.path(dir,"example.pgen"),
      file.path(tdir, "out.log"), SNP=c(3:5))
