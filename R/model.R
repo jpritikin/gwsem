@@ -87,6 +87,7 @@ forModels <- function(topModel, modelName, fn) {
 #'
 #' @export
 #' @importFrom methods is
+#' @importFrom stats coef
 #' @seealso \link{GWAS}
 #' @examples
 #' pheno <- data.frame(anxiety=cut(rnorm(500), c(-Inf, -.5, .5, Inf),
