@@ -27,6 +27,10 @@ m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
 rawSNP <- m1$data$observed
 pgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                      sep="\t", check.names=FALSE, quote="", comment.char="")
+
+# Here's how to convert to native POSIXct objects,
+# diff(as.POSIXct(pgen$timestamp, format="%b %d %Y %T %p"))
+
 expect_equal(nrow(pgen), 199)
 expect_equal(m1$compute$steps[[2]]$debug$loadCounter, 1)
 expect_equal(range(m1$data$observed$snp), c(0,2), .01)
