@@ -1,7 +1,7 @@
 #include <functional>
 #include "genfile/bgen/View.hpp"
 #include "genfile/bgen/IndexQuery.hpp"
-#include "pgenlib_internal.h"
+#include "pgenlib_read.h"
 #include "openmx.h"
 #include "LoadDataAPI.h"
 
@@ -155,20 +155,21 @@ struct LoadDataPGENProvider2 : public LoadDataProvider2<LoadDataPGENProvider2> {
 		}
 	};
 	typedef std::unique_ptr< PgenFileInfo, PgenFileInfoDtor > PgenFileInfoPtr;
-	struct PgenReaderStructDtor {
-		void operator()(PgenReaderStruct *pgr) {
+	struct PgenReaderDtor {
+		void operator()(PgenReader *pgr) {
 			PglErr err = kPglRetSuccess;
 			CleanupPgr(pgr, &err);
 			if (err != kPglRetSuccess) mxThrow("CleanupPgr not happy");
-			if (pgr->fread_buf) aligned_free(pgr->fread_buf);
 			delete pgr;
 		}
 	};
-	typedef std::unique_ptr< PgenReaderStruct, PgenReaderStructDtor > PgenReaderStructPtr;
+	typedef std::unique_ptr< PgenReader, PgenReaderDtor > PgenReaderPtr;
 
 	PgenFileInfoPtr pgen_info;
-	PgenReaderStructPtr pgen_state;
-	uintptr_t* pgen_subset_include_vec;
+	PgenReaderPtr pgen_state;
+  // unaligned ptr stored in [0], aligned stored in [1]
+  PgrSampleSubsetIndex pssi;
+  uintptr_t* pgen_subset_include_vec;
 	uint32_t* pgen_subset_cumulative_popcounts;
 	uintptr_t* pgen_genovec;
 	uintptr_t* pgen_dosage_present;
@@ -292,7 +293,7 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 		assert((header_ctrl & 0xc0) != 0xc0); // no explicit nonref_flags
 		if (pgen_info->raw_sample_ct == 0)
 			mxThrow("%s: pgen file '%s' has no samples", name, filePath.c_str());
-		unsigned char* pgfi_alloc = 0;
+    unsigned char *pgfi_alloc; // is freed automatically by libpgen
 		if (pgfi_alloc_cacheline_ct != 0) {
 			if (cachealigned_malloc(pgfi_alloc_cacheline_ct * kCacheline, &pgfi_alloc))
 				mxThrow("%s: cachealigned_malloc failed", name);
@@ -302,35 +303,33 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 		if (PgfiInitPhase2(header_ctrl, 1, 1, 0, 0, pgen_info->raw_variant_ct,
 				   &max_vrec_width, pgen_info.get(), pgfi_alloc, &pgr_alloc_cacheline_ct,
 				   errstr_buf)) {
-			if (pgfi_alloc && !pgen_info->vrtypes) aligned_free(pgfi_alloc);
 			mxThrow("%s: PgfiInitPhase2(%s) %s", name, filePath.c_str(), errstr_buf);
 		}
-		pgen_state = PgenReaderStructPtr(new PgenReaderStruct);
+		pgen_state = PgenReaderPtr(new PgenReader);
 		PreinitPgr(pgen_state.get());
-		pgen_state->fread_buf = 0;
 		uintptr_t pgr_alloc_main_byte_ct = pgr_alloc_cacheline_ct * kCacheline;
 		uint32_t file_sample_ct = pgen_info->raw_sample_ct;
 		uintptr_t sample_subset_byte_ct = DivUp(file_sample_ct, kBitsPerVec) * kBytesPerVec;
 		uintptr_t cumulative_popcounts_byte_ct =
 			DivUp(file_sample_ct, kBitsPerWord * kInt32PerVec) * kBytesPerVec;
-		uintptr_t genovec_byte_ct = DivUp(file_sample_ct, kQuatersPerVec) * kBytesPerVec;
+    uintptr_t genovec_byte_ct = DivUp(file_sample_ct, kNypsPerVec) * kBytesPerVec;
 		uintptr_t dosage_main_byte_ct = DivUp(file_sample_ct, (2 * kInt32PerVec)) * kBytesPerVec;
 		unsigned char* pgr_alloc;
 		if (cachealigned_malloc(pgr_alloc_main_byte_ct +
-					(2 * kPglQuaterTransposeBatch + 5) * sample_subset_byte_ct +
-					cumulative_popcounts_byte_ct +
-					(1 + kPglQuaterTransposeBatch) * genovec_byte_ct +
-					dosage_main_byte_ct, &pgr_alloc))
+                            (2 * kPglNypTransposeBatch + 5) * sample_subset_byte_ct +
+                            cumulative_popcounts_byte_ct +
+                            (1 + kPglNypTransposeBatch) * genovec_byte_ct +
+                            dosage_main_byte_ct + kPglBitTransposeBufbytes +
+                            4 * (kPglNypTransposeBatch * kPglNypTransposeBatch % 8), &pgr_alloc))
 			mxThrow("%s: cachealigned_malloc failed", name);
 		PglErr reterr = PgrInit(filePath.c_str(), max_vrec_width, pgen_info.get(),
 					pgen_state.get(), pgr_alloc);
 		if (reterr != kPglRetSuccess) {
-			if (!pgen_state->fread_buf) aligned_free(pgr_alloc);
 			mxThrow("%s: PgrInit(%s) error code %d", name, filePath.c_str(), int(reterr));
 		}
 
 		unsigned char* pgr_alloc_iter = &(pgr_alloc[pgr_alloc_main_byte_ct]);
-		pgen_subset_include_vec = (uintptr_t*)pgr_alloc_iter;
+    pgen_subset_include_vec = (uintptr_t*)pgr_alloc_iter;
 		pgr_alloc_iter = &(pgr_alloc_iter[sample_subset_byte_ct]);
 		pgr_alloc_iter = &(pgr_alloc_iter[sample_subset_byte_ct]);
 		pgen_subset_cumulative_popcounts = (uint32_t*)pgr_alloc_iter;
@@ -351,7 +350,7 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 	double maf = 0;
 	if (colTypes[0] == COLUMNDATA_NUMERIC) {
 		uint32_t dosage_ct;
-		PglErr reterr = PgrGet1D(pgen_subset_include_vec, pgen_subset_cumulative_popcounts,
+		PglErr reterr = PgrGet1D(pgen_subset_include_vec, pssi,
 					 pgen_info->raw_sample_ct, index, 1, pgen_state.get(), pgen_genovec,
 					 pgen_dosage_present, pgen_dosage_main, &dosage_ct);
 		if (reterr != kPglRetSuccess)

@@ -1,7 +1,7 @@
 #ifndef __PLINK2_BASE_H__
 #define __PLINK2_BASE_H__
 
-// This library is part of PLINK 2.00, copyright (C) 2005-2019 Shaun Purcell,
+// This library is part of PLINK 2.00, copyright (C) 2005-2020 Shaun Purcell,
 // Christopher Chang.
 //
 // This library is free software: you can redistribute it and/or modify it
@@ -18,7 +18,7 @@
 // along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 
-// Low-level C99/C++03/C++11 library covering basic I/O, bitarrays, and
+// Low-level C99/C++03/C++11 library covering basic I/O, SWAR/SIMD, and
 // Windows/OS X/Linux portability.  We try to benefit from as much C++ type
 // safety as we can without either breaking compatibility with C-only codebases
 // or making extension of pgenlib/plink2 code more difficult than the old
@@ -55,12 +55,12 @@
 //   high statistical reliability, by inserting checks whenever it occurs to me
 //   that overflow is especially likely (e.g. when multiplying two potentially
 //   large 32-bit numbers).
-// - Bitarrays and 'quaterarrays' (packed arrays of 2-bit elements, such as a
-//   row of a plink 1.x .bed file) are usually uintptr_t*, to encourage
+// - Bitarrays and 'nyparrays' (packed arrays of 2-bit elements, such as a row
+//   of a plink 1.x .bed file) are usually uintptr_t*, to encourage
 //   word-at-a-time iteration without requiring vector-alignment.  Quite a few
-//   low-level library functions cast them to VecW*; as mentioned above, the
-//   affected function parameter names should end in 'vec' to document the
-//   alignment requirements.
+//   low-level library functions cast them to VecW*.  As mentioned above, the
+//   affected function parameter names must end in 'vec' when this creates an
+//   alignment requirement.
 // - A buffer/iterator expected to contain only UTF-8 text should be char*.
 //   unsigned char* should be reserved for byte-array buffers and iterators
 //   which are expected to interact with some non-text bytes, and generic
@@ -69,19 +69,25 @@
 //   signedness of char is platform-dependent, it becomes necessary to use e.g.
 //   ctou32() a fair bit.)
 // - unsigned char is an acceptable argument type for functions intended to
-//   process a single text character, thanks to the automatic cast; it's just
-//   unsigned char* that should be avoided.
+//   process a single text character, thanks to implicit char -> unsigned char
+//   conversion; it's just unsigned char* that should be avoided.
 // - void* return values should be restricted to generic pointers which are
 //   *not* expected to be subject to pointer arithmetic.  void* as input
 //   parameter type should only be used when there are at least two equally
 //   valid input types, NOT counting VecW*.
 
 
+#if (__GNUC__ < 4)
+// may eventually add MSVC support to gain access to MKL on Windows, but can't
+// justify doing that before all major features are implemented.
+#  error "gcc 4.x+ or clang equivalent required."
+#endif
+
 // The -Wshorten-64-to-32 diagnostic forces the code to be cluttered with
 // meaningless uintptr_t -> uint32_t static casts (number known to be < 2^32,
 // just stored in a uintptr_t because there's no speed penalty and we generally
 // want to think in terms of word-based operations).  The code is more readable
-// if S_CAST(uint32_t, [potentially wider value]) is reserved for situations
+// if S_CAST(uint32_t, <potentially wider value>) is reserved for situations
 // where a higher bit may actually be set.  This pragma can always be commented
 // out on the few occasions where inappropriate silent truncation is suspected.
 #ifdef __clang__
@@ -91,7 +97,7 @@
 // 10000 * major + 100 * minor + patch
 // Exception to CONSTI32, since we want the preprocessor to have access
 // to this value.  Named with all caps as a consequence.
-#define PLINK2_BASE_VERNUM 502
+#define PLINK2_BASE_VERNUM 703
 
 
 #define _FILE_OFFSET_BITS 64
@@ -128,27 +134,25 @@
 #endif
 
 #ifdef __LP64__
-#  ifndef __SSE2__
-    // todo: remove this requirement, the 32-bit VecW-using code does most of
-    // what we need
-#    error "64-bit builds currently require SSE2.  Try producing a 32-bit build instead."
+#  ifdef __x86_64__
+#    include <emmintrin.h>
+#  else
+#    define SIMDE_ENABLE_NATIVE_ALIASES
+#    include "x86/sse2.h"
 #  endif
-#  include <emmintrin.h>
 #  ifdef __SSE4_2__
 #    define USE_SSE42
 #    include <smmintrin.h>
 #    ifdef __AVX2__
-#      include <immintrin.h>
-#      ifndef __BMI__
-#        error "AVX2 builds require -mbmi as well."
+#      if defined(__BMI__) && defined(__BMI2__) && defined(__LZCNT__)
+#        include <immintrin.h>
+#        define USE_AVX2
+#      else
+// Graceful downgrade, in case -march=native misfires on a VM.  See
+// https://github.com/chrchang/plink-ng/issues/155 .
+#        warning "AVX2 builds require -mbmi, -mbmi2, and -mlzcnt as well.  Downgrading to SSE4.2 build."
+#        undef USE_AVX2
 #      endif
-#      ifndef __BMI2__
-#        error "AVX2 builds require -mbmi2 as well."
-#      endif
-#      ifndef __LZCNT__
-#        error "AVX2 builds require -mlzcnt as well."
-#      endif
-#      define USE_AVX2
 #    endif
 #  endif
 #  define ALIGNV16 __attribute__ ((aligned (16)))
@@ -208,7 +212,7 @@ namespace plink2 {
 #  define CSINLINE static inline
 #  define CSINLINE2 static inline
   // _Static_assert() should work in gcc 4.6+
-#  if (__GNUC__ <= 4) && (__GNUC_MINOR__ < 6)
+#  if (__GNUC__ == 4) && (__GNUC_MINOR__ < 6)
 #    if defined(__clang__) && defined(__has_feature) && defined(__has_extension)
 #      if __has_feature(c_static_assert) || __has_extension(c_static_assert)
 #        define static_assert _Static_assert
@@ -338,7 +342,9 @@ typedef enum
   kPglRetDegenerateData,
   kPglRetDecompressFail, // also distinguish this from MalformedInput
   kPglRetRewindFail,
+  kPglRetGpuFail,
   kPglRetSampleMajorBed = 32,
+  kPglRetNomemCustomMsg = 59,
   kPglRetInternalError = 60,
   kPglRetWarningErrcode = 61,
   kPglRetImproperFunctionCall = 62,
@@ -358,6 +364,14 @@ typedef enum
   PglErr(const PglErr& source) : value_(source.value_) {}
 
   PglErr(ec source) : value_(source) {}
+
+  // Allow explicit conversion from uint64_t, and NOT uint32_t, to this error
+  // type, to support reproducible multithreaded error reporting (where
+  // multiple threads may atomically attempt to modify a single uint64_t with
+  // the error code in the low 32 bits and a priority number in the high bits).
+  explicit PglErr(uint64_t source) : value_(static_cast<ec>(source)) {}
+
+  PglErr& operator=(const PglErr&) = default;
 
   operator ec() const {
     return value_;
@@ -396,8 +410,10 @@ const PglErr kPglRetUnsupportedInstructions = PglErr::ec::kPglRetUnsupportedInst
 const PglErr kPglRetDegenerateData = PglErr::ec::kPglRetDegenerateData;
 const PglErr kPglRetDecompressFail = PglErr::ec::kPglRetDecompressFail;
 const PglErr kPglRetRewindFail = PglErr::ec::kPglRetRewindFail;
+const PglErr kPglRetGpuFail = PglErr::ec::kPglRetGpuFail;
 const PglErr kPglRetSampleMajorBed = PglErr::ec::kPglRetSampleMajorBed;
 const PglErr kPglRetWarningErrcode = PglErr::ec::kPglRetWarningErrcode;
+const PglErr kPglRetNomemCustomMsg = PglErr::ec::kPglRetNomemCustomMsg;
 const PglErr kPglRetInternalError = PglErr::ec::kPglRetInternalError;
 const PglErr kPglRetImproperFunctionCall = PglErr::ec::kPglRetImproperFunctionCall;
 const PglErr kPglRetNotYetSupported = PglErr::ec::kPglRetNotYetSupported;
@@ -465,18 +481,38 @@ typedef uint32_t BoolErr;
 #  define FOPEN_RB "rb"
 #  define FOPEN_WB "wb"
 #  define FOPEN_AB "ab"
-#else  // Linux or OS X
-#  define FOPEN_RB "r"
-#  define FOPEN_WB "w"
-#  define FOPEN_AB "a"
-#endif
-
+#  define ferror_unlocked ferror
+#  define feof_unlocked feof
+#  ifdef __LP64__
+#    define getc_unlocked _fgetc_nolock
+#    define putc_unlocked _fputc_nolock
+    // todo: find mingw-w64 build which properly links _fread_nolock, and
+    // conditional-compile
+#    define fread_unlocked fread
+#    define fwrite_unlocked fwrite
+#  else
 #    define getc_unlocked getc
 #    define putc_unlocked putc
 #    define fread_unlocked fread
 #    define fwrite_unlocked fwrite
+#  endif
+#  if __cplusplus < 201103L
+#    define uint64_t unsigned long long
+#    define int64_t long long
+#  endif
+#else  // Linux or OS X
+#  define FOPEN_RB "r"
+#  define FOPEN_WB "w"
+#  define FOPEN_AB "a"
+#  if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__)
+#    define fread_unlocked fread
+#    define fwrite_unlocked fwrite
+#  endif
+#  if defined(__NetBSD__)
 #    define ferror_unlocked ferror
 #    define feof_unlocked feof
+#  endif
+#endif
 
 #ifdef _WIN32
 #  undef PRId64
@@ -540,7 +576,7 @@ HEADER_INLINE uint32_t bsrw(unsigned long ulii) {
 }
 #  ifndef __LP64__
     // needed to prevent GCC 6 build failure
-#    if (__GNUC__ <= 4) && (__GNUC_MINOR__ < 8)
+#    if (__GNUC__ == 4) && (__GNUC_MINOR__ < 8)
 #      if (__cplusplus < 201103L) && !defined(__APPLE__)
 #        ifndef uintptr_t
 #          define uintptr_t unsigned long
@@ -579,7 +615,7 @@ HEADER_INLINE uint32_t bsrw(unsigned long ulii) {
   // without this, we get ridiculous warning spew...
   // not 100% sure this is the right cutoff, but this has been tested on 4.7
   // and 4.8 build machines, so it plausibly is.
-#  if (__GNUC__ <= 4) && (__GNUC_MINOR__ < 8) && (__cplusplus < 201103L)
+#  if (__GNUC__ == 4) && (__GNUC_MINOR__ < 8) && (__cplusplus < 201103L)
 #    undef PRIuPTR
 #    undef PRIdPTR
 #    define PRIuPTR "lu"
@@ -614,7 +650,7 @@ HEADER_INLINE uint32_t bsrw(unsigned long ulii) {
 //
 // Otherwise, the macro expansion thing is still annoying but we suck it up due
 // to the need for too much duplicate C vs. C++ code ("initializer element is
-// not constant" when using const [type] in C99...)
+// not constant" when using const <type> in C99...)
 //
 // We start most plink2- and pgenlib-specific numeric constant names here with
 // "kPgl", which should have a vanishingly small chance of colliding with
@@ -672,7 +708,9 @@ typedef uint32_t VecU32 __attribute__ ((vector_size (32)));
 typedef int32_t VecI32 __attribute__ ((vector_size (32)));
 typedef unsigned short VecU16 __attribute__ ((vector_size (32)));
 typedef short VecI16 __attribute__ ((vector_size (32)));
-typedef char VecC __attribute__ ((vector_size (32)));
+// documentation says 'char', but int8_t works fine under gcc 4.4 and conveys
+// intent better (char not guaranteed to be signed)
+typedef int8_t VecI8 __attribute__ ((vector_size (32)));
 typedef unsigned char VecUc __attribute__ ((vector_size (32)));
 #  else
 CONSTI32(kBytesPerVec, 16);
@@ -681,7 +719,7 @@ typedef uint32_t VecU32 __attribute ((vector_size (16)));
 typedef int32_t VecI32 __attribute ((vector_size (16)));
 typedef unsigned short VecU16 __attribute__ ((vector_size (16)));
 typedef short VecI16 __attribute__ ((vector_size (16)));
-typedef char VecC __attribute__ ((vector_size (16)));
+typedef int8_t VecI8 __attribute__ ((vector_size (16)));
 typedef unsigned char VecUc __attribute__ ((vector_size (16)));
 #  endif
 CONSTI32(kBitsPerWord, 64);
@@ -719,8 +757,8 @@ HEADER_INLINE VecUc vecuc_setzero() {
   return R_CAST(VecUc, _mm256_setzero_si256());
 }
 
-HEADER_INLINE VecC vecc_setzero() {
-  return R_CAST(VecC, _mm256_setzero_si256());
+HEADER_INLINE VecI8 veci8_setzero() {
+  return R_CAST(VecI8, _mm256_setzero_si256());
 }
 
 // "vv >> ct" doesn't work, and Scientific Linux gcc 4.4 might not optimize
@@ -733,9 +771,45 @@ HEADER_INLINE VecW vecw_slli(VecW vv, uint32_t ct) {
   return R_CAST(VecW, _mm256_slli_epi64(R_CAST(__m256i, vv), ct));
 }
 
+HEADER_INLINE VecU32 vecu32_srli(VecU32 vv, uint32_t ct) {
+  return R_CAST(VecU32, _mm256_srli_epi32(R_CAST(__m256i, vv), ct));
+}
+
+HEADER_INLINE VecU32 vecu32_slli(VecU32 vv, uint32_t ct) {
+  return R_CAST(VecU32, _mm256_slli_epi32(R_CAST(__m256i, vv), ct));
+}
+
+HEADER_INLINE VecU16 vecu16_srli(VecU16 vv, uint32_t ct) {
+  return R_CAST(VecU16, _mm256_srli_epi16(R_CAST(__m256i, vv), ct));
+}
+
+HEADER_INLINE VecU16 vecu16_slli(VecU16 vv, uint32_t ct) {
+  return R_CAST(VecU16, _mm256_slli_epi16(R_CAST(__m256i, vv), ct));
+}
+
 // Compiler still doesn't seem to be smart enough to use andnot properly.
 HEADER_INLINE VecW vecw_and_notfirst(VecW excl, VecW main) {
   return R_CAST(VecW, _mm256_andnot_si256(R_CAST(__m256i, excl), R_CAST(__m256i, main)));
+}
+
+HEADER_INLINE VecU32 vecu32_and_notfirst(VecU32 excl, VecU32 main) {
+  return R_CAST(VecU32, _mm256_andnot_si256(R_CAST(__m256i, excl), R_CAST(__m256i, main)));
+}
+
+HEADER_INLINE VecI32 veci32_and_notfirst(VecI32 excl, VecI32 main) {
+  return R_CAST(VecI32, _mm256_andnot_si256(R_CAST(__m256i, excl), R_CAST(__m256i, main)));
+}
+
+HEADER_INLINE VecU16 vecu16_and_notfirst(VecU16 excl, VecU16 main) {
+  return R_CAST(VecU16, _mm256_andnot_si256(R_CAST(__m256i, excl), R_CAST(__m256i, main)));
+}
+
+HEADER_INLINE VecI16 veci16_and_notfirst(VecI16 excl, VecI16 main) {
+  return R_CAST(VecI16, _mm256_andnot_si256(R_CAST(__m256i, excl), R_CAST(__m256i, main)));
+}
+
+HEADER_INLINE VecI8 veci8_and_notfirst(VecI8 excl, VecI8 main) {
+  return R_CAST(VecI8, _mm256_andnot_si256(R_CAST(__m256i, excl), R_CAST(__m256i, main)));
 }
 
 HEADER_INLINE VecW vecw_set1(uintptr_t ulii) {
@@ -762,8 +836,8 @@ HEADER_INLINE VecUc vecuc_set1(unsigned char ucc) {
   return R_CAST(VecUc, _mm256_set1_epi8(ucc));
 }
 
-HEADER_INLINE VecC vecc_set1(char cc) {
-  return R_CAST(VecC, _mm256_set1_epi8(cc));
+HEADER_INLINE VecI8 veci8_set1(char cc) {
+  return R_CAST(VecI8, _mm256_set1_epi8(cc));
 }
 
 HEADER_INLINE uint32_t vecw_movemask(VecW vv) {
@@ -774,11 +848,19 @@ HEADER_INLINE uint32_t vecu32_movemask(VecU32 vv) {
   return _mm256_movemask_epi8(R_CAST(__m256i, vv));
 }
 
+HEADER_INLINE uint32_t veci32_movemask(VecI32 vv) {
+  return _mm256_movemask_epi8(R_CAST(__m256i, vv));
+}
+
 HEADER_INLINE uint32_t vecu16_movemask(VecU16 vv) {
   return _mm256_movemask_epi8(R_CAST(__m256i, vv));
 }
 
-HEADER_INLINE uint32_t vecc_movemask(VecC vv) {
+HEADER_INLINE uint32_t veci16_movemask(VecI16 vv) {
+  return _mm256_movemask_epi8(R_CAST(__m256i, vv));
+}
+
+HEADER_INLINE uint32_t veci8_movemask(VecI8 vv) {
   return _mm256_movemask_epi8(R_CAST(__m256i, vv));
 }
 
@@ -789,6 +871,10 @@ HEADER_INLINE uint32_t vecuc_movemask(VecUc vv) {
 // Repeats elements in second lane in AVX2 case.
 HEADER_INLINE VecW vecw_setr8(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0) {
   return R_CAST(VecW, _mm256_setr_epi8(e15, e14, e13, e12, e11, e10, e9, e8, e7, e6, e5, e4, e3, e2, e1, e0, e15, e14, e13, e12, e11, e10, e9, e8, e7, e6, e5, e4, e3, e2, e1, e0));
+}
+
+HEADER_INLINE VecU16 vecu16_setr8(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0) {
+  return R_CAST(VecU16, _mm256_setr_epi8(e15, e14, e13, e12, e11, e10, e9, e8, e7, e6, e5, e4, e3, e2, e1, e0, e15, e14, e13, e12, e11, e10, e9, e8, e7, e6, e5, e4, e3, e2, e1, e0));
 }
 
 HEADER_INLINE VecUc vecuc_setr8(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0) {
@@ -806,6 +892,22 @@ HEADER_INLINE VecW vecw_unpacklo8(VecW evens, VecW odds) {
 
 HEADER_INLINE VecW vecw_unpackhi8(VecW evens, VecW odds) {
   return R_CAST(VecW, _mm256_unpackhi_epi8(R_CAST(__m256i, evens), R_CAST(__m256i, odds)));
+}
+
+HEADER_INLINE VecI8 veci8_unpacklo8(VecI8 evens, VecI8 odds) {
+  return R_CAST(VecI8, _mm256_unpacklo_epi8(R_CAST(__m256i, evens), R_CAST(__m256i, odds)));
+}
+
+HEADER_INLINE VecI8 veci8_unpackhi8(VecI8 evens, VecI8 odds) {
+  return R_CAST(VecI8, _mm256_unpackhi_epi8(R_CAST(__m256i, evens), R_CAST(__m256i, odds)));
+}
+
+HEADER_INLINE VecUc vecuc_unpacklo8(VecUc evens, VecUc odds) {
+  return R_CAST(VecUc, _mm256_unpacklo_epi8(R_CAST(__m256i, evens), R_CAST(__m256i, odds)));
+}
+
+HEADER_INLINE VecUc vecuc_unpackhi8(VecUc evens, VecUc odds) {
+  return R_CAST(VecUc, _mm256_unpackhi_epi8(R_CAST(__m256i, evens), R_CAST(__m256i, odds)));
 }
 
 HEADER_INLINE VecW vecw_unpacklo16(VecW evens, VecW odds) {
@@ -826,6 +928,14 @@ HEADER_INLINE VecW vecw_unpackhi32(VecW evens, VecW odds) {
 
 HEADER_INLINE VecW vecw_permute0xd8_if_avx2(VecW vv) {
   return R_CAST(VecW, _mm256_permute4x64_epi64(R_CAST(__m256i, vv), 0xd8));
+}
+
+HEADER_INLINE VecI8 veci8_permute0xd8_if_avx2(VecI8 vv) {
+  return R_CAST(VecI8, _mm256_permute4x64_epi64(R_CAST(__m256i, vv), 0xd8));
+}
+
+HEADER_INLINE VecUc vecuc_permute0xd8_if_avx2(VecUc vv) {
+  return R_CAST(VecUc, _mm256_permute4x64_epi64(R_CAST(__m256i, vv), 0xd8));
 }
 
 HEADER_INLINE VecW vecw_shuffle8(VecW table, VecW indexes) {
@@ -899,7 +1009,15 @@ HEADER_INLINE VecUc vecuc_loadu(const void* mem_addr) {
   return R_CAST(VecUc, _mm256_loadu_si256(S_CAST(const __m256i*, mem_addr)));
 }
 
+HEADER_INLINE VecI8 veci8_loadu(const void* mem_addr) {
+  return R_CAST(VecI8, _mm256_loadu_si256(S_CAST(const __m256i*, mem_addr)));
+}
+
 HEADER_INLINE void vecw_storeu(void* mem_addr, VecW vv) {
+  _mm256_storeu_si256(S_CAST(__m256i*, mem_addr), R_CAST(__m256i, vv));
+}
+
+HEADER_INLINE void vecu32_storeu(void* mem_addr, VecU32 vv) {
   _mm256_storeu_si256(S_CAST(__m256i*, mem_addr), R_CAST(__m256i, vv));
 }
 
@@ -935,6 +1053,26 @@ HEADER_INLINE VecUc vecuc_adds(VecUc v1, VecUc v2) {
   return R_CAST(VecUc, _mm256_adds_epu8(R_CAST(__m256i, v1), R_CAST(__m256i, v2)));
 }
 
+HEADER_INLINE VecU16 vecu16_min8(VecU16 v1, VecU16 v2) {
+  return R_CAST(VecU16, _mm256_min_epu8(R_CAST(__m256i, v1), R_CAST(__m256i, v2)));
+}
+
+HEADER_INLINE VecUc vecuc_min(VecUc v1, VecUc v2) {
+  return R_CAST(VecUc, _mm256_min_epu8(R_CAST(__m256i, v1), R_CAST(__m256i, v2)));
+}
+
+HEADER_INLINE VecW vecw_blendv(VecW aa, VecW bb, VecW mask) {
+  return R_CAST(VecW, _mm256_blendv_epi8(R_CAST(__m256i, aa), R_CAST(__m256i, bb), R_CAST(__m256i, mask)));
+}
+
+HEADER_INLINE VecU32 vecu32_blendv(VecU32 aa, VecU32 bb, VecU32 mask) {
+  return R_CAST(VecU32, _mm256_blendv_epi8(R_CAST(__m256i, aa), R_CAST(__m256i, bb), R_CAST(__m256i, mask)));
+}
+
+HEADER_INLINE VecU16 vecu16_blendv(VecU16 aa, VecU16 bb, VecU16 mask) {
+  return R_CAST(VecU16, _mm256_blendv_epi8(R_CAST(__m256i, aa), R_CAST(__m256i, bb), R_CAST(__m256i, mask)));
+}
+
 #  else  // !USE_AVX2
 
 #    define VCONST_W(xx) {xx, xx}
@@ -962,8 +1100,8 @@ HEADER_INLINE VecUc vecuc_setzero() {
   return R_CAST(VecUc, _mm_setzero_si128());
 }
 
-HEADER_INLINE VecC vecc_setzero() {
-  return R_CAST(VecC, _mm_setzero_si128());
+HEADER_INLINE VecI8 veci8_setzero() {
+  return R_CAST(VecI8, _mm_setzero_si128());
 }
 
 HEADER_INLINE VecW vecw_srli(VecW vv, uint32_t ct) {
@@ -974,8 +1112,44 @@ HEADER_INLINE VecW vecw_slli(VecW vv, uint32_t ct) {
   return R_CAST(VecW, _mm_slli_epi64(R_CAST(__m128i, vv), ct));
 }
 
+HEADER_INLINE VecU32 vecu32_srli(VecU32 vv, uint32_t ct) {
+  return R_CAST(VecU32, _mm_srli_epi32(R_CAST(__m128i, vv), ct));
+}
+
+HEADER_INLINE VecU32 vecu32_slli(VecU32 vv, uint32_t ct) {
+  return R_CAST(VecU32, _mm_slli_epi32(R_CAST(__m128i, vv), ct));
+}
+
+HEADER_INLINE VecU16 vecu16_srli(VecU16 vv, uint32_t ct) {
+  return R_CAST(VecU16, _mm_srli_epi16(R_CAST(__m128i, vv), ct));
+}
+
+HEADER_INLINE VecU16 vecu16_slli(VecU16 vv, uint32_t ct) {
+  return R_CAST(VecU16, _mm_slli_epi16(R_CAST(__m128i, vv), ct));
+}
+
 HEADER_INLINE VecW vecw_and_notfirst(VecW excl, VecW main) {
   return R_CAST(VecW, _mm_andnot_si128(R_CAST(__m128i, excl), R_CAST(__m128i, main)));
+}
+
+HEADER_INLINE VecU32 vecu32_and_notfirst(VecU32 excl, VecU32 main) {
+  return R_CAST(VecU32, _mm_andnot_si128(R_CAST(__m128i, excl), R_CAST(__m128i, main)));
+}
+
+HEADER_INLINE VecI32 veci32_and_notfirst(VecI32 excl, VecI32 main) {
+  return R_CAST(VecI32, _mm_andnot_si128(R_CAST(__m128i, excl), R_CAST(__m128i, main)));
+}
+
+HEADER_INLINE VecU16 vecu16_and_notfirst(VecU16 excl, VecU16 main) {
+  return R_CAST(VecU16, _mm_andnot_si128(R_CAST(__m128i, excl), R_CAST(__m128i, main)));
+}
+
+HEADER_INLINE VecI16 veci16_and_notfirst(VecI16 excl, VecI16 main) {
+  return R_CAST(VecI16, _mm_andnot_si128(R_CAST(__m128i, excl), R_CAST(__m128i, main)));
+}
+
+HEADER_INLINE VecI8 veci8_and_notfirst(VecI8 excl, VecI8 main) {
+  return R_CAST(VecI8, _mm_andnot_si128(R_CAST(__m128i, excl), R_CAST(__m128i, main)));
 }
 
 HEADER_INLINE VecW vecw_set1(uintptr_t ulii) {
@@ -994,16 +1168,16 @@ HEADER_INLINE VecU16 vecu16_set1(unsigned short usi) {
   return R_CAST(VecU16, _mm_set1_epi16(usi));
 }
 
-HEADER_INLINE VecI32 veci16_set1(short si) {
-  return R_CAST(VecI32, _mm_set1_epi16(si));
+HEADER_INLINE VecI16 veci16_set1(short si) {
+  return R_CAST(VecI16, _mm_set1_epi16(si));
 }
 
 HEADER_INLINE VecUc vecuc_set1(unsigned char ucc) {
   return R_CAST(VecUc, _mm_set1_epi8(ucc));
 }
 
-HEADER_INLINE VecC vecc_set1(char cc) {
-  return R_CAST(VecC, _mm_set1_epi8(cc));
+HEADER_INLINE VecI8 veci8_set1(char cc) {
+  return R_CAST(VecI8, _mm_set1_epi8(cc));
 }
 
 HEADER_INLINE uint32_t vecw_movemask(VecW vv) {
@@ -1014,11 +1188,19 @@ HEADER_INLINE uint32_t vecu32_movemask(VecU32 vv) {
   return _mm_movemask_epi8(R_CAST(__m128i, vv));
 }
 
+HEADER_INLINE uint32_t veci32_movemask(VecI32 vv) {
+  return _mm_movemask_epi8(R_CAST(__m128i, vv));
+}
+
 HEADER_INLINE uint32_t vecu16_movemask(VecU16 vv) {
   return _mm_movemask_epi8(R_CAST(__m128i, vv));
 }
 
-HEADER_INLINE uint32_t vecc_movemask(VecC vv) {
+HEADER_INLINE uint32_t veci16_movemask(VecI16 vv) {
+  return _mm_movemask_epi8(R_CAST(__m128i, vv));
+}
+
+HEADER_INLINE uint32_t veci8_movemask(VecI8 vv) {
   return _mm_movemask_epi8(R_CAST(__m128i, vv));
 }
 
@@ -1062,7 +1244,15 @@ HEADER_INLINE VecUc vecuc_loadu(const void* mem_addr) {
   return R_CAST(VecUc, _mm_loadu_si128(S_CAST(const __m128i*, mem_addr)));
 }
 
+HEADER_INLINE VecI8 veci8_loadu(const void* mem_addr) {
+  return R_CAST(VecI8, _mm_loadu_si128(S_CAST(const __m128i*, mem_addr)));
+}
+
 HEADER_INLINE void vecw_storeu(void* mem_addr, VecW vv) {
+  _mm_storeu_si128(S_CAST(__m128i*, mem_addr), R_CAST(__m128i, vv));
+}
+
+HEADER_INLINE void vecu32_storeu(void* mem_addr, VecU32 vv) {
   _mm_storeu_si128(S_CAST(__m128i*, mem_addr), R_CAST(__m128i, vv));
 }
 
@@ -1085,6 +1275,10 @@ HEADER_INLINE void vecuc_storeu(void* mem_addr, VecUc vv) {
 // Repeats arguments in AVX2 case.
 HEADER_INLINE VecW vecw_setr8(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0) {
   return R_CAST(VecW, _mm_setr_epi8(e15, e14, e13, e12, e11, e10, e9, e8, e7, e6, e5, e4, e3, e2, e1, e0));
+}
+
+HEADER_INLINE VecU16 vecu16_setr8(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0) {
+  return R_CAST(VecU16, _mm_setr_epi8(e15, e14, e13, e12, e11, e10, e9, e8, e7, e6, e5, e4, e3, e2, e1, e0));
 }
 
 HEADER_INLINE VecUc vecuc_setr8(char e15, char e14, char e13, char e12, char e11, char e10, char e9, char e8, char e7, char e6, char e5, char e4, char e3, char e2, char e1, char e0) {
@@ -1116,6 +1310,22 @@ HEADER_INLINE VecW vecw_unpackhi8(VecW evens, VecW odds) {
   return R_CAST(VecW, _mm_unpackhi_epi8(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
 }
 
+HEADER_INLINE VecI8 veci8_unpacklo8(VecI8 evens, VecI8 odds) {
+  return R_CAST(VecI8, _mm_unpacklo_epi8(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
+}
+
+HEADER_INLINE VecI8 veci8_unpackhi8(VecI8 evens, VecI8 odds) {
+  return R_CAST(VecI8, _mm_unpackhi_epi8(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
+}
+
+HEADER_INLINE VecUc vecuc_unpacklo8(VecUc evens, VecUc odds) {
+  return R_CAST(VecUc, _mm_unpacklo_epi8(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
+}
+
+HEADER_INLINE VecUc vecuc_unpackhi8(VecUc evens, VecUc odds) {
+  return R_CAST(VecUc, _mm_unpackhi_epi8(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
+}
+
 HEADER_INLINE VecW vecw_unpacklo16(VecW evens, VecW odds) {
   return R_CAST(VecW, _mm_unpacklo_epi16(R_CAST(__m128i, evens), R_CAST(__m128i, odds)));
 }
@@ -1144,6 +1354,14 @@ HEADER_INLINE VecW vecw_permute0xd8_if_avx2(VecW vv) {
   return vv;
 }
 
+HEADER_INLINE VecI8 veci8_permute0xd8_if_avx2(VecI8 vv) {
+  return vv;
+}
+
+HEADER_INLINE VecUc vecuc_permute0xd8_if_avx2(VecUc vv) {
+  return vv;
+}
+
 #    ifdef USE_SSE42
 HEADER_INLINE VecI32 veci32_max(VecI32 v1, VecI32 v2) {
   return R_CAST(VecI32, _mm_max_epi32(R_CAST(__m128i, v1), R_CAST(__m128i, v2)));
@@ -1168,6 +1386,18 @@ HEADER_INLINE uintptr_t vecw_extract64_0(VecW vv) {
 HEADER_INLINE uintptr_t vecw_extract64_1(VecW vv) {
   return _mm_extract_epi64(R_CAST(__m128i, vv), 1);
 }
+
+HEADER_INLINE VecW vecw_blendv(VecW aa, VecW bb, VecW mask) {
+  return R_CAST(VecW, _mm_blendv_epi8(R_CAST(__m128i, aa), R_CAST(__m128i, bb), R_CAST(__m128i, mask)));
+}
+
+HEADER_INLINE VecU32 vecu32_blendv(VecU32 aa, VecU32 bb, VecU32 mask) {
+  return R_CAST(VecU32, _mm_blendv_epi8(R_CAST(__m128i, aa), R_CAST(__m128i, bb), R_CAST(__m128i, mask)));
+}
+
+HEADER_INLINE VecU16 vecu16_blendv(VecU16 aa, VecU16 bb, VecU16 mask) {
+  return R_CAST(VecU16, _mm_blendv_epi8(R_CAST(__m128i, aa), R_CAST(__m128i, bb), R_CAST(__m128i, mask)));
+}
 #    else
 HEADER_INLINE uintptr_t vecw_extract64_0(VecW vv) {
   return R_CAST(uintptr_t, _mm_movepi64_pi64(R_CAST(__m128i, vv)));
@@ -1176,6 +1406,20 @@ HEADER_INLINE uintptr_t vecw_extract64_0(VecW vv) {
 HEADER_INLINE uintptr_t vecw_extract64_1(VecW vv) {
   const __m128i v0 = _mm_srli_si128(R_CAST(__m128i, vv), 8);
   return R_CAST(uintptr_t, _mm_movepi64_pi64(v0));
+}
+
+// N.B. we do *not* enforce the low bits of each mask byte matching the high
+// bit.
+HEADER_INLINE VecW vecw_blendv(VecW aa, VecW bb, VecW mask) {
+  return vecw_and_notfirst(mask, aa) | (mask & bb);
+}
+
+HEADER_INLINE VecU32 vecu32_blendv(VecU32 aa, VecU32 bb, VecU32 mask) {
+  return vecu32_and_notfirst(mask, aa) | (mask & bb);
+}
+
+HEADER_INLINE VecU16 vecu16_blendv(VecU16 aa, VecU16 bb, VecU16 mask) {
+  return vecu16_and_notfirst(mask, aa) | (mask & bb);
 }
 #    endif
 
@@ -1191,6 +1435,13 @@ HEADER_INLINE VecUc vecuc_adds(VecUc v1, VecUc v2) {
   return R_CAST(VecUc, _mm_adds_epu8(R_CAST(__m128i, v1), R_CAST(__m128i, v2)));
 }
 
+HEADER_INLINE VecU16 vecu16_min8(VecU16 v1, VecU16 v2) {
+  return R_CAST(VecU16, _mm_min_epu8(R_CAST(__m128i, v1), R_CAST(__m128i, v2)));
+}
+
+HEADER_INLINE VecUc vecuc_min(VecUc v1, VecUc v2) {
+  return R_CAST(VecUc, _mm_min_epu8(R_CAST(__m128i, v1), R_CAST(__m128i, v2)));
+}
 #  endif  // !USE_AVX2
 
 HEADER_INLINE VecW vecw_bytesum(VecW src, VecW m0) {
@@ -1237,8 +1488,9 @@ typedef uint16_t Halfword;
 typedef uint8_t Quarterword;
 
 typedef uintptr_t VecW;
+typedef uintptr_t VecU32;
 typedef float VecF;
-// VecI16 and VecC aren't worth the trouble of scaling down to 32-bit
+// VecI16 and VecI8 aren't worth the trouble of scaling down to 32-bit
 
 #  define VCONST_W(xx) (xx)
 
@@ -1266,7 +1518,24 @@ HEADER_INLINE VecW vecw_bytesum(VecW src, __maybe_unused VecW m0) {
   src = (src & 0x00ff00ff) + ((src >> 8) & 0x00ff00ff);
   return (src + (src >> 16)) & 0xffff;
 }
+
+HEADER_INLINE VecW vecw_and_notfirst(VecW excl, VecW main) {
+  return (~excl) & main;
+}
+
+HEADER_INLINE VecU32 vecu32_and_notfirst(VecU32 excl, VecU32 main) {
+  return (~excl) & main;
+}
 #endif  // !__LP64__
+
+// debug
+HEADER_INLINE void PrintVec(const void* vv) {
+  const unsigned char* vv_alias = S_CAST(const unsigned char*, vv);
+  for (uint32_t uii = 0; uii != kBytesPerVec; ++uii) {
+    printf("%u ", vv_alias[uii]);
+  }
+  printf("\n");
+}
 
 // Unfortunately, we need to spell out S_CAST(uintptr_t, 0) instead of just
 // typing k0LU in C99.
@@ -1286,13 +1555,18 @@ static const uintptr_t kMask000F = (~S_CAST(uintptr_t, 0)) / 4369;
 static const uintptr_t kMask0303 = (~S_CAST(uintptr_t, 0)) / 85;
 
 CONSTI32(kBitsPerVec, kBytesPerVec * CHAR_BIT);
-CONSTI32(kQuatersPerVec, kBytesPerVec * 4);
+
+// We now use Knuth's Nyp/Nybble vocabulary for 2-bit and 4-bit elements,
+// respectively.
+CONSTI32(kNypsPerVec, kBytesPerVec * 4);
 
 CONSTI32(kBitsPerWordD2, kBitsPerWord / 2);
 CONSTI32(kBitsPerWordD4, kBitsPerWord / 4);
 
 // number of bytes in a word
 CONSTI32(kBytesPerWord, kBitsPerWord / CHAR_BIT);
+
+CONSTI32(kInt16PerWord, kBytesPerWord / 2);
 
 static_assert(CHAR_BIT == 8, "plink2_base requires CHAR_BIT == 8.");
 static_assert(sizeof(int8_t) == 1, "plink2_base requires sizeof(int8_t) == 1.");
@@ -1311,7 +1585,8 @@ CONSTI32(kFloatPerFVec, kBytesPerFVec / 4);
 CONSTI32(kCacheline, 64);
 
 CONSTI32(kBitsPerCacheline, kCacheline * CHAR_BIT);
-CONSTI32(kQuatersPerCacheline, kCacheline * 4);
+CONSTI32(kNypsPerCacheline, kCacheline * 4);
+CONSTI32(kInt16PerCacheline, kCacheline / sizeof(int16_t));
 CONSTI32(kInt32PerCacheline, kCacheline / sizeof(int32_t));
 CONSTI32(kInt64PerCacheline, kCacheline / sizeof(int64_t));
 CONSTI32(kWordsPerCacheline, kCacheline / kBytesPerWord);
@@ -1674,29 +1949,6 @@ HEADER_INLINE VecUc InverseMovespreadmaskFF(Vec4thUint mask) {
 #  endif
 #endif  // !USE_AVX2
 
-#if defined(__LP64__) && !defined(USE_AVX2)
-// may also want a version which doesn't always apply kMask5555
-void Pack32bTo16bMask(const void* words, uintptr_t ct_32b, void* dest);
-
-HEADER_INLINE void PackWordsToHalfwordsMask(const uintptr_t* words, uintptr_t word_ct, Halfword* dest) {
-  uintptr_t widx = 0;
-  if (word_ct >= (32 / kBytesPerWord)) {
-    const uintptr_t ct_32b = word_ct / (32 / kBytesPerWord);
-    Pack32bTo16bMask(words, ct_32b, dest);
-    widx = ct_32b * (32 / kBytesPerWord);
-  }
-  for (; widx != word_ct; ++widx) {
-    dest[widx] = PackWordToHalfwordMask5555(words[widx]);
-  }
-}
-#else
-HEADER_INLINE void PackWordsToHalfwordsMask(const uintptr_t* words, uintptr_t word_ct, Halfword* dest) {
-  for (uintptr_t widx = 0; widx != word_ct; ++widx) {
-    dest[widx] = PackWordToHalfwordMask5555(words[widx]);
-  }
-}
-#endif
-
 // alignment must be a power of 2
 // tried splitting out RoundDownPow2U32() and RoundUpPow2U32() functions, no
 // practical difference
@@ -1762,7 +2014,7 @@ extern uintptr_t g_failed_alloc_attempt_size;
 // number is printed as well; see e.g.
 //   https://stackoverflow.com/questions/15884793/how-to-get-the-name-or-file-and-line-of-caller-method
 
-#if (__GNUC__ <= 4) && (__GNUC_MINOR__ < 7) && !defined(__APPLE__)
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ < 7) && !defined(__APPLE__)
 // putting this in the header file caused a bunch of gcc 4.4 strict-aliasing
 // warnings, while not doing so seems to inhibit some malloc-related compiler
 // optimizations, bleah
@@ -1793,7 +2045,7 @@ BoolErr fwrite_checked(const void* buf, uintptr_t len, FILE* outfile);
 BoolErr fread_checked(void* buf, uintptr_t len, FILE* infile);
 
 HEADER_INLINE BoolErr fclose_null(FILE** fptr_ptr) {
-  int32_t ii = ferror(*fptr_ptr);
+  int32_t ii = ferror_unlocked(*fptr_ptr);
   int32_t jj = fclose(*fptr_ptr);
   *fptr_ptr = nullptr;
   return ii || jj;
@@ -1952,60 +2204,12 @@ HEADER_CINLINE uint64_t VecCtToCachelineCtU64(uint64_t val) {
 // if-statement is useful.
 BoolErr aligned_malloc(uintptr_t size, uintptr_t alignment, void* aligned_pp);
 
-// ok for ct == 0
-void SetAllBits(uintptr_t ct, uintptr_t* bitarr);
-
-void BitvecAnd(const uintptr_t* __restrict arg_bitvec, uintptr_t word_ct, uintptr_t* __restrict main_bitvec);
-
-void BitvecInvmask(const uintptr_t* __restrict exclude_bitvec, uintptr_t word_ct, uintptr_t* __restrict main_bitvec);
-
-void BitvecOr(const uintptr_t* __restrict arg_bitvec, uintptr_t word_ct, uintptr_t* main_bitvec);
-
-void BitvecInvert(uintptr_t word_ct, uintptr_t* main_bitvec);
-
-// Functions with "adv" in the name generally take an index or char-pointer as
-// an argument and return its new value, while "mov" functions take a
-// pointer-to-index or pointer-to-char-pointer and move it.
-
-// These return the current index if the corresponding bit satisfies the
-// condition.
-uintptr_t AdvTo1Bit(const uintptr_t* bitarr, uintptr_t loc);
-
-uintptr_t AdvTo0Bit(const uintptr_t* bitarr, uintptr_t loc);
-
-// uintptr_t NextNonmissingUnsafe(const uintptr_t* genoarr, uintptr_t loc);
-
-uint32_t AdvBoundedTo1Bit(const uintptr_t* bitarr, uint32_t loc, uint32_t ceil);
-
-uint32_t FindLast1BitBefore(const uintptr_t* bitarr, uint32_t loc);
-
-// possible todo: check if movemask-based solution is better in AVX2 case
-HEADER_INLINE uint32_t AllWordsAreZero(const uintptr_t* word_arr, uintptr_t word_ct) {
-  while (word_ct--) {
-    if (*word_arr++) {
-      return 0;
-    }
-  }
-  return 1;
-}
-
-HEADER_INLINE uint32_t AllBitsAreOne(const uintptr_t* bitarr, uintptr_t bit_ct) {
-  const uintptr_t fullword_ct = bit_ct / kBitsPerWord;
-  for (uintptr_t widx = 0; widx != fullword_ct; ++widx) {
-    if (~(bitarr[widx])) {
-      return 0;
-    }
-  }
-  const uint32_t trailing_bit_ct = bit_ct % kBitsPerWord;
-  return (!trailing_bit_ct) || ((~(bitarr[fullword_ct])) << (kBitsPerWord - trailing_bit_ct));
-}
-
 #ifdef USE_SSE42
-HEADER_CINLINE uint32_t QuatersumWord(uintptr_t val) {
+HEADER_CINLINE uint32_t NypsumWord(uintptr_t val) {
   return __builtin_popcountll(val) + __builtin_popcountll(val & kMaskAAAA);
 }
 #else
-HEADER_CINLINE2 uint32_t QuatersumWord(uintptr_t val) {
+HEADER_CINLINE2 uint32_t NypsumWord(uintptr_t val) {
   val = (val & kMask3333) + ((val >> 2) & kMask3333);
   return (((val + (val >> 4)) & kMask0F0F) * kMask0101) >> (kBitsPerWord - 8);
 }
@@ -2023,7 +2227,7 @@ HEADER_CINLINE uint32_t PopcountWord(uintptr_t val) {
 HEADER_CINLINE2 uint32_t PopcountWord(uintptr_t val) {
   // Sadly, this was still faster than the LLVM implementation of the intrinsic
   // as of 2016.
-  return QuatersumWord(val - ((val >> 1) & kMask5555));
+  return NypsumWord(val - ((val >> 1) & kMask5555));
 }
 #endif
 
@@ -2075,7 +2279,7 @@ HEADER_INLINE uint32_t VecIsAligned(const void* ptr) {
 
 HEADER_INLINE void VecAlignUp(void* pp) {
   uintptr_t addr = *S_CAST(uintptr_t*, pp);
-#if (__GNUC__ <= 4) && (__GNUC_MINOR__ < 7) && !defined(__APPLE__)
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ < 7) && !defined(__APPLE__)
   // bleah, need to write this way to avoid gcc 4.4 strict-aliasing warning
   addr = RoundUpPow2(addr, kBytesPerVec);
   memcpy(pp, &addr, sizeof(intptr_t));
@@ -2092,151 +2296,6 @@ HEADER_INLINE void VecAlignUp64(void* pp) {
 HEADER_INLINE void VecAlignUp64(__maybe_unused void* pp) {
 }
 #endif
-
-// Updated PopcountWords() code is based on
-// https://github.com/kimwalisch/libpopcnt .  libpopcnt license text follows.
-
-/*
- * libpopcnt.h - C/C++ library for counting the number of 1 bits (bit
- * population count) in an array as quickly as possible using
- * specialized CPU instructions i.e. POPCNT, AVX2, AVX512, NEON.
- *
- * Copyright (c) 2016 - 2017, Kim Walisch
- * Copyright (c) 2016 - 2017, Wojciech Mula
- *
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-#ifdef USE_AVX2
-// 'Csa' = carry, save, add
-// If bb, cc, and *lp are bitvectors, this returns the carry bitvector and sets
-// *lp to contain the low-order bits of the sums.  I.e. for each position:
-//   if none of bb, cc, and *lp are set, *lp bit is zero and carry bit is zero
-//   if exactly 1 is set, *lp bit becomes one and carry bit is zero
-//   if exactly 2 are set, *lp bit becomes zero and carry bit is one
-//   if all 3 are set, *lp bit becomes one and carry bit is one
-HEADER_INLINE VecW Csa256(VecW bb, VecW cc, VecW* lp) {
-  const VecW aa = *lp;
-  const VecW uu = aa ^ bb;
-  *lp = uu ^ cc;
-  return (aa & bb) | (uu & cc);
-}
-
-HEADER_INLINE VecW CsaOne256(VecW bb, VecW* lp) {
-  const VecW aa = *lp;
-  *lp = aa ^ bb;
-  return aa & bb;
-}
-
-HEADER_INLINE VecW PopcountVecAvx2(VecW vv) {
-  const VecW lookup1 = vecw_setr8(4, 5, 5, 6, 5, 6, 6, 7,
-                                  5, 6, 6, 7, 6, 7, 7, 8);
-  const VecW lookup2 = vecw_setr8(4, 3, 3, 2, 3, 2, 2, 1,
-                                  3, 2, 2, 1, 2, 1, 1, 0);
-
-  const VecW m4 = VCONST_W(kMask0F0F);
-  const VecW lo = vv & m4;
-  const VecW hi = vecw_srli(vv, 4) & m4;
-  const VecW popcnt1 = vecw_shuffle8(lookup1, lo);
-  const VecW popcnt2 = vecw_shuffle8(lookup2, hi);
-  return vecw_sad(popcnt1, popcnt2);
-}
-
-HEADER_INLINE uintptr_t HsumW(VecW vv) {
-  UniVec vu;
-  vu.vw = vv;
-  return vu.w[0] + vu.w[1] + vu.w[2] + vu.w[3];
-  // _mm256_extract_epi64() only worth it if we don't need to extract all the
-  // values.
-  // (also, I wouldn't be surprised if the compiler recognized the pattern
-  // above)
-}
-
-// This no longer has any restrictions on vec_ct, though it isn't worth the
-// overhead for vec_ct < 16.
-uintptr_t PopcountVecsAvx2(const VecW* bit_vvec, uintptr_t vec_ct);
-
-HEADER_INLINE uintptr_t PopcountWords(const uintptr_t* bitvec, uintptr_t word_ct) {
-  // Efficiently popcounts bitvec[0..(word_ct - 1)].  In the 64-bit case,
-  // bitvec[] must be 16-byte aligned.
-  // The PopcountWordsNzbase() wrapper takes care of starting from a later
-  // index.
-  uintptr_t tot = 0;
-  if (word_ct >= 76) {
-    assert(VecIsAligned(bitvec));
-    const uintptr_t remainder = word_ct % kWordsPerVec;
-    const uintptr_t main_block_word_ct = word_ct - remainder;
-    tot = PopcountVecsAvx2(R_CAST(const VecW*, bitvec), main_block_word_ct / kWordsPerVec);
-    bitvec = &(bitvec[main_block_word_ct]);
-    word_ct = remainder;
-  }
-  // note that recent clang versions automatically expand this to a
-  // full-service routine; takes ~50% longer than PopcountVecsAvx2 on >1kb
-  // arrays, but way better than the naive loop
-  for (uintptr_t widx = 0; widx != word_ct; ++widx) {
-    tot += PopcountWord(bitvec[widx]);
-  }
-  return tot;
-}
-#else  // !USE_AVX2
-#  ifdef __LP64__
-HEADER_INLINE uintptr_t HsumW(VecW vv) {
-  UniVec vu;
-  vu.vw = vv;
-  return vu.w[0] + vu.w[1];
-}
-#  else
-HEADER_INLINE uintptr_t HsumW(VecW vv) {
-  return vv;
-}
-#  endif
-
-// assumes vec_ct is a multiple of 3
-uintptr_t PopcountVecsNoAvx2(const VecW* bit_vvec, uintptr_t vec_ct);
-
-HEADER_INLINE uintptr_t PopcountWords(const uintptr_t* bitvec, uintptr_t word_ct) {
-  uintptr_t tot = 0;
-#ifndef USE_SSE42
-  if (word_ct >= (3 * kWordsPerVec)) {
-    // This has an asymptotic ~10% advantage in the SSE4.2 case, but word_ct
-    // needs to be in the hundreds before the initial comparison even starts to
-    // pay for itself.
-    assert(VecIsAligned(bitvec));
-    const uintptr_t remainder = word_ct % (3 * kWordsPerVec);
-    const uintptr_t main_block_word_ct = word_ct - remainder;
-    tot = PopcountVecsNoAvx2(R_CAST(const VecW*, bitvec), main_block_word_ct / kWordsPerVec);
-    word_ct = remainder;
-    bitvec = &(bitvec[main_block_word_ct]);
-  }
-#endif
-  for (uintptr_t trailing_word_idx = 0; trailing_word_idx != word_ct; ++trailing_word_idx) {
-    tot += PopcountWord(bitvec[trailing_word_idx]);
-  }
-  return tot;
-}
-#endif  // !USE_AVX2
-
-uintptr_t PopcountWordsIntersect(const uintptr_t* __restrict bitvec1_iter, const uintptr_t* __restrict bitvec2_iter, uintptr_t word_ct);
 
 // Turns out memcpy(&cur_word, bytearr, ct) can't be trusted to be fast when ct
 // isn't known at compile time.
@@ -2375,23 +2434,6 @@ HEADER_INLINE void SubU64StoreMov(uint64_t cur_u64, uint32_t byte_ct, unsigned c
   return SubU32StoreMov(cur_u64, byte_ct, targetp);
 }
 #endif
-
-// requires positive word_ct
-// stay agnostic a bit longer re: word_ct := DIV_UP(entry_ct, kBitsPerWord)
-// vs. word_ct := 1 + (entry_ct / kBitsPerWord)
-// (this is a source of bugs, though; interface should probably be changed to
-// use entry_ct once multiallelic/dosage implementation is done)
-void FillCumulativePopcounts(const uintptr_t* subset_mask, uint32_t word_ct, uint32_t* cumulative_popcounts);
-
-// If idx_list is a list of valid unfiltered indexes, this converts them
-// in-place to corresponding filtered indexes.
-void UidxsToIdxs(const uintptr_t* subset_mask, const uint32_t* subset_cumulative_popcounts, const uintptr_t idx_list_len, uint32_t* idx_list);
-
-// These functions do not overread, but may write extra bytes up to the word
-// boundary.
-void Expand1bitTo8(const void* __restrict bytearr, uint32_t input_bit_ct, uint32_t incr, uintptr_t* __restrict dst);
-
-void Expand1bitTo16(const void* __restrict bytearr, uint32_t input_bit_ct, uint32_t incr, uintptr_t* __restrict dst);
 
 
 HEADER_INLINE BoolErr vecaligned_malloc(uintptr_t size, void* aligned_pp) {
@@ -2743,7 +2785,7 @@ template <uint32_t N> struct MemcpyKImpl<N, TRange<(25 <= N) && (N <= 31)> > {
 };
 
 // Note that there's no difference between memcpy() and memcpy_k() for common
-// 'well-behaved' sizes like 1, 4, and 8, and 16.  It's the funny numbers in
+// 'well-behaved' sizes like 1, 4, 8, and 16.  It's the funny numbers in
 // between, which often arise with constant strings, which this template is
 // targeting.
 #  define memcpy_k(dst, src, ct) plink2::MemcpyKImpl<ct>::MemcpyK(dst, src)
@@ -2869,139 +2911,6 @@ HEADER_INLINE void SetAllWArr(uintptr_t entry_ct, uintptr_t* warr) {
   }
 }
 
-// might rename this to IsSet01 (guaranteeing 0/1 return value), and change
-// IsSet() to bitarr[idx / kBitsPerWord] & (k1LU << (idx % kBitsPerWord)) since
-// I'd expect that to play better with out-of-order execution.  but need to
-// benchmark first.
-HEADER_INLINE uintptr_t IsSet(const uintptr_t* bitarr, uintptr_t idx) {
-  return (bitarr[idx / kBitsPerWord] >> (idx % kBitsPerWord)) & 1;
-}
-
-HEADER_INLINE void SetBit(uintptr_t idx, uintptr_t* bitarr) {
-  bitarr[idx / kBitsPerWord] |= k1LU << (idx % kBitsPerWord);
-}
-
-HEADER_INLINE void ClearBit(uintptr_t idx, uintptr_t* bitarr) {
-  bitarr[idx / kBitsPerWord] &= ~(k1LU << (idx % kBitsPerWord));
-}
-
-HEADER_INLINE void AssignBit(uintptr_t idx, uintptr_t newbit, uintptr_t* bitarr) {
-  const uintptr_t inv_mask = k1LU << (idx % kBitsPerWord);
-  uintptr_t* cur_word_ptr = &(bitarr[idx / kBitsPerWord]);
-  *cur_word_ptr = ((*cur_word_ptr) & (~inv_mask)) | (inv_mask * newbit);
-}
-
-/*
-HEADER_INLINE uintptr_t BitInnerIter1(uintptr_t uidx_base, uintptr_t* cur_bitsp, uintptr_t* cur_uidx_stopp) {
-  const uintptr_t cur_bits = *cur_bitsp;
-  const uint32_t uidx_start_lowbits = ctzw(*cur_bitsp);
-  // Key idea is to iterate over sub-blocks of set bits in a single word, in
-  // essentially the same manner as non-AVX2 CopyBitarrSubset() was doing.
-  // This particular expression 'finds' the end of the current sub-block.
-  const uintptr_t cur_bits_lfill_p1 = (cur_bits | (cur_bits - 1)) + 1;
-  *cur_bitsp = cur_bits & cur_bits_lfill_p1;
-  uint32_t uidx_stop_lowbits = kBitsPerWord;
-  if (cur_bits_lfill_p1) {
-    uidx_stop_lowbits = ctzw(cur_bits_lfill_p1);
-  }
-  *cur_uidx_stopp = uidx_base + uidx_stop_lowbits;
-  return uidx_base + uidx_start_lowbits;
-}
-*/
-
-HEADER_INLINE uintptr_t BitIter1(const uintptr_t* __restrict bitarr, uintptr_t* __restrict uidx_basep, uintptr_t* __restrict cur_bitsp) {
-  uintptr_t cur_bits = *cur_bitsp;
-  if (!cur_bits) {
-    uintptr_t widx = (*uidx_basep) / kBitsPerWord;
-    do {
-      cur_bits = bitarr[++widx];
-    } while (!cur_bits);
-    *uidx_basep = widx * kBitsPerWord;
-  }
-  *cur_bitsp = cur_bits & (cur_bits - 1);
-  return (*uidx_basep) + ctzw(cur_bits);
-}
-
-// Returns lowbit index instead of the full index.
-HEADER_INLINE uint32_t BitIter1x(const uintptr_t* __restrict bitarr, uintptr_t* __restrict widxp, uintptr_t* __restrict cur_bitsp) {
-  uintptr_t cur_bits = *cur_bitsp;
-  while (!cur_bits) {
-    cur_bits = bitarr[++(*widxp)];
-  }
-  *cur_bitsp = cur_bits & (cur_bits - 1);
-  return ctzw(cur_bits);
-}
-
-// Returns isolated lowbit.
-HEADER_INLINE uintptr_t BitIter1y(const uintptr_t* __restrict bitarr, uintptr_t* __restrict widxp, uintptr_t* __restrict cur_bitsp) {
-  uintptr_t cur_bits = *cur_bitsp;
-  while (!cur_bits) {
-    cur_bits = bitarr[++(*widxp)];
-  }
-  const uintptr_t shifted_bit = cur_bits & (-cur_bits);
-  *cur_bitsp = cur_bits ^ shifted_bit;
-  return shifted_bit;
-}
-
-HEADER_INLINE void BitIter1Start(const uintptr_t* __restrict bitarr, uintptr_t restart_uidx, uintptr_t* __restrict uidx_basep, uintptr_t* __restrict cur_bitsp) {
-  const uintptr_t widx = restart_uidx / kBitsPerWord;
-  *cur_bitsp = bitarr[widx] & ((~k0LU) << (restart_uidx % kBitsPerWord));
-  *uidx_basep = widx * kBitsPerWord;
-}
-
-HEADER_INLINE uintptr_t BitIter1NoAdv(const uintptr_t* __restrict bitarr, uintptr_t* __restrict uidx_basep, uintptr_t* __restrict cur_bitsp) {
-  uintptr_t cur_bits = *cur_bitsp;
-  if (!cur_bits) {
-    uintptr_t widx = (*uidx_basep) / kBitsPerWord;
-    do {
-      cur_bits = bitarr[++widx];
-    } while (!cur_bits);
-    *uidx_basep = widx * kBitsPerWord;
-    *cur_bitsp = cur_bits;
-  }
-  return (*uidx_basep) + ctzw(cur_bits);
-}
-
-HEADER_INLINE uintptr_t BitIter0(const uintptr_t* __restrict bitarr, uintptr_t* __restrict uidx_basep, uintptr_t* __restrict cur_inv_bitsp) {
-  uintptr_t cur_inv_bits = *cur_inv_bitsp;
-  if (!cur_inv_bits) {
-    uintptr_t widx = (*uidx_basep) / kBitsPerWord;
-    do {
-      cur_inv_bits = ~bitarr[++widx];
-    } while (!cur_inv_bits);
-    *uidx_basep = widx * kBitsPerWord;
-  }
-  *cur_inv_bitsp = cur_inv_bits & (cur_inv_bits - 1);
-  return (*uidx_basep) + ctzw(cur_inv_bits);
-}
-
-HEADER_INLINE void BitIter0Start(const uintptr_t* __restrict bitarr, uintptr_t restart_uidx, uintptr_t* __restrict uidx_basep, uintptr_t* __restrict cur_inv_bitsp) {
-  const uintptr_t widx = restart_uidx / kBitsPerWord;
-  *cur_inv_bitsp = (~bitarr[widx]) & ((~k0LU) << (restart_uidx % kBitsPerWord));
-  *uidx_basep = widx * kBitsPerWord;
-}
-
-HEADER_INLINE uintptr_t BitIter0NoAdv(const uintptr_t* __restrict bitarr, uintptr_t* __restrict uidx_basep, uintptr_t* __restrict cur_inv_bitsp) {
-  uintptr_t cur_inv_bits = *cur_inv_bitsp;
-  if (!cur_inv_bits) {
-    uintptr_t widx = (*uidx_basep) / kBitsPerWord;
-    do {
-      cur_inv_bits = ~bitarr[++widx];
-    } while (!cur_inv_bits);
-    *uidx_basep = widx * kBitsPerWord;
-    *cur_inv_bitsp = cur_inv_bits;
-  }
-  return (*uidx_basep) + ctzw(cur_inv_bits);
-}
-
-// todo: test this against extracting a nonmissing bitarr first
-/*
-HEADER_INLINE void NextNonmissingUnsafeCk32(const uintptr_t* __restrict genoarr, uint32_t* __restrict loc_ptr) {
-  if (GetQuaterarrEntry(genoarr, *loc_ptr) == 3) {
-    *loc_ptr = NextNonmissingUnsafe(genoarr, *loc_ptr);
-  }
-}
-*/
 
 // tried _bzhi_u64() in AVX2 case, it was actually worse on my Mac (more
 // opaque to compiler?)
@@ -3022,57 +2931,19 @@ HEADER_INLINE uintptr_t bzhi_max(uintptr_t ww, uint32_t idx) {
 // instruction under -mbmi and regular code is more readable?  (again, should
 // verify this is true for gcc)
 
-// Equivalent to popcount_bit_idx(subset_mask, 0, raw_idx).
-HEADER_INLINE uint32_t RawToSubsettedPos(const uintptr_t* subset_mask, const uint32_t* subset_cumulative_popcounts, uint32_t raw_idx) {
-  // this should be much better than keeping a uidx_to_idx array!
-  // (update: there are more compact indexes, but postpone for now, this is
-  // is nice and simple and gets us most of what we need.)
-  const uint32_t raw_widx = raw_idx / kBitsPerWord;
-  return subset_cumulative_popcounts[raw_widx] + PopcountWord(bzhi(subset_mask[raw_widx], raw_idx % kBitsPerWord));
-}
-
-HEADER_INLINE void ZeroTrailingBits(uintptr_t bit_ct, uintptr_t* bitarr) {
-  const uint32_t trail_ct = bit_ct % kBitsPerWord;
-  if (trail_ct) {
-    bitarr[bit_ct / kBitsPerWord] = bzhi(bitarr[bit_ct / kBitsPerWord], trail_ct);
-  }
-}
-
 HEADER_INLINE uint32_t BytesToRepresentNzU32(uint32_t uii) {
   return 1 + (bsru32(uii) / CHAR_BIT);
 }
 
-#ifdef __LP64__
-HEADER_INLINE void ZeroTrailingWords(uint32_t word_ct, uintptr_t* bitvec) {
-  const uint32_t remainder = word_ct % kWordsPerVec;
-  if (remainder) {
-    ZeroWArr(kWordsPerVec - remainder, &(bitvec[word_ct]));
-  }
-}
-#else
-HEADER_INLINE void ZeroTrailingWords(__maybe_unused uint32_t word_ct, __maybe_unused uintptr_t* bitvec) {
-}
-#endif
-
 // analogous to memset()
 // this can be slightly slower if e.g. system supports AVX2 but non-AVX2 plink2
-// build is in use; fine to pay that price given the small-array advantage
+// build is in use; fine to pay that price given the small-array advantage for
+// now.  Should revisit this after next build-machine Ubuntu upgrade, though.
 HEADER_INLINE void vecset(void* target_vec, uintptr_t ww, uintptr_t vec_ct) {
   VecW* target_vec_iter = S_CAST(VecW*, target_vec);
 #ifdef __LP64__
-  // manual unroll helps in smaller cases
   const VecW payload = VCONST_W(ww);
-  if (vec_ct & 1) {
-    *target_vec_iter++ = payload;
-  }
-  if (vec_ct & 2) {
-    *target_vec_iter++ = payload;
-    *target_vec_iter++ = payload;
-  }
-  for (uintptr_t vec_idx = 3; vec_idx < vec_ct; vec_idx += 4) {
-    *target_vec_iter++ = payload;
-    *target_vec_iter++ = payload;
-    *target_vec_iter++ = payload;
+  for (uintptr_t vec_idx = 0; vec_idx != vec_ct; ++vec_idx) {
     *target_vec_iter++ = payload;
   }
 #else
@@ -3110,99 +2981,20 @@ HEADER_INLINE uint32_t WordBitIdxToUidx(uintptr_t ulii, uint32_t bit_idx) {
   return ctzw(ClearBottomSetBits(bit_idx, ulii));
 }
 
-// output_bit_idx_end is practically always subset_size
-void CopyBitarrSubset(const uintptr_t* __restrict raw_bitarr, const uintptr_t* __restrict subset_mask, uint32_t output_bit_idx_end, uintptr_t* __restrict output_bitarr);
+CONSTI32(kNybblesPerWord, 2 * kBytesPerWord);
+CONSTI32(kNybblesPerCacheline, 2 * kCacheline);
 
-// expand_size + read_start_bit must be positive.
-void ExpandBytearr(const void* __restrict compact_bitarr, const uintptr_t* __restrict expand_mask, uint32_t word_ct, uint32_t expand_size, uint32_t read_start_bit, uintptr_t* __restrict target);
-
-// equivalent to calling ExpandBytearr() followed by CopyBitarrSubset()
-void ExpandThenSubsetBytearr(const void* __restrict compact_bitarr, const uintptr_t* __restrict expand_mask, const uintptr_t* __restrict subset_mask, uint32_t expand_size, uint32_t subset_size, uint32_t read_start_bit, uintptr_t* __restrict target);
-
-// mid_popcount must be positive
-void ExpandBytearrNested(const void* __restrict compact_bitarr, const uintptr_t* __restrict mid_bitarr, const uintptr_t* __restrict top_expand_mask, uint32_t word_ct, uint32_t mid_popcount, uint32_t mid_start_bit, uintptr_t* __restrict mid_target, uintptr_t* __restrict compact_target);
-
-// mid_popcount must be positive
-// if mid_start_bit == 1, mid_popcount should not include that bit
-void ExpandThenSubsetBytearrNested(const void* __restrict compact_bitarr, const uintptr_t* __restrict mid_bitarr, const uintptr_t* __restrict top_expand_mask, const uintptr_t* __restrict subset_mask, uint32_t subset_size, uint32_t mid_popcount, uint32_t mid_start_bit, uintptr_t* __restrict mid_target, uintptr_t* __restrict compact_target);
-
-// these don't read past the end of bitarr
-uintptr_t PopcountBytes(const void* bitarr, uintptr_t byte_ct);
-uintptr_t PopcountBytesMasked(const void* bitarr, const uintptr_t* mask_arr, uintptr_t byte_ct);
-
-
-// transpose_quaterblock(), which is more plink-specific, is in
-// pgenlib_internal
-CONSTI32(kPglBitTransposeBatch, kBitsPerCacheline);
-CONSTI32(kPglBitTransposeWords, kWordsPerCacheline);
-// * Up to 512x512; vecaligned_buf must have size 64k
-// * write_iter must be allocated up to at least
-//   RoundUpPow2(write_batch_size, 2) rows
-// * We use pointers with different types to read from and write to buf0/buf1,
-//   so defining the base type as unsigned char* is theoretically necessary to
-//   avoid breaking strict-aliasing rules, while the restrict qualifiers should
-//   tell the compiler it doesn't need to be paranoid about writes to one of
-//   the buffers screwing with reads from the other.
-#ifdef __LP64__
-CONSTI32(kPglBitTransposeBufbytes, (kPglBitTransposeBatch * kPglBitTransposeBatch) / (CHAR_BIT / 2));
-void TransposeBitblock64(const uintptr_t* read_iter, uintptr_t read_ul_stride, uintptr_t write_ul_stride, uint32_t read_row_ct, uint32_t write_row_ct, uintptr_t* write_iter, VecW* __restrict buf0, VecW* __restrict buf1);
-
-HEADER_INLINE void TransposeBitblock(const uintptr_t* read_iter, uintptr_t read_ul_stride, uintptr_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, VecW* vecaligned_buf) {
-  TransposeBitblock64(read_iter, read_ul_stride, write_ul_stride, read_batch_size, write_batch_size, write_iter, vecaligned_buf, &(vecaligned_buf[kPglBitTransposeBufbytes / (2 * kBytesPerVec)]));
-}
-
-#else  // !__LP64__
-CONSTI32(kPglBitTransposeBufbytes, (kPglBitTransposeBatch * kPglBitTransposeBatch) / (CHAR_BIT / 2));
-void TransposeBitblock32(const uintptr_t* read_iter, uintptr_t read_ul_stride, uintptr_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, VecW* __restrict buf0, VecW* __restrict buf1);
-
-// If this ever needs to be called on an input byte array, read_iter could be
-// changed to const void*; in that case, read_ul_stride should be changed to a
-// byte count.
-HEADER_INLINE void TransposeBitblock(const uintptr_t* read_iter, uintptr_t read_ul_stride, uintptr_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* write_iter, VecW* vecaligned_buf) {
-  TransposeBitblock32(read_iter, read_ul_stride, write_ul_stride, read_batch_size, write_batch_size, write_iter, vecaligned_buf, &(vecaligned_buf[kPglBitTransposeBufbytes / (2 * kBytesPerVec)]));
-}
-#endif
-
-CONSTI32(kPglBitTransposeBufwords, kPglBitTransposeBufbytes / kBytesPerWord);
-CONSTI32(kPglBitTransposeBufvecs, kPglBitTransposeBufbytes / kBytesPerVec);
-
-CONSTI32(kNibblesPerWord, 2 * kBytesPerWord);
-CONSTI32(kNibblesPerCacheline, 2 * kCacheline);
-
-HEADER_CINLINE uintptr_t NibbleCtToByteCt(uintptr_t val) {
+HEADER_CINLINE uintptr_t NybbleCtToByteCt(uintptr_t val) {
   return DivUp(val, 2);
 }
 
-HEADER_CINLINE uintptr_t NibbleCtToWordCt(uintptr_t val) {
-  return DivUp(val, kNibblesPerWord);
+HEADER_CINLINE uintptr_t NybbleCtToWordCt(uintptr_t val) {
+  return DivUp(val, kNybblesPerWord);
 }
 
-CONSTI32(kPglNibbleTransposeBatch, kNibblesPerCacheline);
-CONSTI32(kPglNibbleTransposeWords, kWordsPerCacheline);
-
-CONSTI32(kPglNibbleTransposeBufbytes, (kPglNibbleTransposeBatch * kPglNibbleTransposeBatch) / 2);
-
-// up to 128x128; vecaligned_buf must have size 8k
-// now ok for write_iter to not be padded when write_batch_size odd
-void TransposeNibbleblock(const uintptr_t* read_iter, uint32_t read_ul_stride, uint32_t write_ul_stride, uint32_t read_batch_size, uint32_t write_batch_size, uintptr_t* __restrict write_iter, VecW* vecaligned_buf);
-
-HEADER_INLINE uintptr_t GetNibbleArrEntry(const uintptr_t* nibblearr, uint32_t idx) {
-  return (nibblearr[idx / kBitsPerWordD4] >> (4 * (idx % kBitsPerWordD4))) & 15;
+HEADER_INLINE uintptr_t GetNybbleArrEntry(const uintptr_t* nybblearr, uint32_t idx) {
+  return (nybblearr[idx / kBitsPerWordD4] >> (4 * (idx % kBitsPerWordD4))) & 15;
 }
-
-#ifdef __LP64__
-extern const unsigned char kLeadMask[2 * kBytesPerVec] __attribute__ ((aligned (64)));
-#endif
-
-uintptr_t BytesumArr(const void* bytearr, uintptr_t byte_ct);
-
-uintptr_t CountByte(const void* bytearr, unsigned char ucc, uintptr_t byte_ct);
-
-uintptr_t CountU16(const void* u16arr, uint16_t usii, uintptr_t u16_ct);
-
-uint32_t Copy1bit8Subset(const uintptr_t* __restrict src_subset, const void* __restrict src_vals, const uintptr_t* __restrict sample_include, uint32_t src_subset_size, uint32_t sample_ct, uintptr_t* __restrict dst_subset, void* __restrict dst_vals);
-
-uint32_t Copy1bit16Subset(const uintptr_t* __restrict src_subset, const void* __restrict src_vals, const uintptr_t* __restrict sample_include, uint32_t src_subset_size, uint32_t sample_ct, uintptr_t* __restrict dst_subset, void* __restrict dst_vals);
 
 // Returns zero when ww has no zero bytes, and a word where the lowest set bit
 // is at position 8x + 7 when the first zero byte is [8x .. 8x+7].
@@ -3217,7 +3009,7 @@ HEADER_INLINE uintptr_t DetectAllZeroBytes(uintptr_t ww) {
   return (kMask0101 * 0x80) & (~(ww | ((ww | (kMask0101 * 0x80)) - kMask0101)));
 }
 
-HEADER_INLINE uintptr_t DetectAllZeroNibbles(uintptr_t ww) {
+HEADER_INLINE uintptr_t DetectAllZeroNybbles(uintptr_t ww) {
   return (kMask1111 * 8) & (~(ww | ((ww | (kMask1111 * 8)) - kMask1111)));
 }
 
@@ -3292,6 +3084,8 @@ struct tname { \
     return *this; \
   } \
   \
+  tname& operator=(const tname& rhs) = default; \
+  \
 private: \
   uint32_t value_; \
 }
@@ -3343,6 +3137,8 @@ struct tname { \
     return *this; \
   } \
   \
+  tname& operator=(const tname& rhs) = default; \
+  \
 private: \
   uint64_t value_; \
 }
@@ -3373,8 +3169,30 @@ typedef uint32_t tname
 
 #endif
 
+// This supports private struct members in code that still compiles as C.
+//
+// Internal code should access these members with GET_PRIVATE(), and define a
+// pair of public C++-only GET_PRIVATE_...() member functions (one const and
+// one non-const) that each return a reference to the member; see plink2_thread
+// for examples.  In addition, .cc API code should define a small number of
+// standard GET_PRIVATE() accessors at the top of the file, and practically all
+// private-member access should occur through those file-scope accessors; this
+// keeps the surface area under control.
+//
+// (Tried to define a DECLARE_PRIVATE(typ, member) macro as well, but didn't
+// get that to work.  This is already pretty painless if it's restricted to key
+// APIs, though.)
+//
+// probable todo: see if the intended effect can be achieved in a simpler
+// manner with well-chosen explicit and implicit type conversions.
+#ifdef __cplusplus
+#  define GET_PRIVATE(par, member) (par).GET_PRIVATE_ ## member()
+#else
+#  define GET_PRIVATE(par, member) (par).member
+#endif
+
 #ifdef __cplusplus
 }  // namespace plink2
 #endif
 
-#endif  // __PGENLIB_INTERNAL_H__
+#endif  // __PLINK2_BASE_H__
