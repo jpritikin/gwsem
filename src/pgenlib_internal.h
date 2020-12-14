@@ -17,6 +17,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+
 // Low-level C99/C++03/C++11 library for reading .pgen (PLINK 2.0 binary) files
 // (designed to produce good lowest-common-denominator binaries across
 // Windows/OS X/Linux).
@@ -70,13 +71,7 @@
 //   on the fly, since that tends to be faster than having to access twice as
 //   much memory.
 
-#include <vector>
 #include "plink2_base.h"
-
-void mxThrow(const char* msg, ...) __attribute__((format (printf, 1, 2))) __attribute__((noreturn));
-#define exit(val) mxThrow("exit(%d)", val)
-#define fputs(msg, ign) mxThrow("pgenlib: %s", msg)
-#define fprintf(file, msg, val)
 
 // 10000 * major + 100 * minor + patch
 // Exception to CONSTI32, since we want the preprocessor to have access to this
@@ -1479,6 +1474,7 @@ BoolErr CleanupPgr(PgenReader* pgrp, PglErr* reterrp);
 
 
 struct PgenWriterCommonStruct {
+  NONCOPYABLE(PgenWriterCommonStruct);
   uint32_t variant_ct;
   uint32_t sample_ct;
   PgenGlobalFlags phase_dosage_gflags;  // subset of gflags
@@ -1538,6 +1534,7 @@ typedef struct PgenWriterCommonStruct PgenWriterCommon;
 // spare for the additional complexity).
 
 struct STPgenWriterStruct {
+  NONCOPYABLE(STPgenWriterStruct);
   struct PgenWriterCommonStruct pwc;
   FILE* pgen_outfile;
 };
@@ -1546,7 +1543,7 @@ struct MTPgenWriterStruct {
   NONCOPYABLE(MTPgenWriterStruct);
   FILE* pgen_outfile;
   uint32_t thread_ct;
-  std::vector<struct PgenWriterCommonStruct*> pwcs;
+  struct PgenWriterCommonStruct* pwcs[];
 };
 
 typedef struct STPgenWriterStruct STPgenWriter;
