@@ -113,6 +113,11 @@
 #include <inttypes.h>
 #include <limits.h>  // CHAR_BIT, PATH_MAX
 
+void mxThrow(const char* msg, ...) __attribute__((format (printf, 1, 2))) __attribute__((noreturn));
+#define exit(val) mxThrow("exit(%d)", val)
+#define fputs(msg, ign) mxThrow("pgenlib: %s", msg)
+#define fprintf(file, msg, val)
+
 // #define NDEBUG
 #include <assert.h>
 
