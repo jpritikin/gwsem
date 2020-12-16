@@ -284,7 +284,8 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 		PgenHeaderCtrl header_ctrl;
 		uintptr_t pgfi_alloc_cacheline_ct;
 		char errstr_buf[kPglErrstrBufBlen];
-		if (PgfiInitPhase1(filePath.c_str(), cur_variant_ct, cur_sample_ct, 0, &header_ctrl,
+    int use_mmap = 0;
+		if (PgfiInitPhase1(filePath.c_str(), cur_variant_ct, cur_sample_ct, use_mmap, &header_ctrl,
 				   pgen_info.get(), &pgfi_alloc_cacheline_ct, errstr_buf) != kPglRetSuccess) {
 			mxThrow("%s: PgfiInitPhase1(%s) %s", name, filePath.c_str(), errstr_buf);
 		}

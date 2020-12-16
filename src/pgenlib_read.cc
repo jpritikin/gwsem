@@ -27,6 +27,8 @@
 #  include <unistd.h>  // fstat()
 #endif
 
+#  include <fcntl.h>  // posix_fadvise
+
 #ifdef __cplusplus
 namespace plink2 {
 #endif
@@ -542,6 +544,7 @@ PglErr PgfiInitPhase1(const char* fname, uint32_t raw_variant_ct, uint32_t raw_s
       snprintf(errstr_buf, kPglErrstrBufBlen, "Error: %s read failure: %s.\n", fname, strerror(errno));
       return kPglRetReadFail;
     }
+    posix_fadvise(fileno(shared_ff), 0, 0, POSIX_FADV_SEQUENTIAL | POSIX_FADV_NOREUSE);
     fread_ptr = small_readbuf;
   }
   // deliberate underflow
