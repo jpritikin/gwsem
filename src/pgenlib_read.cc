@@ -27,6 +27,14 @@
 #  include <unistd.h>  // fstat()
 #endif
 
+#  include <fcntl.h>  // posix_fadvise
+
+#ifdef stderr
+#undef stderr
+#endif
+
+#define stderr not_stderr
+
 #ifdef __cplusplus
 namespace plink2 {
 #endif
