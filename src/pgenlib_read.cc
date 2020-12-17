@@ -35,6 +35,13 @@
 
 #define stderr not_stderr
 
+#undef exit
+#define exit(val) mxThrow("exit(%d)", val)
+#undef fputs
+#define fputs(msg, ign) mxThrow("pgenlib: %s", msg)
+#undef fprintf
+#define fprintf(file, msg, val)
+
 #ifdef __cplusplus
 namespace plink2 {
 #endif
