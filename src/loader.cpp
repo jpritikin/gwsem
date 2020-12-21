@@ -1,11 +1,10 @@
 #include <functional>
+#include "disable_plink.h"
 #include "genfile/bgen/View.hpp"
 #include "genfile/bgen/IndexQuery.hpp"
 #include "pgenlib_read.h"
 #include "openmx.h"
 #include "LoadDataAPI.h"
-
-using namespace plink2;
 
 struct BgenXfer {
 	dataPtr dp;
@@ -141,6 +140,10 @@ void LoadDataBGENProvider2::loadRowImpl(int index)
 		cv[cpIndex+6] = string_snprintf("%.8f", xfer.total / (2.0 * xfer.nrows));
 	}
 }
+
+#ifndef SKIP_PLINK
+
+using namespace plink2;
 
 struct LoadDataPGENProvider2 : public LoadDataProvider2<LoadDataPGENProvider2> {
 	int cpIndex;
@@ -380,9 +383,13 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 	}
 }
 
+#endif // SKIP_PLINK
+
 void setup2(AddLoadDataProviderType aldp)
 {
 	int sz2 = sizeof(LoadDataProviderBase2);
+#ifndef SKIP_PLINK
 	aldp(OPENMX_LOAD_DATA_API_VERSION, sz2, new LoadDataPGENProvider2());
+#endif
 	aldp(OPENMX_LOAD_DATA_API_VERSION, sz2, new LoadDataBGENProvider2());
 }

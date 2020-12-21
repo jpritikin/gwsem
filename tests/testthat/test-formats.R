@@ -2,6 +2,8 @@ library(testthat)
 library(gwsem)
 library(MASS)
 
+skip_if(Sys.info()[["machine"]] != 'x86_64')
+
 set.seed(1)
 
 dir <- system.file("extdata", package = "gwsem")

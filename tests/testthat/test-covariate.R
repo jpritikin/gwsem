@@ -2,6 +2,8 @@ library(testthat)
 library(gwsem)
 library(MASS)
 
+skip_if(Sys.info()[["machine"]] != 'x86_64')
+
 suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
