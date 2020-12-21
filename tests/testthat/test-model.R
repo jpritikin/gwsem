@@ -2,6 +2,8 @@ library(testthat)
 library(gwsem)
 library(MASS)
 
+skip_if(Sys.info()[["machine"]] != 'x86_64')
+
 # win32 doesn't implement C++ exceptions correctly
 skip_if(.Platform$OS.type == "windows" && .Machine$sizeof.pointer == 4)
 
@@ -175,4 +177,3 @@ for (f in c("buildOneFac", "buildOneFacRes", "buildItem",
   expect_error(do.call(f, args=list(pheno, another.arg="xyz")),
                "Rejected are any values")
 }
-

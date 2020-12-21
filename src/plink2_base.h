@@ -142,8 +142,7 @@ void mxThrow(const char* msg, ...) __attribute__((format (printf, 1, 2))) __attr
 #  ifdef __x86_64__
 #    include <emmintrin.h>
 #  else
-#    define SIMDE_ENABLE_NATIVE_ALIASES
-#    include "x86/sse2.h"
+#    error "SIMDE_ENABLE_NATIVE_ALIASES"
 #  endif
 #  ifdef __SSE4_2__
 #    define USE_SSE42
@@ -2352,9 +2351,13 @@ HEADER_INLINE uint32_t SubU32Load(const void* bytearr, uint32_t ct) {
     return cur_uint;
   }
   if (ct == 2) {
-    return *S_CAST(const uint16_t*, bytearr);
+    uint16_t cur_uint;
+    memcpy(&cur_uint, bytearr, sizeof(cur_uint));
+    return cur_uint;
   }
-  return *S_CAST(const uint32_t*, bytearr);
+  uint32_t cur_uint;
+  memcpy(&cur_uint, bytearr, sizeof(cur_uint));
+  return cur_uint;
 }
 
 // tried making this non-inline, loop took more than 50% longer
@@ -2362,7 +2365,7 @@ HEADER_INLINE void ProperSubwordStore(uintptr_t cur_word, uint32_t byte_ct, void
   unsigned char* target_iter = S_CAST(unsigned char*, target);
 #ifdef __LP64__
   if (byte_ct >= 4) {
-    *R_CAST(uint32_t*, target_iter) = cur_word;
+    memcpy(target_iter, &cur_word, sizeof(cur_word));
     if (byte_ct == 4) {
       return;
     }
@@ -2565,7 +2568,9 @@ template <> struct MemequalKImpl<1> {
 
 template <> struct MemequalKImpl<2> {
   static int32_t MemequalK(const void* m1, const void* m2) {
-    return ((*R_CAST(const uint16_t*, m1)) == (*R_CAST(const uint16_t*, m2)));
+    uint16_t a1; memcpy(&a1, m1, sizeof(a1));
+    uint16_t a2; memcpy(&a2, m2, sizeof(a2));
+    return a1 == a2;
   }
 };
 
