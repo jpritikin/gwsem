@@ -25,7 +25,7 @@
 #' dir <- system.file("extdata", package = "gwsem")
 #' pheno <- data.frame(anxiety=rnorm(500))
 #' m1 <- buildItem(pheno, 'anxiety')
-#' GWAS(m1, file.path(dir,"example.pgen"),
+#' GWAS(m1, file.path(dir,"example.bgen"),
 #'     file.path(tdir,"out.log"))
 #' r1 <- loadResults(file.path(tdir,"out.log"), "snp_to_anxiety")
 #' r1[isSuspicious(r1, "snp_to_anxiety"),]
@@ -71,7 +71,7 @@ isSuspicious <- function(result, pars= attr(result, 'focus')) {
 #' dir <- system.file("extdata", package = "gwsem")
 #' pheno <- data.frame(anxiety=rnorm(500))
 #' m1 <- buildItem(pheno, 'anxiety')
-#' GWAS(m1, file.path(dir,"example.pgen"),
+#' GWAS(m1, file.path(dir,"example.bgen"),
 #'     file.path(tdir,"out.log"))
 #' loadResults(file.path(tdir,"out.log"), "snp2anxiety")
 loadResults <- function(path, focus, ..., extraColumns=c(),
@@ -132,7 +132,7 @@ loadResults <- function(path, focus, ..., extraColumns=c(),
 #' dir <- system.file("extdata", package = "gwsem")
 #' pheno <- data.frame(anxiety=rnorm(500))
 #' m1 <- buildItem(pheno, 'anxiety')
-#' GWAS(m1, file.path(dir,"example.pgen"),
+#' GWAS(m1, file.path(dir,"example.bgen"),
 #'     file.path(tdir,"out.log"))
 #' r1 <- loadResults(file.path(tdir,"out.log"), "snp_to_anxiety")
 #' r1[isSuspicious(r1, "snp_to_anxiety"),]
@@ -143,7 +143,7 @@ loadSuspicious <- function(path, focus, ..., extraColumns=c(),
 }
 
 #' Compute Z score and p-value for parameter of focus
-#' 
+#'
 #' The \code{signAdj} column is important and not optional for latent
 #' factor models.  Loadings to factor indicators can take any sign. If
 #' your focus is the regression from the SNP to the factor then this
@@ -167,7 +167,7 @@ loadSuspicious <- function(path, focus, ..., extraColumns=c(),
 #' dir <- system.file("extdata", package = "gwsem")
 #' pheno <- data.frame(anxiety=rnorm(500))
 #' m1 <- buildItem(pheno, 'anxiety')
-#' GWAS(m1, file.path(dir,"example.pgen"),
+#' GWAS(m1, file.path(dir,"example.bgen"),
 #'     file.path(tdir,"out.log"))
 #' r1 <- loadResults(file.path(tdir,"out.log"), "snp_to_anxiety")
 #' r1 <- signif(r1, "snp_to_anxiety")
@@ -190,7 +190,7 @@ signif <- function(result, focus, signAdj = NULL) {
 
 #' Compute Z score and p-value for parameter of focus at particular
 #' moderator level
-#' 
+#'
 #' @template args-result
 #' @template args-focus
 #' @param level numeric level of the moderator
@@ -241,7 +241,7 @@ signifGxE <- function(result, focus, level) {
 #' dir <- system.file("extdata", package = "gwsem")
 #' pheno <- data.frame(anxiety=rnorm(500))
 #' m1 <- buildItem(pheno, 'anxiety')
-#' GWAS(m1, file.path(dir,"example.pgen"),
+#' GWAS(m1, file.path(dir,"example.bgen"),
 #'     file.path(tdir,"out.log"))
 #' got <- loadResults(file.path(tdir,"out.log"), "snp_to_anxiety")
 #' plot(got)
