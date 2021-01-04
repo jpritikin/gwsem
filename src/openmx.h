@@ -9,6 +9,9 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
+void mxThrow(const char* msg, ...) __attribute__((format (printf, 1, 2))) __attribute__((noreturn));
+#define OOPS mxThrow("%s at %d: oops", __FILE__, __LINE__)
+
 enum ColumnDataType {
 	COLUMNDATA_INVALID,
 	COLUMNDATA_ORDERED_FACTOR,
