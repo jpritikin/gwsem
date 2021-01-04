@@ -93,7 +93,7 @@ forModels <- function(topModel, modelName, fn) {
 #' ordered_result = TRUE))
 #' m1 <- buildItem(pheno, 'anxiety')
 #' dir <- system.file("extdata", package = "gwsem")
-#' m1 <- prepareComputePlan(m1, file.path(dir,"example.pgen"))
+#' m1 <- prepareComputePlan(m1, file.path(dir,"example.bgen"))
 #' m1$compute
 prepareComputePlan <- function(model, snpData, out="out.log", ...,
 			       SNP=NULL, startFrom=1L, rowFilter=NULL)
@@ -200,7 +200,7 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 #' dir <- system.file("extdata", package = "gwsem")
 #' pheno <- data.frame(anxiety=rnorm(500))
 #' m1 <- buildItem(pheno, 'anxiety')
-#' GWAS(m1, file.path(dir,"example.pgen"),
+#' GWAS(m1, file.path(dir,"example.bgen"),
 #'      file.path(tempdir(),"out.log"))
 GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L,
                  rowFilter=NULL)
