@@ -100,7 +100,7 @@ pgen <- loadResults(file.path(tdir, "out.log"), "snp_to_i3")
 pgen <- signif(pgen, "snp_to_i3")
 rx <- which(min(pgen$P) == pgen$P)
 expect_equal(rx, 4)
-expect_equal(pgen$P[rx], .086, tolerance=1e-2)
+expect_equal(pgen$P[rx], .176, tolerance=1e-2)
 
 # -----------------
 

@@ -114,7 +114,7 @@ for (ind in paste0("snp_to_i", 1:numIndicators)) {
   m1o <- subset(m1o, SNP %in% both)
   m2o <- subset(m2o, SNP %in% both)
   mask <- abs(m1o$Z) < 4 & abs(m2o$Z) < 4
-  expect_equivalent(cor(m1o[mask,'Z'], m2o[mask,'Z']), 1, tolerance=.3)
+  expect_equivalent(cor(m1o[mask,'Z'], m2o[mask,'Z']), 1, tolerance=.4)
 }
 
 # ----- compare TwoFac exo vs endo covariates
