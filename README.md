@@ -10,6 +10,8 @@
 
 The goal of gwsem is to provide users with the opportunity to analyze the complex, interconnected array of risk factors, biomarkers, environmental antecedents, comorbid disorders, and other health outcomes on a genome-wide basis using structural equation modeling techniques.
 
+At the moment, plink formats are not supported on the ARM64 architecture. This shortcoming is likely easy to cure once we get access to ARM64 hardware for testing.
+
 ## Installation
 
 GW-SEM utilizes the optimization function of OpenMx.
