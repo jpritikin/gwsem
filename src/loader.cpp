@@ -74,8 +74,8 @@ struct LoadDataBGENProvider2 : public LoadDataProvider2<LoadDataBGENProvider2> {
 		cp.push_back("RSID");
 		cp.push_back("CHR");
 		cp.push_back("BP");
-		cp.push_back("A1");
 		cp.push_back("A2");
+		cp.push_back("A1");
 		cp.push_back("MAF");
 	}
 	virtual int getNumVariants();

@@ -143,13 +143,13 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
       p1 <- c(
         p1,
         LC=mxComputeLoadContext(path=paste(stem1, "pvar", sep = "."), column=1:5, sep='\t',
-                                col.names=c("CHR", "BP", "SNP", "A1", "A2")))
+                                col.names=c("CHR", "BP", "SNP", "A2", "A1")))
     } else if (ext1 == "bed") {
       p1 <- c(
         p1,
         LC=mxComputeLoadContext(path=paste(stem1, "bim", sep = "."),
                                 column=c(1,2,4:6), sep='\t', header=FALSE,
-                                col.names=c("CHR", "SNP", "BP", "A2", "A1")))
+                                col.names=c("CHR", "SNP", "BP", "A1", "A2")))
     } else {
       p1 # built-in to BGEN already
     }
