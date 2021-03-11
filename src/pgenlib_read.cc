@@ -559,7 +559,9 @@ PglErr PgfiInitPhase1(const char* fname, uint32_t raw_variant_ct, uint32_t raw_s
       snprintf(errstr_buf, kPglErrstrBufBlen, "Error: %s read failure: %s.\n", fname, strerror(errno));
       return kPglRetReadFail;
     }
+#ifdef POSIX_FADV_SEQUENTIAL
     posix_fadvise(fileno(shared_ff), 0, 0, POSIX_FADV_SEQUENTIAL); // ignore potential error
+#endif
     fread_ptr = small_readbuf;
   }
   // deliberate underflow
