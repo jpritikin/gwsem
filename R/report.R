@@ -195,7 +195,7 @@ signif <- function(result, focus, signAdj = NULL) {
 #' @template args-focus
 #' @param level numeric level of the moderator
 #' @family reporting
-#' @return result with new Z and P columns
+#' @return result with new ME, ME.SE, Z, and P columns
 #' @export
 #' @examples
 #' # TODO
@@ -217,6 +217,8 @@ signifGxE <- function(result, focus, level) {
   tmpSE <- sqrt(result[[paste0('V',mainEffect,':',mainEffect)]] +
                   level^2 * result[[paste0('V',focus,':',focus)]] +
                   2*level * result[[covName]])
+  result$ME <- tmp
+  result$ME.SE <- tmpSE
   result$Z <- tmp / tmpSE
   result$P <- 2*pnorm(-abs(result$Z))
   attr(result, 'focus') <- focus
