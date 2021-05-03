@@ -170,7 +170,8 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
     onesnp,
     TC=mxComputeTryCatch(mxComputeSequence(opt)),
     CK=mxComputeCheckpoint(path=out, standardErrors = FALSE, vcov = TRUE,
-                           vcovFilter=grep('^snp_', names(coef(model)), value=TRUE)))
+                           vcovFilter=grep('^snp_', names(coef(model)), value=TRUE),
+                           sampleSize = TRUE))
 
   mxModel(model, mxComputeLoop(onesnp, i=SNP, startFrom=startFrom))
 }
