@@ -26,7 +26,7 @@ if true; then
 	rm -rf OpenMx
 fi
 
-Rscript -e 'install.packages("roxygen2")'
+Rscript -e 'install.packages(c("roxygen2","pkgbuild"))'
 
 ./tools/rox
 
