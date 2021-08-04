@@ -15,7 +15,7 @@ travis_wait() {
     wait $! || exit 1
 }
 
-if true; then
+if false; then
   Rscript -e 'remove.packages("OpenMx")' || true
 
 	# Need to grab from GIT
