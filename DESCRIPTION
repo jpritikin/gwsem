@@ -69,7 +69,6 @@ RdMacros:
     lifecycle
 Encoding: UTF-8
 Language: en-US
-LazyData: true
 NeedsCompilation: yes
 RoxygenNote: 7.1.0
 SystemRequirements: GNU make
