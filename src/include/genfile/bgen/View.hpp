@@ -15,14 +15,6 @@
 #include "genfile/bgen/bgen.hpp"
 #include "genfile/bgen/IndexQuery.hpp"
 
-namespace {
-	std::string to_string( std::size_t i ) {
-		std::stringstream s ;
-		s << i ;
-		return s.str() ;
-	}
-}
-
 namespace genfile {
 	namespace bgen {
 		struct View {
@@ -55,7 +47,7 @@ namespace genfile {
 					}
 				} else {
 					for( std::size_t i = 0; i < m_context.number_of_samples; ++i ) {
-						setter( "(anonymous_sample_" + to_string( i+1 ) + ")" ) ;
+						setter( "(anonymous_sample_" + std::to_string( i+1 ) + ")" ) ;
 					}
 				}
 			}
@@ -95,7 +87,7 @@ namespace genfile {
 				m_state = e_ReadyForVariant ;
 				++m_variant_i ;
 			}
-	
+
 			// Read, uncompress, and unpack data for the variant just read by read_variant()
 			// without doing a full parse of all the probability data.
 			// This method is useful for applications that want to manipulate the bgen-formatted
@@ -134,7 +126,7 @@ namespace genfile {
 			// bgen::Context object holds information from the header block,
 			// including bgen flags
 			genfile::bgen::Context m_context ;
-	
+
 			bool m_have_sample_ids ;
 			std::vector< std::string > m_sample_ids ;
 
@@ -147,10 +139,10 @@ namespace genfile {
 			// ignore_genotype_data_block() or ignore_genotype_data_block() repeatedly.
 			enum State { e_NotOpen = 0, e_Open = 1, e_ReadyForVariant = 2, e_ReadyForProbs = 3, eComplete = 4 } ;
 			State m_state ;
-	
+
 			// To avoid issues with tellg() and failbit, we store the stream position at suitable points
 			std::streampos m_file_position ;
-	
+
 			// Two buffers for processing
 			std::vector< byte_t > m_buffer1 ;
 			std::vector< byte_t > m_buffer2 ;
