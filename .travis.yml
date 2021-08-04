@@ -30,4 +30,4 @@ after_success:
   - travis_wait 40 Rscript -e 'covr::codecov()'
 
 after_failure:
-  - cat gwsem.Rcheck/00*
+  - cat gwsem.Rcheck/00check.log
