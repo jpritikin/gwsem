@@ -112,8 +112,8 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
   stem <- mapply(function(pieces, l) paste(pieces[-l], collapse="."),
                        loc, locLen)
   method <- sapply(snpFileExt, function(ext1) {
-    if (snpFileExt == 'pgen' || snpFileExt == 'bed') 'pgen'
-    else if (snpFileExt == 'bgen') 'bgen'
+    if (ext1 == 'pgen' || ext1 == 'bed') 'pgen'
+    else if (ext1 == 'bgen') 'bgen'
     else NA
   })
   if (any(is.na(method))) {
