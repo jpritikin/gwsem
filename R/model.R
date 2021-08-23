@@ -165,13 +165,22 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 		   HQ=mxComputeHessianQuality())
   }
 
+  # guess which off-diagonal vcov entries we will need
+  offdiag <- c()
+  if (length(model$data$algebra)) {
+    gxe <- sapply(model$data$algebra, function(x) model[[x]]$.dimnames[[2]])
+    outcome <- model$A$free[,'snp']
+    outcome <- names(outcome)[outcome]
+    offdiag <- c(paste0('snp_to_', outcome),
+                 apply(expand.grid(gxe,"_to_",outcome), 1, paste0, collapse=''))
+  }
+
   onesnp <- c(
     ST=mxComputeSetOriginalStarts(),
     onesnp,
     TC=mxComputeTryCatch(mxComputeSequence(opt)),
     CK=mxComputeCheckpoint(path=out, standardErrors = FALSE, vcov = TRUE,
-                           vcovFilter=grep('^snp_', names(coef(model)), value=TRUE),
-                           sampleSize = TRUE))
+                           useVcovFilter=TRUE, vcovFilter=offdiag, sampleSize = TRUE))
 
   mxModel(model, mxComputeLoop(onesnp, i=SNP, startFrom=startFrom))
 }
