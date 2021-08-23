@@ -126,7 +126,7 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
                "c(",omxQuotes(model$name),"=",snpData[1],")"))
   modelName <- model$name
   if (length(names(snpData))) modelName <- names(snpData)
-  if (length(rowFilter)) {
+  if (TRUE) {
     noMatch <- is.na(match(names(rowFilter), modelName))
     if (any(noMatch)) {
       stop(paste("Cannot find model associated with rowFilter:",
