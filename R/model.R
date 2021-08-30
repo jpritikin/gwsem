@@ -21,6 +21,29 @@ forModels <- function(topModel, modelName, fn) {
   ret
 }
 
+processSnpData <- function(snpData) {
+  loc <- strsplit(snpData, ".", fixed=TRUE)
+  locLen <- sapply(loc, length)
+  if (any(locLen < 2)) {
+    stop(paste("Please rename snpData", omxQuotes(snpData[locLen < 2]),
+               "to the form file.ext where ext reflects the format of the data"))
+  }
+  snpFileExt <- mapply(function(pieces, l) pieces[l],
+                       loc, locLen)
+  stem <- mapply(function(pieces, l) paste(pieces[-l], collapse="."),
+                       loc, locLen)
+  method <- sapply(snpFileExt, function(ext1) {
+    if (ext1 == 'pgen' || ext1 == 'bed') 'pgen'
+    else if (ext1 == 'bgen') 'bgen'
+    else NA
+  })
+  if (any(is.na(method))) {
+    stop(paste("Unrecognized file extension", omxQuotes(snpFileExt[is.na(method)]),
+               "inferred from snpData", omxQuotes(snpData[is.na(method)])))
+  }
+  list(snpFileExt=snpFileExt, stem=stem, method=method)
+}
+
 #' Return a suitable compute plan for a genome-wide association study
 #'
 #' \lifecycle{maturing}
@@ -101,25 +124,10 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
 
-  loc <- strsplit(snpData, ".", fixed=TRUE)
-  locLen <- sapply(loc, length)
-  if (any(locLen < 2)) {
-    stop(paste("Please rename snpData", omxQuotes(snpData[locLen < 2]),
-               "to the form file.ext where ext reflects the format of the data"))
-  }
-  snpFileExt <- mapply(function(pieces, l) pieces[l],
-                       loc, locLen)
-  stem <- mapply(function(pieces, l) paste(pieces[-l], collapse="."),
-                       loc, locLen)
-  method <- sapply(snpFileExt, function(ext1) {
-    if (ext1 == 'pgen' || ext1 == 'bed') 'pgen'
-    else if (ext1 == 'bgen') 'bgen'
-    else NA
-  })
-  if (any(is.na(method))) {
-    stop(paste("Unrecognized file extension", omxQuotes(snpFileExt[is.na(method)]),
-               "inferred from snpData", omxQuotes(snpData[is.na(method)])))
-  }
+  psd <- processSnpData(snpData)
+  snpFileExt <- psd$snpFileExt
+  stem <- psd$stem
+  method <- psd$method
 
   if (length(snpData) > 1 && length(names(snpData)) == 0)
     stop(paste("Must provide model names for snpData. For example,\n",
@@ -183,6 +191,36 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
                            useVcovFilter=TRUE, vcovFilter=offdiag, sampleSize = TRUE))
 
   mxModel(model, mxComputeLoop(onesnp, i=SNP, startFrom=startFrom))
+}
+
+#' Probe the number of available records
+#'
+#' \lifecycle{maturing} It can be useful to know the number of SNPs in
+#' advance of running a set of analyses.
+#'
+#' @template args-snpData
+#'
+#' @export
+#' @return
+#' Returns a vector of record counts. The vector is named by the containing file path.
+#' @examples
+#' dir <- system.file("extdata", package = "gwsem")
+#' numAvailableRecords(c(file.path(dir,"example.pgen"),
+#'                       file.path(dir,"example.bgen"))
+numAvailableRecords <- function(snpData) {
+  if (length(names(snpData))) stop("Multiple groups are not supported")
+
+  psd <- processSnpData(snpData)
+  method <- psd$method
+
+  model <- mxModel(name="dummy")
+  job <- mapply(function(snpData1, method1) {
+    mxComputeLoadData('dummy', column=c(), path=snpData1, method=method1)
+  }, snpData, method)
+
+  out <- mxRun(mxModel(model, mxComputeSequence(job)), silent=TRUE)
+
+  sapply(out$compute$steps, function(x) { x$output$rowsAvailable })
 }
 
 #' Run a genome-wide association study (GWAS) using the provided model

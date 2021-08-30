@@ -22,6 +22,17 @@ colnames(indicators) <- paste0("i", 1:numIndicators)
 pheno <- cbind(pheno, indicators)
 
 # -----
+got <- numAvailableRecords(c(file.path(dir,"example.pgen"),
+                             file.path(dir,"example.bgen"),
+                             file.path(dir,"group1.bed")))
+
+expected <- c(199,199,NA)
+names(expected) <- c(file.path(dir,"example.pgen"),
+                     file.path(dir,"example.bgen"),
+                     file.path(dir,"group1.bed"))
+expect_equal(got, expected)
+
+# -----
 
 m1 <- GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
            file.path(dir,"example.pgen"),
