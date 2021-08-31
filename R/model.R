@@ -223,6 +223,52 @@ numAvailableRecords <- function(snpData) {
   sapply(out$compute$steps, function(x) { x$output$rowsAvailable })
 }
 
+#' Build a plan for data analyses
+#'
+#' Long-running jobs are vulnerable to early termination from
+#' maintanance or power outages. We recommend chopping your analyses
+#' into smaller chunks. This also offers the advantage of running jobs
+#' in parallel. This function builds a plan that roughly splits the
+#' whole analysis into equal amounts of work.
+#'
+#' @template args-snpData
+#' @param sliceSize number of SNPs to analyze per job
+#' @export
+#' @return
+#' Returns a data.frame with one job specification per row with the following columns:
+#' \describe{
+#' \item{path}{Path to the genetic data file}
+#' \item{begin}{Starting SNP}
+#' \item{end}{Ending SNP}
+#' \item{index}{Job number}
+#' }
+#' @examples
+#' dir <- system.file("extdata", package = "gwsem")
+#' buildAnalysesPlan(c(file.path(dir,"example.pgen"),
+#'                     file.path(dir,"example.bgen")), 45)
+buildAnalysesPlan <- function(snpData, sliceSize) {
+  numRecs <- numAvailableRecords(snpData)
+
+  slicePerChr <- sapply(numRecs %/% round(sliceSize), max, 1)
+
+  plan <- data.frame(path=rep(snpData, times=slicePerChr), begin=NA, end=NA)
+  plan$index <- 1:nrow(plan)
+  for (tx in 1:length(snpData)) {
+    p1 <- snpData[tx]
+    if (slicePerChr[tx] == 1) {
+      plan[plan$path == p1,'begin'] <- 1
+      plan[plan$path == p1,'end'] <- numRecs[tx]
+    } else {
+      breaks <- floor(seq.int(1, numRecs[tx], length.out = slicePerChr[tx]+1))
+      begin <- breaks[-length(breaks)]
+      end <- c(begin[-1]-1, numRecs[tx])
+      plan[plan$path == p1,'begin'] <- begin
+      plan[plan$path == p1,'end'] <- end
+    }
+  }
+  plan
+}
+
 #' Run a genome-wide association study (GWAS) using the provided model
 #'
 #' \lifecycle{maturing}
