@@ -240,7 +240,8 @@ numAvailableRecords <- function(snpData) {
 #' \item{path}{Path to the genetic data file}
 #' \item{begin}{Starting SNP}
 #' \item{end}{Ending SNP}
-#' \item{index}{Job number}
+#' \item{count}{Number of SNPs in this job}
+#' \item{slice}{Within data file slice index}
 #' }
 #' @examples
 #' dir <- system.file("extdata", package = "gwsem")
@@ -252,7 +253,6 @@ buildAnalysesPlan <- function(snpData, sliceSize) {
   slicePerChr <- sapply(numRecs %/% round(sliceSize), max, 1)
 
   plan <- data.frame(path=rep(snpData, times=slicePerChr), begin=NA, end=NA)
-  plan$index <- 1:nrow(plan)
   for (tx in 1:length(snpData)) {
     p1 <- snpData[tx]
     if (slicePerChr[tx] == 1) {
@@ -265,6 +265,8 @@ buildAnalysesPlan <- function(snpData, sliceSize) {
       plan[plan$path == p1,'begin'] <- begin
       plan[plan$path == p1,'end'] <- end
     }
+    plan[plan$path == p1,'count'] <- with(subset(plan, path==p1), end - begin)
+    plan[plan$path == p1,'slice'] <- 1:slicePerChr[tx]
   }
   plan
 }
