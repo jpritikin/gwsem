@@ -270,7 +270,7 @@ buildAnalysesPlan <- function(snpData, sliceSize) {
       plan[plan$path == p1,'begin'] <- begin
       plan[plan$path == p1,'end'] <- end
     }
-    plan[plan$path == p1,'count'] <- with(plan[plan$path==p1,], end - begin)
+    plan[plan$path == p1,'count'] <- with(plan[plan$path==p1,], end - begin) + 1L
     plan[plan$path == p1,'slice'] <- 1:slicePerChr[tx]
   }
   plan
