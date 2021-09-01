@@ -34,7 +34,7 @@ namespace genfile {
 			}
 		}
 #endif
-		
+
 		Context::Context():
 			number_of_samples(0),
 			number_of_variants(0),
@@ -42,7 +42,7 @@ namespace genfile {
 			free_data( "" ),
 			flags(0)
 		{}
-			
+
 		Context::Context( Context const& other ):
 			number_of_samples( other.number_of_samples ),
 			number_of_variants( other.number_of_variants ),
@@ -59,9 +59,9 @@ namespace genfile {
 			flags = other.flags ;
 			return *this ;
 		}
-		
+
 		uint32_t Context::header_size() const { return free_data.size() + 20 ; }
-		
+
 		void read_offset( std::istream& iStream, uint32_t* offset ) {
 			read_little_endian_integer( iStream, offset ) ;
 		}
@@ -69,7 +69,7 @@ namespace genfile {
 		void write_offset( std::ostream& oStream, uint32_t const offset ) {
 			write_little_endian_integer( oStream, offset ) ;
 		}
-		
+
 		std::size_t read_header_block(
 			std::istream& aStream,
 			Context* context
@@ -126,7 +126,7 @@ namespace genfile {
 			aStream.write( context.free_data.data(), context.free_data.size() ) ;
 			write_little_endian_integer( aStream, context.flags ) ;
 		}
-		
+
 		std::size_t write_sample_identifier_block(
 			std::ostream& aStream,
 			Context const& context,
@@ -153,8 +153,8 @@ namespace genfile {
 			}
 			return block_size ;
 		}
-		
-		
+
+
 		namespace impl {
 			void check_for_two_alleles( uint16_t numberOfAlleles ) {
 				if( numberOfAlleles != 2 ) {
@@ -162,7 +162,7 @@ namespace genfile {
 					//assert(0) ;
 				}
 			}
-		
+
 			struct TwoAlleleSetter {
 				TwoAlleleSetter( std::string* allele1, std::string* allele2 ):
 					m_allele1( allele1 ),
@@ -185,7 +185,7 @@ namespace genfile {
 				std::string* m_allele2 ;
 			} ;
 		}
-		
+
 		namespace v10 {
 			bool read_snp_identifying_data(
 				std::istream& aStream,
@@ -265,7 +265,7 @@ namespace genfile {
 				return true ;
 			}
 		}
-		
+
 		bool read_snp_identifying_data(
 			std::istream& aStream,
 			Context const& context,
@@ -296,7 +296,7 @@ namespace genfile {
 			}
 			return true ;
 		}
-		
+
 		namespace v11 {
 			namespace impl {
 				double get_probability_conversion_factor( uint32_t flags ) {
@@ -402,7 +402,7 @@ namespace genfile {
 					double round( double v ) {
 						return floor( v + 0.5 ) ;
 					}
-					
+
 					struct CompareFractionalPart{
 						CompareFractionalPart( double* v, std::size_t n ):
 							m_v( v ), m_n( n )
@@ -415,7 +415,7 @@ namespace genfile {
 							m_n =  other.m_n ;
 							return *this ;
 						}
-						
+
 						bool operator()( std::size_t a, std::size_t b ) const {
 							return( fractional_part( m_v[a] ) > fractional_part( m_v[b] )) ;
 						}
@@ -456,7 +456,7 @@ namespace genfile {
 						p[ index[i] ] = floor( p[ index[i] ] ) ;
 					}
 				}
-				
+
 				byte_t* write_scaled_probs(
 					uint64_t* data,
 					std::size_t* offset,
@@ -514,7 +514,7 @@ namespace genfile {
 			m_initialised( false )
 		{
 		}
-	
+
 		boost::optional< SqliteIndexQuery::FileMetadata > const&
 		SqliteIndexQuery::file_metadata() const {
 			return m_metadata ;
@@ -540,7 +540,7 @@ namespace genfile {
 	#if DEBUG
 			std::cerr << "SqliteIndexQuery::initialise(): read positions for " << m_positions.size() << " variants.\n" ;
 	#endif
-	
+
 			m_initialised = true ;
 		}
 
@@ -640,7 +640,7 @@ namespace genfile {
 				metadata.filename = mdStmt->get< std::string >( 0 ) ;
 				metadata.size = mdStmt->get< int64_t >( 1 ) ;
 				metadata.first_bytes = mdStmt->get< std::vector< uint8_t > >( 3 ) ;
-				
+
 				result = metadata ;
 			}
 			return result ;
@@ -658,7 +658,7 @@ namespace genfile {
 	#if DEBUG
 			std::cerr << "BgenIndex::build_query(): SQL is: \"" << select_sql << "\"...\n" ;
 	#endif
-	
+
 			return m_connection->get_statement( select_sql ) ;
 		}
 	}
@@ -677,7 +677,7 @@ namespace genfile {
 	std::ostream& operator<<( std::ostream& o, MissingValue const& ) {
 		return o << "NA" ;
 	}
-	
+
 	bool MissingValue::operator==( MissingValue const& ) const {
 		return true ;
 	}
@@ -769,7 +769,7 @@ namespace genfile {
 				compression = "zstd" ;
 			}
 			o << compression << " compression)" ;
-			o << " with " 
+			o << " with "
 				<< m_context.number_of_samples << " " << ( m_have_sample_ids ? "named" : "anonymous" ) << " samples and "
 				<< m_context.number_of_variants << " variants.\n" ;
 			if( m_index_query.get() ) {
@@ -783,7 +783,7 @@ namespace genfile {
 			void resize_vector( std::vector< std::string >* target, std::size_t n ) {
 				target->resize(n) ;
 			}
-			
+
 			void set_vector_element( std::vector< std::string >* target, std::size_t i, std::string const& value ) {
 				target->at(i) = value ;
 			}
@@ -863,7 +863,11 @@ namespace genfile {
 				new std::ifstream( filename.c_str(), std::ifstream::binary )
 			) ;
 			if( !*m_stream ) {
-				throw std::invalid_argument( filename ) ;
+        std::string bad = "open(";
+        bad += filename;
+        bad += ") failed: ";
+        bad += strerror(errno);
+				throw std::runtime_error( bad );
 			}
 
 			// get file size
@@ -896,7 +900,7 @@ namespace genfile {
 				) ;
 				m_have_sample_ids = true ;
 			}
-	
+
 			// read data up to first data block.
 			m_postheader_data.resize( m_offset+4 - m_stream->tellg() ) ;
 			m_stream->read( reinterpret_cast< char* >( &m_postheader_data[0] ), m_postheader_data.size() ) ;
