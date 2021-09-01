@@ -251,13 +251,15 @@ numAvailableRecords <- function(snpData) {
 #' buildAnalysesPlan(c(file.path(dir,"example.pgen"),
 #'                     file.path(dir,"example.bgen")), 45)
 buildAnalysesPlan <- function(snpData, sliceSize) {
-  numRecs <- numAvailableRecords(snpData)
+  name <- names(snpData)
+  numRecs <- numAvailableRecords(unname(snpData))
 
   slicePerChr <- sapply(numRecs %/% round(sliceSize), max, 1)
 
   plan <- data.frame(path=rep(snpData, times=slicePerChr), begin=NA, end=NA)
   for (tx in 1:length(snpData)) {
     p1 <- snpData[tx]
+    plan[plan$path == p1,'name'] <- name[tx]
     if (slicePerChr[tx] == 1) {
       plan[plan$path == p1,'begin'] <- 1
       plan[plan$path == p1,'end'] <- numRecs[tx]
