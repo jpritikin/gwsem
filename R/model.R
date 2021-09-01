@@ -105,6 +105,7 @@ processSnpData <- function(snpData) {
 #' @template args-dots-barrier
 #' @template args-startfrom
 #' @template args-rowFilter
+#' @template args-header
 #' @return
 #' The given model with an appropriate compute plan.
 #'
@@ -120,7 +121,7 @@ processSnpData <- function(snpData) {
 #' m1 <- prepareComputePlan(m1, file.path(dir,"example.bgen"))
 #' m1$compute
 prepareComputePlan <- function(model, snpData, out="out.log", ...,
-			       SNP=NULL, startFrom=1L, rowFilter=NULL)
+			       SNP=NULL, startFrom=1L, rowFilter=NULL, header=NA)
 {
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
 
@@ -183,11 +184,13 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
                  apply(expand.grid(gxe,"_to_",outcome), 1, paste0, collapse=''))
   }
 
+  if (is.na(header)) header <- is.null(SNP) || SNP[1]==1
+
   onesnp <- c(
     ST=mxComputeSetOriginalStarts(),
     onesnp,
     TC=mxComputeTryCatch(mxComputeSequence(opt)),
-    CK=mxComputeCheckpoint(path=out, standardErrors = FALSE, vcov = TRUE,
+    CK=mxComputeCheckpoint(path=out, standardErrors = FALSE, vcov = TRUE, header = TRUE,
                            useVcovFilter=TRUE, vcovFilter=offdiag, sampleSize = TRUE))
 
   mxModel(model, mxComputeLoop(onesnp, i=SNP, startFrom=startFrom))
@@ -287,6 +290,7 @@ buildAnalysesPlan <- function(snpData, sliceSize) {
 #' @template args-dots-barrier
 #' @template args-startfrom
 #' @template args-rowFilter
+#' @template args-header
 #' @export
 #' @return
 #' The results for each SNP are recorded in the specified log file (\code{out}).
@@ -301,12 +305,12 @@ buildAnalysesPlan <- function(snpData, sliceSize) {
 #' GWAS(m1, file.path(dir,"example.bgen"),
 #'      file.path(tempdir(),"out.log"))
 GWAS <- function(model, snpData, out="out.log", ..., SNP=NULL, startFrom=1L,
-                 rowFilter=NULL)
+                 rowFilter=NULL, header=NA)
 {
 	# verify model has a continuous 'snp' data column TODO
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   model <- prepareComputePlan(model, snpData, out=out,
-			      SNP=SNP, startFrom=startFrom, rowFilter=rowFilter)
+			      SNP=SNP, startFrom=startFrom, rowFilter=rowFilter, header=header)
   model <- mxRun(model)
   message(paste("Done. See", omxQuotes(out), "for results"))
   invisible(model)
