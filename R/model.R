@@ -256,10 +256,11 @@ buildAnalysesPlan <- function(snpData, sliceSize) {
 
   slicePerChr <- sapply(numRecs %/% round(sliceSize), max, 1)
 
-  plan <- data.frame(path=rep(snpData, times=slicePerChr), begin=NA, end=NA)
+  plan <- data.frame(path=rep(snpData, times=slicePerChr),
+                     begin=NA, end=NA)
   for (tx in 1:length(snpData)) {
     p1 <- snpData[tx]
-    plan[plan$path == p1,'name'] <- name[tx]
+    if (length(name)) plan[plan$path == p1,'name'] <- name[tx]
     if (slicePerChr[tx] == 1) {
       plan[plan$path == p1,'begin'] <- 1
       plan[plan$path == p1,'end'] <- numRecs[tx]
