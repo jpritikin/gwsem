@@ -138,7 +138,9 @@ void LoadDataBGENProvider2::loadRowImpl(int index)
 		cv[cpIndex+3] = string_snprintf("%u", position);
 		cv[cpIndex+4] = alleles[1];
 		cv[cpIndex+5] = alleles[0];
-		cv[cpIndex+6] = string_snprintf("%.8f", xfer.total / (2.0 * xfer.nrows));
+    double maf = xfer.total / (2.0 * xfer.nrows);
+    if (maf > .5) maf = 1-maf;
+		cv[cpIndex+6] = string_snprintf("%.8f", maf);
 	}
 }
 
@@ -389,6 +391,7 @@ void LoadDataPGENProvider2::loadRowImpl(int index)
 			nrows += 1;
 		}
 		maf /= 2.0 * nrows;
+    if (maf > 0.5) maf = 1-maf;
 	} else {
 		stop("Treating genetic data as an ordinal factor is not implemented");
 	}
