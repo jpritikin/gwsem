@@ -209,7 +209,7 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 #' @examples
 #' dir <- system.file("extdata", package = "gwsem")
 #' numAvailableRecords(c(file.path(dir,"example.pgen"),
-#'                       file.path(dir,"example.bgen"))
+#'                       file.path(dir,"example.bgen")))
 numAvailableRecords <- function(snpData) {
   if (length(names(snpData))) stop("Multiple groups are not supported")
 
