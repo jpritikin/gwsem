@@ -425,7 +425,6 @@ setupExogenousCovariates <- function(model, covariates, itemNames)
 # export? TODO
 setupData <- function(phenoData, gxe, customMinMAF, minMAF, fitfun)
 {
-  phenoData <- as.data.frame(phenoData)
   if (customMinMAF && fitfun != "WLS") warning("minMAF is ignored when fitfun != 'WLS'")
   minVar <- calcMinVar(minMAF)
   result <- list()
@@ -450,7 +449,7 @@ addPlaceholderSNP <- function(phenoData) {
 		# We use as.numeric because we currently only support dosages.
 		phenoData$snp <- as.numeric(rbinom(dim(phenoData)[1], 2, .5))
 	}
-	phenoData
+	as.data.frame(phenoData)
 }
 
 endogenousSNPpath <- function(pred, depVar)
@@ -560,12 +559,8 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
   phenoData <- addPlaceholderSNP(phenoData)
   # Remove extraneous data columns that could prevent WLS cumulants
   toRemove <- setdiff(colnames(phenoData), c('snp', depVar, covariates, gxe))
-  if (is(phenoData, 'data.table')) {
-    for (c1 in toRemove) phenoData <- phenoData[,(c1):=NULL]
-  } else {
-    for (c1 in toRemove) phenoData[[c1]] <- NULL
-  }
-  fac <- sapply(phenoData[,depVar,drop=FALSE], is.factor)
+  for (c1 in toRemove) phenoData[[c1]] <- NULL
+  fac <- sapply(phenoData[, depVar, drop=FALSE], is.factor)
 
   if (is.na(exogenous)) {
 	  if (fitfun == 'WLS' && !any(fac)) exogenous <- FALSE
@@ -646,10 +641,10 @@ buildOneFac <- function(phenoData, itemNames, covariates=NULL, ..., fitfun = c("
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
 
+  phenoData <- addPlaceholderSNP(phenoData)
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
   if (is.na(exogenous)) exogenous <- defaultExogenous
 
-  phenoData <- addPlaceholderSNP(phenoData)
   manifest <- c(pred, itemNames)
   if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   depVar   <- c("F")
@@ -723,10 +718,10 @@ buildOneFacRes <- function(phenoData, itemNames, factor = F, res = itemNames, co
   if (length(list(...)) > 0) stop("Rejected are any values passed in the '...' argument")
   fitfun <- match.arg(fitfun)
 
+  phenoData <- addPlaceholderSNP(phenoData)
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
   if (is.na(exogenous)) exogenous <- defaultExogenous
 
-  phenoData <- addPlaceholderSNP(phenoData)
   manifest <- c(pred, itemNames)
   if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   latents   <- c("F")
@@ -800,10 +795,10 @@ buildTwoFac <- function(phenoData, F1itemNames, F2itemNames, covariates = NULL, 
 
   itemNames <- union(F1itemNames, F2itemNames)
 
+  phenoData <- addPlaceholderSNP(phenoData)
   fac <- sapply(phenoData[,itemNames,drop=FALSE], is.factor)
   if (is.na(exogenous)) exogenous <- defaultExogenous
 
-  phenoData <- addPlaceholderSNP(phenoData)
   manifest <- c(pred, itemNames)
   if (length(gxe)) manifest <- c(manifest, paste0('snp_', gxe))
   depVar <- c("F1", "F2")
