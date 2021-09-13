@@ -164,7 +164,7 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
     }
   }, modelName, snpData, snpFileExt, method, stem)
 
-  opt <- list(GD=mxComputeGradientDescent())
+  opt <- list(GD=mxComputeGradientDescent(nudgeZeroStarts=FALSE))
   if (is(model$fitfunction, "MxFitFunctionWLS")) {
 	  opt <- c(opt, SE=mxComputeStandardError())
   } else {
