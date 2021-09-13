@@ -559,8 +559,12 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
 
   phenoData <- addPlaceholderSNP(phenoData)
   # Remove extraneous data columns that could prevent WLS cumulants
-  phenoData <- phenoData[,intersect(colnames(phenoData),
-				    c('snp', depVar, covariates, gxe))]
+  toRemove <- setdiff(colnames(phenoData), c('snp', depVar, covariates, gxe))
+  if (is(phenoData, 'data.table')) {
+    for (c1 in toRemove) phenoData <- phenoData[,(c1):=NULL]
+  } else {
+    for (c1 in toRemove) phenoData[[c1]] <- NULL
+  }
   fac <- sapply(phenoData[,depVar,drop=FALSE], is.factor)
 
   if (is.na(exogenous)) {
