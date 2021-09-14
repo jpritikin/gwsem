@@ -208,8 +208,7 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
 #' Returns a vector of record counts. The vector is named by the containing file path.
 #' @examples
 #' dir <- system.file("extdata", package = "gwsem")
-#' numAvailableRecords(c(file.path(dir,"example.pgen"),
-#'                       file.path(dir,"example.bgen")))
+#' numAvailableRecords(file.path(dir,"example.bgen"))
 numAvailableRecords <- function(snpData) {
   if (length(names(snpData))) stop("Multiple groups are not supported")
 
@@ -248,8 +247,7 @@ numAvailableRecords <- function(snpData) {
 #' }
 #' @examples
 #' dir <- system.file("extdata", package = "gwsem")
-#' buildAnalysesPlan(c(file.path(dir,"example.pgen"),
-#'                     file.path(dir,"example.bgen")), 45)
+#' buildAnalysesPlan(file.path(dir,"example.bgen"), 45)
 buildAnalysesPlan <- function(snpData, sliceSize) {
   name <- names(snpData)
   numRecs <- numAvailableRecords(unname(snpData))
