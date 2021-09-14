@@ -1,7 +1,7 @@
 # gwsem
 
 <!-- badges: start -->
-[![Travis build status](https://api.travis-ci.com/jpritikin/gwsem.svg?branch=master)](https://www.travis-ci.com/github/jpritikin/gwsem)
+[![Travis build status](https://api.travis-ci.com/jpritikin/gwsem.svg?branch=master)](https://app.travis-ci.com/github/jpritikin/gwsem)
 [![Codecov test coverage](https://codecov.io/gh/jpritikin/gwsem/branch/master/graph/badge.svg)](https://codecov.io/gh/jpritikin/gwsem?branch=master)
 [![cran version](http://www.r-pkg.org/badges/version/gwsem)](https://cran.r-project.org/package=gwsem)
 [![Monthly Downloads](https://cranlogs.r-pkg.org/badges/gwsem)](https://cranlogs.r-pkg.org/badges/gwsem)
