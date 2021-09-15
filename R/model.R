@@ -565,6 +565,7 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
 	  else exogenous <- TRUE
   }
 
+  customMinMAF <- force(!missing(minMAF))
   manifest <- depVar
   latents <- c()
   endoCovariates <- c()
@@ -573,6 +574,7 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
 	  manifest <- c(manifest, pred, covariates)
 	  endoCovariates <- covariates
   } else {
+    if (customMinMAF) warning("minMAF is ignored when SNP is not an observed variable")
 	  latents <- c(pred, covariates)
   }
 
@@ -587,7 +589,7 @@ buildItem <- function(phenoData, depVar, covariates=NULL, ..., fitfun = c("WLS",
              mxPath(from = 'one', to = depVar, free= !fac, values = 0,
                     labels = paste0(depVar, "Mean")))
 
-  dat       <- setupData(phenoData, gxe, force(!missing(minMAF)), minMAF, fitfun)
+  dat       <- setupData(phenoData, gxe, customMinMAF, minMAF, fitfun)
 
   modelName <- "OneItem"
   model <- mxModel(model=modelName, type='RAM',
