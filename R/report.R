@@ -183,6 +183,7 @@ signif <- function(result, focus, signAdj = NULL) {
   result$Z <- suppressWarnings(
     result[[focus]] / sqrt(result[[paste0('V',focus,':',focus)]]))
   result$P <- 2*pnorm(-abs(result$Z))
+  if (any(result$P == 0)) warning("Some p-values are exactly zero")
   attr(result, 'focus') <- focus
   class(result) <- c("gwsemResult", class(result))
   result
