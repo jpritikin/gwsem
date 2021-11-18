@@ -48,7 +48,7 @@ expect_error(GWAS(oi, something_else=1),
 
 got6 <- GWAS(oi,
      file.path(dir,"example.pgen"),
-     file.path(tdir, "out.log"), SNP=c(3:5), header=TRUE)
+     file.path(tdir, "out.log"), SNP=c(3:5))
 expect_true(is.null(got6$data$observedStats$means))
 
 pgen <- loadResults(file.path(tdir, "out.log"), "snp_to_i3")
@@ -72,7 +72,7 @@ expect_true(!is.null(oi$M))
 
 GWAS(oi,
      file.path(dir,"example.pgen"),
-     file.path(tdir, "out.log"), SNP=c(3:5), header=TRUE)
+     file.path(tdir, "out.log"), SNP=c(3:5))
 
 ml <- loadResults(file.path(tdir, "out.log"), "snp_to_i3")
 ml <- signif(ml, "snp_to_i3")
@@ -88,7 +88,7 @@ expect_true(oi$S$free['i2','i3'])
 
 GWAS(oi,
      file.path(dir,"example.pgen"),
-     file.path(tdir, "out.log"), SNP=c(11:20), header=TRUE)
+     file.path(tdir, "out.log"), SNP=c(11:20))
 
 pgen <- loadResults(file.path(tdir, "out.log"), "snp_to_i2")
 pgen <- signif(pgen, "snp_to_i2")
@@ -100,7 +100,7 @@ pgen <- loadResults(file.path(tdir, "out.log"), "snp_to_i3")
 pgen <- signif(pgen, "snp_to_i3")
 rx <- which(min(pgen$P) == pgen$P)
 expect_equal(rx, 4)
-expect_equal(pgen$P[rx], .086, tolerance=1e-2)
+expect_equal(pgen$P[rx], .176, tolerance=1e-2)
 
 # -----------------
 
@@ -110,7 +110,7 @@ if (.Platform$OS.type == "windows" && packageVersion("data.table") <= '1.12.2') 
 
 z1 = GWAS(buildOneFac(pheno, paste0("i", 1:numIndicators)),
      file.path(dir,"example.pgen"),
-     file.path(tdir, "out.log"), SNP=c(3:5), header=TRUE)
+     file.path(tdir, "out.log"), SNP=c(3:5))
 
 pgen <- loadResults(file.path(tdir, "out.log"), c("snp_to_F", 'lambda_i1'))
 pgen <- signif(pgen, "snp_to_F", signAdj = "lambda_i1")
@@ -141,7 +141,7 @@ m2 <- buildOneFacRes(pheno, paste0("i", 1:numIndicators))
 m2$A[paste0('i',1:7),'F']$lbound <- 0
 m2 <- GWAS(m2,
      file.path(dir,"example.pgen"),
-     file.path(tdir, "out.log"), SNP=c(3:5), header=TRUE)
+     file.path(tdir, "out.log"), SNP=c(3:5))
 expect_false(m2$A$free['F','snp'])
 
 pgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
@@ -161,7 +161,7 @@ expect_equal(pgen$P, c(0.481, 0.896, 0.412), tolerance=1e-2)
 GWAS(buildTwoFac(pheno, F1itemNames = paste0("i",1:4),
                  F2itemNames = paste0("i",4:7)),
      file.path(dir,"example.pgen"),
-     file.path(tdir, "out.log"), SNP=3:5, header=TRUE)
+     file.path(tdir, "out.log"), SNP=3:5)
 
 pgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
