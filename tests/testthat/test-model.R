@@ -119,7 +119,7 @@ pgen2 <- signif(pgen2, "snp_to_F", signAdj = "lambda_i1")
 
 expect_equal(pgen$SNP, paste0("RSID_", 4:6))
 expect_equal(pgen2$SNP, rep(paste0("RSID_", 4:6), 2))
-expect_equal(pgen$snp_to_F, c(.188, .066, -.081), tolerance=.001)
+expect_equal(pgen$snp_to_F, c(0.189, 0.0676, -0.0814), tolerance=.001)
 
 pgen <- read.table(file.path(tdir, "out.log"), as.is = TRUE, header=TRUE,
                    sep="\t", check.names=FALSE, quote="", comment.char="")
@@ -154,7 +154,7 @@ expect_equivalent(colMeans(l2) / loadings, rep(1, numIndicators), tolerance=.2)
 
 pgen <- loadResults(file.path(tdir, "out.log"), "snp_to_i2")
 pgen <- signif(pgen, "snp_to_i2")
-expect_equal(pgen$P, c(0.481, 0.896, 0.412), tolerance=1e-2)
+expect_equal(pgen$P, c(0.4809, 0.89, 0.3945), tolerance=1e-2)
 
 # -----------------
 
