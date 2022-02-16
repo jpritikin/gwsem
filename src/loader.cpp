@@ -427,7 +427,7 @@ void setup2(AddLoadDataProviderType aldp)
   };
   auto apiHash = DJBHash((char*)sz2, sizeof(sz2));
 #ifndef SKIP_PLINK
-	aldp(OPENMX_LOAD_DATA_API_VERSION, apiHash, new LoadDataPGENProvider2());
+	aldp(OPENMX_LOAD_DATA_API_VERSION, apiHash, std::make_unique<LoadDataPGENProvider2>());
 #endif
-	aldp(OPENMX_LOAD_DATA_API_VERSION, apiHash, new LoadDataBGENProvider2());
+	aldp(OPENMX_LOAD_DATA_API_VERSION, apiHash, std::make_unique<LoadDataBGENProvider2>());
 }

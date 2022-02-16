@@ -1,5 +1,5 @@
-#ifndef _LOAD_DATA_API_H_
-#define _LOAD_DATA_API_H_
+#ifndef u_LOAD_DATA_API_H_
+#define u_LOAD_DATA_API_H_
 
 #include <memory>
 
@@ -68,11 +68,11 @@ protected:
 
 public:
 	const std::vector< int > &getColumns() { return columns; }
-	void commonInit(SEXP rObj, const char *_name,
-                  const char *_dataName, int rows,
-                  std::vector<ColumnData> &_rawCols,
-                  ColMapType &_rawColMap,
-                  std::vector< std::string > &_checkpointValues,
+	void commonInit(SEXP rObj, const char *u_name,
+                  const char *u_dataName, int rows,
+                  std::vector<ColumnData> &u_rawCols,
+                  ColMapType &u_rawColMap,
+                  std::vector< std::string > &u_checkpointValues,
                   bool useOriginalData);
 	virtual int getNumVariants() { return 0; }
 	bool wantCheckpoint() const { return checkpoint; }
@@ -125,15 +125,17 @@ public:
 template <typename Derived>
 class LoadDataProvider2 : public LoadDataProviderBase2 {
 public:
-	virtual std::unique_ptr<LoadDataProviderBase2> clone() {
+	virtual std::unique_ptr<LoadDataProviderBase2> clone() override {
 		return std::unique_ptr<LoadDataProviderBase2>(new Derived());
 	}
 };
 
 //#define OPENMX_LOAD_DATA_API_VERSION 0.17789282277226448059
 //#define OPENMX_LOAD_DATA_API_VERSION 0.3091921037994325
-#define OPENMX_LOAD_DATA_API_VERSION 0.5240939254872501 // this is a random number
+//#define OPENMX_LOAD_DATA_API_VERSION 0.5240939254872501
+#define OPENMX_LOAD_DATA_API_VERSION 0.86661313916556537151 // this is a random number
 
-typedef void (*AddLoadDataProviderType)(double version, unsigned int ldpbSz, LoadDataProviderBase2 *ldp);
+typedef void (*AddLoadDataProviderType)(double version, unsigned int ldpbSz,
+                                        std::unique_ptr<LoadDataProviderBase2> ldp);
 
 #endif

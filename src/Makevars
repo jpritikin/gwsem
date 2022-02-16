@@ -1,4 +1,4 @@
-CXX_STD = CXX11
+CXX_STD = CXX14
 
 #xcheck_CXXFLAGS=-fsanitize=undefined -fno-omit-frame-pointer
 #xcheck_LDFLAGS=-fsanitize=undefined
