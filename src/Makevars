@@ -11,10 +11,6 @@ NO_INLINE=-fno-inline -fno-inline-small-functions -fno-default-inline
 #BGEN_DEBUG += -D DEBUG=1
 
 COMMON_FLAGS=-I. -Iinclude \
--Iinclude/zstd-1.1.0 \
--Iinclude/zstd-1.1.0/common \
--Iinclude/zstd-1.1.0/compress \
--Iinclude/zstd-1.1.0/decompress \
 -D SQLITE_ENABLE_COLUMN_METADATA \
 -D SQLITE_ENABLE_STAT4 \
 -D SQLITE_MAX_EXPR_DEPTH=10000 \
@@ -27,6 +23,6 @@ PKG_CXXFLAGS=  \
  $(xcheck_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) \
  $(COMMON_FLAGS)
 
-PKG_LIBS= $(xcheck_LDFLAGS) $(COMPILER_LDFLAGS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS) -lz
+PKG_LIBS= $(xcheck_LDFLAGS) $(COMPILER_LDFLAGS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS) -lzstd -lz
 
 -include autodep
