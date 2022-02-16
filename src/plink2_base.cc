@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "disable_plink.h"
+#ifndef SKIP_PLINK
 
 #include "plink2_base.h"
 
@@ -561,4 +563,6 @@ uintptr_t FirstUnequal4(const void* arr1, const void* arr2, uintptr_t nbytes) {
 
 #ifdef __cplusplus
 }  // namespace plink2
+#endif
+
 #endif

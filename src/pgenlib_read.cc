@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "disable_plink.h"
+#ifndef SKIP_PLINK
 
 #include "pgenlib_read.h"
 
@@ -26,6 +28,21 @@
 #  include <fcntl.h>  // open()
 #  include <unistd.h>  // fstat()
 #endif
+
+#  include <fcntl.h>  // posix_fadvise
+
+#ifdef stderr
+#undef stderr
+#endif
+
+#define stderr not_stderr
+
+#undef exit
+#define exit(val) mxThrow("exit(%d)", val)
+#undef fputs
+#define fputs(msg, ign) mxThrow("pgenlib: %s", msg)
+#undef fprintf
+#define fprintf(file, msg, val)
 
 #ifdef __cplusplus
 namespace plink2 {
@@ -743,6 +760,9 @@ PglErr PgfiInitPhase1(const char* fname, uint32_t raw_variant_ct, uint32_t raw_s
       snprintf(errstr_buf, kPglErrstrBufBlen, "Error: %s read failure: %s.\n", fname, strerror(errno));
       return kPglRetReadFail;
     }
+#ifdef POSIX_FADV_SEQUENTIAL
+    posix_fadvise(fileno(shared_ff), 0, 0, POSIX_FADV_SEQUENTIAL); // ignore potential error
+#endif
     fread_ptr = small_readbuf;
   }
   // deliberate underflow
@@ -2477,7 +2497,7 @@ PglErr ParseOnebitUnsafe(const unsigned char* fread_end, const unsigned char** f
       }
       ww = ProperSubwordLoad(&(onebit_main_alias[genoarr_widx_trail]), 1 + (((raw_sample_ct - 1) % kBitsPerWordD2) / CHAR_BIT));
     } else {
-      ww = onebit_main_alias[genoarr_widx];
+      memcpy(&ww, onebit_main_alias + genoarr_widx, sizeof(ww));
     }
     // apply middle-out operation
     // 64-bit:
@@ -7143,7 +7163,8 @@ PglErr ParseDosage16(const unsigned char* fread_ptr, const unsigned char* fread_
       } else {
         if (!subsetting_required) {
           for (uint32_t sample_idx = 0; sample_idx != sample_ct; ++sample_idx) {
-            const uint16_t cur_dosage = *dosage_main_read_iter++;
+            uint16_t cur_dosage;
+            memcpy(&cur_dosage, dosage_main_read_iter++, sizeof(cur_dosage));
             if (cur_dosage != 65535) {
               *dosage_main_write_iter++ = cur_dosage;
             } else {
@@ -10389,4 +10410,6 @@ BoolErr CleanupPgr(PgenReader* pgr_ptr, PglErr* reterrp) {
 
 #ifdef __cplusplus
 }  // namespace plink2
+#endif
+
 #endif

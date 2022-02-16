@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "disable_plink.h"
+#ifndef SKIP_PLINK
 
 #include "pgenlib_misc.h"
 
@@ -2856,4 +2858,6 @@ void PglMultiallelicSparseToDenseMiss(const PgenVariant* pgvp, uint32_t sample_c
 
 #ifdef __cplusplus
 }  // namespace plink2
+#endif
+
 #endif
