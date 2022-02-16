@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "disable_plink.h"
-#ifndef SKIP_PLINK
 
 #include "plink2_base.h"
 
@@ -478,6 +476,4 @@ int32_t Memcmp(const void* m1, const void* m2, uintptr_t byte_ct) {
 
 #ifdef __cplusplus
 }  // namespace plink2
-#endif
-
 #endif
