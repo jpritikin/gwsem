@@ -12,31 +12,31 @@
 #include <vector>
 #include <exception>
 #include <stdint.h>
-#include "sqlite3/sqlite3.h"
+#include <sqlite3.h>
 #include "db/SQLite3Connection.hpp"
 
 namespace db {
-	
+
 	struct SQLError: public std::exception
 	{
 		virtual ~SQLError() throw() {}
 		char const* what() const throw() { return "db::SQLError" ; }
 		virtual std::string description() const = 0 ;
 	} ;
-	
+
 	class SQLStatement
 	{
 	public:
 		typedef std::unique_ptr< SQLStatement > UniquePtr ;
 	public:
 		virtual ~SQLStatement() ;
-		
+
 		// Step to the next result row.  The entries can be accessed using get_column().
 		// Return false if there is no next row, otherwise true.
 		virtual bool step() = 0 ;
-		// Return 
+		// Return
 		virtual bool empty() const = 0 ;
-		
+
 		// Get the result for the given column.
 		// Columns are 0-indexed.
 		template< typename T > T get_column( int column_id ) const ;
@@ -77,10 +77,10 @@ namespace db {
 
 		// Reset the statement, ready to be re-executed.
 		virtual SQLStatement& reset() = 0 ;
-		
+
 		// Return the SQL this statement contains.
 		virtual std::string get_sql() const = 0 ;
-		
+
 	protected:
 		virtual int get_column_int( int column_id ) const = 0 ;
 		virtual int64_t get_column_int64( int column_id ) const = 0 ;
@@ -89,7 +89,7 @@ namespace db {
 		virtual char get_column_char( int column_id ) const = 0 ;
 		virtual std::vector< uint8_t > get_column_blob( int column_id ) const = 0 ;
 	} ;
-	
+
 	template<> int SQLStatement::get_column< int >( int column_id ) const ;
 	template<> int64_t SQLStatement::get_column< int64_t >( int column_id ) const ;
 	template<> double SQLStatement::get_column< double >( int column_id ) const ;

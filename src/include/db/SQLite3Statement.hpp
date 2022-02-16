@@ -11,7 +11,7 @@
 #include <string>
 #include <exception>
 
-#include "sqlite3/sqlite3.h"
+#include <sqlite3.h>
 #include "db/SQLite3Connection.hpp"
 #include "db/SQLStatement.hpp"
 
@@ -23,7 +23,7 @@ namespace db {
 		~SQLite3Statement() ;
 		bool step() ;
 		bool empty() const ;
-		
+
 		std::size_t get_number_of_columns() const ;
 		std::string get_name_of_column( std::size_t i ) const ;
 		bool is_null( int column_id ) const ;
@@ -75,19 +75,19 @@ namespace db {
 			} ;
 		} ;
 	protected:
-		
+
 		int64_t get_column_int64( int column_id ) const ;
 		int get_column_int( int column_id ) const ;
 		double get_column_double( int column_id ) const ;
 		std::string get_column_string( int column_id ) const ;
 		char get_column_char( int column_id ) const ;
 		std::vector< uint8_t > get_column_blob( int column_id ) const ;
-		
+
 		int get_column_count() const ;
 
 	private:
 		sqlite3_stmt* m_statement ;
-		SQLite3Connection* m_connection ;	
+		SQLite3Connection* m_connection ;
 		bool m_have_results ;
 	} ;
 

@@ -35,9 +35,9 @@ namespace db {
 	{
 		assert( m_error != SQLite3Statement::Error::OK ) ;
 	}
-	
+
 	Error::~Error() throw() {}
-	
+
 	std::string Error::description() const {
 		typedef db::SQLite3Statement::Error Error ;
 		std::string result ;
@@ -97,7 +97,7 @@ extern "C" {
 		std::cerr << "SQLite3 trace: SQL = \"" << sql << "\".\n" ;
 #endif
 	}
-	
+
 	int sqlite3_busy_callback( void*, int number_of_tries ) {
 		if( number_of_tries > 10 ) {
 			return 0 ;
@@ -120,10 +120,10 @@ namespace db {
 		close_db_connection_if_necessary() ;
 	}
 
-	
+
 	SQLite3Connection::StatementPtr SQLite3Connection::get_statement( std::string const& SQL ) {
 		return StatementPtr( new SQLite3Statement( this, SQL ) ) ;
-	}	
+	}
 
 	Connection::RowId SQLite3Connection::get_last_insert_row_id() const {
 		uint64_t result = sqlite3_last_insert_rowid( m_db_connection ) ;
@@ -161,7 +161,7 @@ namespace db {
 		}
 		return (code == SQLITE_ROW);
 	}
-	
+
 	void SQLite3Connection::open_db_connection( std::string const& filename, bool overwrite, std::string const& mode ) {
 		int flags = 0 ;
 		if( mode == "r" ) {
@@ -203,11 +203,11 @@ namespace db {
 		}
 #endif
 	}
-	
-	SQLite3Connection::ScopedTransactionPtr SQLite3Connection::open_transaction( double max_seconds_to_wait ) {		
+
+	SQLite3Connection::ScopedTransactionPtr SQLite3Connection::open_transaction( double max_seconds_to_wait ) {
 		ScopedTransactionPtr transaction ;
 		// we wait 10 milliseconds between attempts.
-		
+
 		for( std::size_t count = 0 ; true; ++count ) {
 			try {
 				transaction.reset( new SQLite3Connection::Transaction( *this ) ) ;
@@ -228,13 +228,13 @@ namespace db {
 		}
 		return transaction ;
 	}
-	
+
 	SQLite3Connection::Transaction::Transaction( SQLite3Connection& connection ):
 		m_connection( connection )
 	{
 		m_connection.run_statement( "BEGIN IMMEDIATE TRANSACTION" ) ;
 	}
-	
+
 	SQLite3Connection::Transaction::~Transaction() {
 		m_connection.run_statement( "COMMIT" ) ;
 	}
@@ -250,7 +250,7 @@ namespace db {
 #include <string>
 #include <exception>
 #include <boost/lexical_cast.hpp>
-#include "sqlite3/sqlite3.h"
+#include <sqlite3.h>
 #include "db/SQLite3Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "db/SQLite3Statement.hpp"
@@ -266,7 +266,7 @@ namespace db {
 		//std::cerr << "SQLite3Statement::SQLite3Statement(): statement is \"" + SQL + "\".\n" ;
 		assert( m_statement != 0 ) ;
 	}
-	
+
 	SQLite3Statement::~SQLite3Statement() {
 		m_connection->finalise_statement( m_statement ) ;
 	}
@@ -403,7 +403,7 @@ namespace db {
 		assert( m_statement != 0 ) ;
 		return sqlite3_column_double( m_statement, column_id ) ;
 	}
-	
+
 	std::string SQLite3Statement::get_column_string( int column_id ) const {
 		assert( m_statement != 0 ) ;
 		return reinterpret_cast< char const * >( sqlite3_column_text( m_statement, column_id ) ) ;
@@ -416,14 +416,14 @@ namespace db {
 		assert( bytes == 1 ) ;
 		return *p ;
 	}
-	
+
 	std::vector< uint8_t > SQLite3Statement::get_column_blob( int column_id ) const {
 		assert( m_statement != 0 ) ;
 		uint8_t const* p = reinterpret_cast< uint8_t const* >( sqlite3_column_blob( m_statement, column_id )) ;
 		int nBytes = sqlite3_column_bytes( m_statement, column_id ) ;
 		return std::vector< uint8_t >( p, p+nBytes ) ;
 	}
-	
+
 	int SQLite3Statement::get_column_count() const {
 		assert( m_statement != 0 ) ;
 		return sqlite3_column_count( m_statement ) ;
@@ -438,12 +438,12 @@ namespace db {
 #include <cassert>
 #include <string>
 #include <stdint.h>
-#include "sqlite3/sqlite3.h"
+#include <sqlite3.h>
 #include "db/SQLStatement.hpp"
 
 namespace db {
 	SQLStatement::~SQLStatement() {}
-	
+
 	template<>
 	int SQLStatement::get_column< int >( int column_id ) const {
 		return this->get_column_int( column_id ) ;
@@ -473,7 +473,7 @@ namespace db {
 	std::vector< uint8_t > SQLStatement::get_column< std::vector< uint8_t > >( int column_id ) const {
 		return this->get_column_blob( column_id ) ;
 	}
-	
+
 	SQLStatement& SQLStatement::bind( std::size_t i, char const* value ) {
 		bind( i, std::string( value )) ;
 		return *this ;

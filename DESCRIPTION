@@ -33,7 +33,8 @@ Authors@R:
              role = "cph"),
       person(given = "Kim",
              family = "Walisch",
-             role = "cph"))
+             role = "cph"),
+             person(given="D. Richard", family="Hipp", role="cph"))
 Description: Melds genome-wide association tests with structural
     equation modeling (SEM) using 'OpenMx'. This package contains
     low-level C/C++ code to rapidly read genetic data encoded in U.K.

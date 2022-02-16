@@ -10,7 +10,7 @@
 #include <cassert>
 #include <string>
 #include <exception>
-#include "sqlite3/sqlite3.h"
+#include <sqlite3.h>
 #include "db/Connection.hpp"
 #include "db/Transaction.hpp"
 #include "db/Error.hpp"
@@ -39,7 +39,7 @@ namespace db {
 		sqlite3_stmt* prepare_sql( std::string const& SQL ) const ;
 		int finalise_statement( sqlite3_stmt* statement ) ;
 		int step_statement( sqlite3_stmt* statement ) ;
-	
+
 		std::string get_spec() const {
 			return m_filename ;
 		}
