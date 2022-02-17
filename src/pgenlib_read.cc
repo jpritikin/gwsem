@@ -2497,7 +2497,7 @@ PglErr ParseOnebitUnsafe(const unsigned char* fread_end, const unsigned char** f
       }
       ww = ProperSubwordLoad(&(onebit_main_alias[genoarr_widx_trail]), 1 + (((raw_sample_ct - 1) % kBitsPerWordD2) / CHAR_BIT));
     } else {
-      memcpy(&ww, onebit_main_alias + genoarr_widx, sizeof(ww));
+      ww = onebit_main_alias[genoarr_widx];
     }
     // apply middle-out operation
     // 64-bit:
@@ -7163,8 +7163,7 @@ PglErr ParseDosage16(const unsigned char* fread_ptr, const unsigned char* fread_
       } else {
         if (!subsetting_required) {
           for (uint32_t sample_idx = 0; sample_idx != sample_ct; ++sample_idx) {
-            uint16_t cur_dosage;
-            memcpy(&cur_dosage, dosage_main_read_iter++, sizeof(cur_dosage));
+            const uint16_t cur_dosage = *dosage_main_read_iter++;
             if (cur_dosage != 65535) {
               *dosage_main_write_iter++ = cur_dosage;
             } else {
