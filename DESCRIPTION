@@ -71,5 +71,5 @@ RdMacros:
 Encoding: UTF-8
 Language: en-US
 NeedsCompilation: yes
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
 SystemRequirements: GNU make

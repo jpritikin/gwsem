@@ -2,7 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
-/NAMESPACE
-/man/*.Rd
 /staging
 inst/doc
