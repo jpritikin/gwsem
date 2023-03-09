@@ -24,15 +24,9 @@ install.packages("OpenMx")
 
 If you want a new version of OpenMx, you can follow the instruction to build it from source [HERE](https://openmx.ssri.psu.edu).
 
-You can install the released version of gwsem from [CRAN](https://CRAN.R-project.org) with:
+GW-SEM is currently under development. You can install gwsem from [github](https://github.com/jpritikin/gwsem) with: `devtools::install_github('https://github.com/jpritikin/gwsem')`
 
-``` r
-install.packages("gwsem")
-```
-
-GW-SEM is currently under development. Therefore, the CRAN version of the software may not include the latest modifactions, enhancements, or functionality.
-
-If you want to use a development snapshot, clone the source code and do
+If you want to regenerate the documentation, clone the source code and do
 
 ```
 git clone https://github.com/jpritikin/gwsem
@@ -41,5 +35,3 @@ cd gwsem
 R CMD INSTALL .
 Rscript tools/test.R
 ```
-
-You cannot use **devtools** `install_github` because it does not run **roxygen2**.
