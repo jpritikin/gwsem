@@ -177,10 +177,11 @@ prepareComputePlan <- function(model, snpData, out="out.log", ...,
   offdiag <- c()
   if (length(model$data$algebra)) {
     gxe <- sapply(model$data$algebra, function(x) model[[x]]$.dimnames[[2]])
+    ename <- unlist(lapply(strsplit(gxe, "_", fixed=TRUE), function(ch) ch[2]))
     outcome <- model$A$free[,'snp']
     outcome <- names(outcome)[outcome]
     offdiag <- c(paste0('snp_to_', outcome),
-                 apply(expand.grid(gxe,"_to_",outcome), 1, paste0, collapse=''))
+                 apply(expand.grid(c(gxe,ename),"_to_",outcome), 1, paste0, collapse=''))
   }
 
   onesnp <- c(

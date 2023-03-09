@@ -63,3 +63,16 @@ test_that("moderator level", {
   expect_equivalent(c(table(isSuspicious(m1, c('snp_to_i3', 'snp_i4_to_i3')))),
                c(197, 2))
 })
+
+test_that("gxe factor", {
+  oi <- buildOneFac(pheno, paste0("i", 3), covariate=("i4"),
+                    gxe=c("i4"), exogenous = FALSE)
+  fit <- GWAS(oi,
+              file.path(dir,"example.pgen"),
+              file.path(tdir, "out.log"))
+  colnames(fit$output$vcov)
+  m1 <- loadResults(file.path(tdir, "out.log"), 'snp_i4_to_F',
+                    extraColumns='Vi4_to_F:snp_i4_to_F')
+  # same indicator is both a moderator and gxe
+  expect_true(any(!is.na(m1[,'Vi4_to_F:snp_i4_to_F'])))
+})
